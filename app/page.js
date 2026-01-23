@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, Users, Clock, TrendingUp, Download, Lock, Eye, EyeOff, LogOut,
   BarChart3, Activity, UserCheck, UserX, AlertCircle, Sun, Moon,
-  ChevronRight, Search, RefreshCw, Award, Target, Shield, Bell
+  ChevronRight, Search, RefreshCw, Award, Target, Shield, Bell,
+  Filter, ArrowUpDown, X
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
@@ -294,72 +295,346 @@ const ClassroomMonitorTab = ({
   </div>
 );
 
-// Logs Tab Component
-const LogsTab = ({ darkMode, loading, logs, exportToCSV, students }) => (
-  <div className="space-y-6 animate-fade-in">
-    <div className="flex justify-between items-center">
-      <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-        Attendance Logs
-      </h2>
-      <button
-        onClick={exportToCSV}
-        disabled={logs.length === 0}
-        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Download size={18} />
-        Export CSV
-      </button>
-    </div>
+// Enhanced Logs Tab Component with filters
+const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, classes }) => {
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [dateFilter, setDateFilter] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'IN', 'OUT'
+  const [classFilter, setClassFilter] = useState('all'); // 'all' or specific class
 
-    <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
-      <div className="overflow-x-auto">
-        {loading ? (
-          <div className="p-12 text-center">
-            <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-            <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading logs...</p>
+  // Reset all filters
+  const resetFilters = () => {
+    setSearchTerm('');
+    setSortOrder('newest');
+    setDateFilter({ startDate: '', endDate: '' });
+    setStatusFilter('all');
+    setClassFilter('all');
+  };
+
+  // Get unique classes from logs
+  const uniqueClasses = useMemo(() => {
+    const classesSet = new Set(allLogs.map(log => log.class));
+    return Array.from(classesSet).sort();
+  }, [allLogs]);
+
+  // Filter and sort logs
+  const filteredLogs = useMemo(() => {
+    let filtered = [...allLogs];
+
+    // Apply search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(log =>
+        log.studentId.toLowerCase().includes(term) ||
+        log.name.toLowerCase().includes(term) ||
+        log.class.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply date filter
+    if (dateFilter.startDate) {
+      filtered = filtered.filter(log => {
+        const logDate = log.timestamp.split('T')[0];
+        return logDate >= dateFilter.startDate;
+      });
+    }
+    if (dateFilter.endDate) {
+      filtered = filtered.filter(log => {
+        const logDate = log.timestamp.split('T')[0];
+        return logDate <= dateFilter.endDate;
+      });
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(log => log.status === statusFilter);
+    }
+
+    // Apply class filter
+    if (classFilter !== 'all') {
+      filtered = filtered.filter(log => log.class === classFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+
+    return filtered;
+  }, [allLogs, searchTerm, sortOrder, dateFilter, statusFilter, classFilter]);
+
+  // Get date range for default values
+  const today = new Date().toISOString().split('T')[0];
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center">
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          Attendance Logs
+        </h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
+          >
+            <X size={18} />
+            Reset Filters
+          </button>
+          <button
+            onClick={() => exportToCSV(filteredLogs)}
+            disabled={filteredLogs.length === 0}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={18} />
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Enhanced Filter Controls */}
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <div className="flex items-center gap-2 mb-4">
+          <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Filter Logs
+          </h3>
+          <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+            {filteredLogs.length} of {allLogs.length} logs
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Search */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Search
+            </label>
+            <div className="relative">
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Student ID, Name, Class..."
+                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+              />
+            </div>
           </div>
-        ) : logs.length === 0 ? (
-          <div className="p-12 text-center">
-            <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-            <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records found</p>
-            <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-              {students.length === 0 ? 'No students in your assigned classes' : 'Students haven\'t checked in yet'}
-            </p>
+
+          {/* Sort Order */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Sort Order
+            </label>
+            <div className="relative">
+              <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500`}
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
           </div>
-        ) : (
-          <table className="w-full">
-            <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
-              <tr>
-                <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
-                <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
-                <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
-                <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
-                <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {logs.map((log, idx) => (
-                <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.timestamp}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      log.status === 'IN' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
-                    }`}>
-                      {log.status}
-                    </span>
-                  </td>
-                </tr>
+
+          {/* Status Filter */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+            >
+              <option value="all">All Status</option>
+              <option value="IN">IN Only</option>
+              <option value="OUT">OUT Only</option>
+            </select>
+          </div>
+
+          {/* Class Filter */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Class
+            </label>
+            <select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+            >
+              <option value="all">All Classes</option>
+              {uniqueClasses.map((cls, idx) => (
+                <option key={idx} value={cls}>{cls}</option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </div>
+
+          {/* Quick Date Presets */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Quick Date Range
+            </label>
+            <select
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === 'today') {
+                  setDateFilter({ startDate: today, endDate: today });
+                } else if (value === 'week') {
+                  setDateFilter({ startDate: oneWeekAgo, endDate: today });
+                } else if (value === 'month') {
+                  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                  setDateFilter({ startDate: oneMonthAgo, endDate: today });
+                } else if (value === 'custom') {
+                  // Keep current custom dates
+                }
+              }}
+              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+            >
+              <option value="">Custom Range</option>
+              <option value="today">Today</option>
+              <option value="week">Last 7 Days</option>
+              <option value="month">Last 30 Days</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Date Range Pickers */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={dateFilter.startDate}
+              onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+              max={today}
+              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              End Date
+            </label>
+            <input
+              type="date"
+              value={dateFilter.endDate}
+              onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+              max={today}
+              min={dateFilter.startDate}
+              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+            />
+          </div>
+        </div>
+
+        {/* Active Filters Display */}
+        {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || classFilter !== 'all') && (
+          <div className="mt-4 pt-4 border-t border-gray-700/50">
+            <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                  Search: "{searchTerm}"
+                </span>
+              )}
+              {dateFilter.startDate && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                  From: {dateFilter.startDate}
+                </span>
+              )}
+              {dateFilter.endDate && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                  To: {dateFilter.endDate}
+                </span>
+              )}
+              {statusFilter !== 'all' && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
+                  Status: {statusFilter}
+                </span>
+              )}
+              {classFilter !== 'all' && (
+                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
+                  Class: {classFilter}
+                </span>
+              )}
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Logs Table */}
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-12 text-center">
+              <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading logs...</p>
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="p-12 text-center">
+              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records match your filters</p>
+              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Try changing your filter criteria or reset filters
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="px-6 py-4 border-b border-gray-700/50">
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Showing {filteredLogs.length} of {allLogs.length} logs • Sorted by {sortOrder === 'newest' ? 'newest to oldest' : 'oldest to newest'}
+                </p>
+              </div>
+              <table className="w-full">
+                <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
+                  <tr>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
+                  </tr>
+                </thead>
+                <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                  {filteredLogs.map((log, idx) => (
+                    <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          log.status === 'IN' 
+                            ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                            : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                        }`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -556,8 +831,13 @@ export default function AttendancePortal() {
           stats: fetchedStats
         });
 
+        // Sort logs by newest first initially
+        const sortedLogs = fetchedLogs.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
         setStudents(fetchedStudents);
-        setLogs(fetchedLogs);
+        setLogs(sortedLogs);
         setStats(fetchedStats);
         calculateWeeklyData(fetchedLogs);
       } else {
@@ -625,11 +905,11 @@ export default function AttendancePortal() {
     return lastLog.status === 'IN' ? 'present' : 'absent';
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = (logsToExport = logs) => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
     const csvContent = [
       headers.join(','),
-      ...logs.map(log => 
+      ...logsToExport.map(log => 
         [log.timestamp, log.studentId, `"${log.name}"`, log.class, log.status].join(',')
       )
     ].join('\n');
@@ -887,6 +1167,7 @@ export default function AttendancePortal() {
                 logs={logs}
                 exportToCSV={exportToCSV}
                 students={students}
+                classes={classes}
               />
             )}
           </>
