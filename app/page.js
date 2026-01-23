@@ -556,74 +556,342 @@ export default function AttendancePortal() {
           </div>
         )}
 
-        {/* Logs Table */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Attendance Logs</h2>
-            {logs.length > 0 && (
-              <button
-                onClick={exportToCSV}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg"
-              >
-                <Download size={18} />
-                Export CSV
-              </button>
-            )}
+  // Dashboard Tab - Teachers only
+  const DashboardTab = () => (
+    <div className="space-y-6 animate-fade-in">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-blue-600', bg: darkMode ? 'bg-blue-500/10' : 'bg-blue-50' },
+          { title: 'Present Today', value: stats.presentToday, icon: UserCheck, color: 'from-green-500 to-green-600', bg: darkMode ? 'bg-green-500/10' : 'bg-green-50' },
+          { title: 'Absent Today', value: stats.absentToday, icon: UserX, color: 'from-red-500 to-red-600', bg: darkMode ? 'bg-red-500/10' : 'bg-red-50' },
+          { title: 'Attendance Rate', value: `${stats.attendanceRate}%`, icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: darkMode ? 'bg-purple-500/10' : 'bg-purple-50' },
+        ].map((stat, idx) => (
+          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className={`bg-gradient-to-br ${stat.color} p-3 rounded-xl`}>
+                <stat.icon size={24} className="text-white" />
+              </div>
+            </div>
+            <div>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{stat.title}</p>
+              <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
+            </div>
           </div>
+        ))}
+      </div>
 
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="p-12 text-center">
-                <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading data...</p>
-              </div>
-            ) : logs.length === 0 ? (
-              <div className="p-12 text-center">
-                <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records found</p>
-                <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  {students.length === 0 ? 'No students in your assigned classes' : 'Students haven\'t checked in yet'}
-                </p>
-                <button
-                  onClick={fetchData}
-                  className="mt-4 flex items-center gap-2 mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg"
-                >
-                  <RefreshCw size={18} />
-                  Refresh Data
-                </button>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
-                  <tr>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                  {logs.slice(0, 50).map((log, idx) => (
-                    <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.timestamp}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          log.status === 'IN' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
-                        }`}>
-                          {log.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Weekly Attendance Trend */}
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+            <Activity className="text-blue-500" size={20} />
+            Weekly Attendance Trend
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={weeklyData}>
+              <defs>
+                <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+                </linearGradient>
+                <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
+              }} />
+              <Legend />
+              <Area type="monotone" dataKey="present" stroke="#10b981" fillOpacity={1} fill="url(#colorPresent)" name="Present" />
+              <Area type="monotone" dataKey="absent" stroke="#ef4444" fillOpacity={1} fill="url(#colorAbsent)" name="Absent" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
+
+        {/* Attendance Rate Line */}
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+            <TrendingUp className="text-purple-500" size={20} />
+            Attendance Rate Trend
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px' 
+              }} />
+              <Line type="monotone" dataKey="present" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', r: 5 }} name="Present Students" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Daily Comparison Bar Chart */}
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+            <BarChart3 className="text-orange-500" size={20} />
+            Daily Present vs Absent
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px' 
+              }} />
+              <Legend />
+              <Bar dataKey="present" fill="#10b981" radius={[8, 8, 0, 0]} name="Present" />
+              <Bar dataKey="absent" fill="#ef4444" radius={[8, 8, 0, 0]} name="Absent" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Class Performance */}
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+            <Target className="text-indigo-500" size={20} />
+            Class-wise Attendance
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={classes.map(cls => {
+              const classStudents = students.filter(s => s.class === cls);
+              const today = new Date().toISOString().split('T')[0];
+              const todayLogs = logs.filter(log => log.class === cls && log.timestamp.startsWith(today) && log.status === 'IN');
+              const present = new Set(todayLogs.map(log => log.studentId)).size;
+              const rate = classStudents.length > 0 ? Math.round((present / classStudents.length) * 100) : 0;
+              return { name: cls, rate, present, total: classStudents.length };
+            })}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px' 
+              }} />
+              <Bar dataKey="rate" fill="#6366f1" radius={[8, 8, 0, 0]} name="Attendance %" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Classroom Monitor Tab
+  const ClassroomMonitorTab = () => (
+    <div className="space-y-6 animate-fade-in">
+      {/* Search Bar */}
+      <div className="flex gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+          <input
+            type="text"
+            placeholder="Search students..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800/40 border-gray-700 text-white' : 'bg-white/40 border-gray-200 text-gray-900'} border-2 backdrop-blur-xl focus:ring-2 focus:ring-blue-500`}
+          />
+        </div>
+      </div>
+
+      {/* Class Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {classes.map((className, idx) => {
+          const classStudents = students.filter(s => s.class === className);
+          const presentCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
+          const absentCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'absent').length;
+          const noLogsCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'no-logs').length;
+          const isExpanded = selectedClass === className;
+          
+          return (
+            <div
+              key={idx}
+              className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
+            >
+              {/* Class Header */}
+              <div
+                onClick={() => setSelectedClass(isExpanded ? null : className)}
+                className="p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-2xl"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{className}</h3>
+                  <ChevronRight 
+                    size={24} 
+                    className={`${isExpanded ? 'rotate-90' : ''} transition-transform ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
+                  />
+                </div>
+                
+                {/* Stats Row */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-green-500/10 rounded-lg p-3">
+                    <p className="text-xs text-green-600 dark:text-green-400 mb-1">Present</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{presentCount}</p>
+                  </div>
+                  <div className="bg-red-500/10 rounded-lg p-3">
+                    <p className="text-xs text-red-600 dark:text-red-400 mb-1">Absent</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{absentCount}</p>
+                  </div>
+                  <div className="bg-gray-500/10 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">No Logs</p>
+                    <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{noLogsCount}</p>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                      Total: {classStudents.length} students
+                    </span>
+                    <span className="font-semibold text-green-600 dark:text-green-400">
+                      {classStudents.length > 0 ? Math.round((presentCount / classStudents.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                      style={{ width: `${classStudents.length > 0 ? (presentCount / classStudents.length) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expanded Student List */}
+              {isExpanded && (
+                <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2 max-h-96 overflow-y-auto">
+                  {classStudents
+                    .filter(s => 
+                      searchQuery === '' || 
+                      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((student, sIdx) => {
+                      const status = getStudentStatus(student.studentId);
+                      return (
+                        <div 
+                          key={sIdx} 
+                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                            status === 'present' ? 'bg-green-500/10 hover:bg-green-500/20' :
+                            status === 'absent' ? 'bg-red-500/10 hover:bg-red-500/20' :
+                            'bg-gray-500/10 hover:bg-gray-500/20'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-3 h-3 rounded-full ${
+                              status === 'present' ? 'bg-green-500 shadow-lg shadow-green-500/50' :
+                              status === 'absent' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
+                              'bg-gray-400 shadow-lg shadow-gray-400/50'
+                            }`}></div>
+                            <div>
+                              <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {student.name}
+                              </p>
+                              <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {student.studentId}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            status === 'present' ? 'bg-green-500 text-white' :
+                            status === 'absent' ? 'bg-red-500 text-white' :
+                            'bg-gray-400 text-white'
+                          }`}>
+                            {status === 'present' ? 'IN' : status === 'absent' ? 'OUT' : 'NO LOGS'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Logs Tab
+  const LogsTab = () => (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center">
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          Attendance Logs
+        </h2>
+        <button
+          onClick={exportToCSV}
+          disabled={logs.length === 0}
+          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download size={18} />
+          Export CSV
+        </button>
+      </div>
+
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="p-12 text-center">
+              <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading logs...</p>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="p-12 text-center">
+              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records found</p>
+              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                {students.length === 0 ? 'No students in your assigned classes' : 'Students haven\'t checked in yet'}
+              </p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
+                <tr>
+                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
+                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
+                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
+                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
+                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                {logs.map((log, idx) => (
+                  <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.timestamp}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        log.status === 'IN' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                      }`}>
+                        {log.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
       </div>
 
       <style jsx global>{`
