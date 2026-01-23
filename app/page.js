@@ -16,6 +16,7 @@ const AUTH_ENDPOINT = '/api/auth';
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 
 export default function AttendancePortal() {
+  // --- State Management ---
   const [authenticated, setAuthenticated] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [userType, setUserType] = useState(null);
@@ -42,6 +43,7 @@ export default function AttendancePortal() {
   });
   const [weeklyData, setWeeklyData] = useState([]);
 
+  // --- Initialization & Session Recovery ---
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme');
@@ -60,17 +62,17 @@ export default function AttendancePortal() {
       } else {
         setAuthenticated(true);
         setUserType(sessionStorage.getItem('userType'));
-        const info = sessionStorage.getItem('userInfo');
-        setUserInfo(info ? JSON.parse(info) : null);
+        const savedInfo = sessionStorage.getItem('userInfo');
+        setUserInfo(savedInfo ? JSON.parse(savedInfo) : null);
       }
     }
   }, []);
 
+  // --- Session Monitoring ---
   useEffect(() => {
     if (!authenticated) return;
     const checkSession = setInterval(() => {
-      const timeSinceActivity = Date.now() - lastActivity;
-      if (timeSinceActivity > SESSION_TIMEOUT) {
+      if (Date.now() - lastActivity > SESSION_TIMEOUT) {
         alert('Session expired due to inactivity');
         handleLogout();
       }
@@ -86,47 +88,7 @@ export default function AttendancePortal() {
     return () => events.forEach(event => document.removeEventListener(event, updateActivity));
   }, [authenticated]);
 
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
-  const secureApiCall = async (action, params = {}) => {
-    const sessionToken = sessionStorage.getItem('sessionToken');
-    if (!sessionToken) throw new Error('Not authenticated');
-
-    const queryParams = new URLSearchParams({ action, ...params }).toString();
-    const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Session-Token': sessionToken,
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        handleLogout();
-        throw new Error('Session expired');
-      }
-      throw new Error('API request failed');
-    }
-    return response.json();
-  };
-
+  // --- Auth Handlers ---
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoginError('');
@@ -162,30 +124,34 @@ export default function AttendancePortal() {
     sessionStorage.clear();
     setAuthenticated(false);
     setUserType(null);
-    setUsername('');
-    setPassword('');
     setUserInfo(null);
-    setLogs([]);
+  };
+
+  // --- Data Fetching ---
+  const secureApiCall = async (action, params = {}) => {
+    const sessionToken = sessionStorage.getItem('sessionToken');
+    const queryParams = new URLSearchParams({ action, ...params }).toString();
+    const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
+      headers: { 'X-Session-Token': sessionToken },
+    });
+    if (!response.ok) throw new Error('API request failed');
+    return response.json();
   };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const endDate = new Date().toISOString().split('T')[0];
-      const dashboardData = await secureApiCall('getDashboardStats', { startDate, endDate });
-
+      const dashboardData = await secureApiCall('getDashboardStats');
       if (dashboardData.success) {
         setStudents(dashboardData.students || []);
         setLogs(dashboardData.logs || []);
-        setStats(dashboardData.stats || { totalStudents: 0, presentToday: 0, absentToday: 0, attendanceRate: 0 });
+        setStats(dashboardData.stats || stats);
         calculateWeeklyData(dashboardData.logs || []);
       }
-
       const classesData = await secureApiCall('getClasses');
       if (classesData.success) setClasses(classesData.classes || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -195,26 +161,35 @@ export default function AttendancePortal() {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const weekData = days.map(day => ({ name: day, present: 0, absent: 0 }));
     logData.forEach(log => {
-      const date = new Date(log.timestamp);
-      const dayIndex = (date.getDay() + 6) % 7;
+      const dayIndex = (new Date(log.timestamp).getDay() + 6) % 7;
       if (log.status === 'IN') weekData[dayIndex].present++;
       else weekData[dayIndex].absent++;
     });
     setWeeklyData(weekData);
   };
 
+  useEffect(() => {
+    if (authenticated) fetchData();
+  }, [authenticated]);
+
+  // --- Utilities ---
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', !darkMode ? 'dark' : 'light');
+  };
+
   const getStudentStatus = (studentId) => {
     const today = new Date().toISOString().split('T')[0];
-    const studentLogs = logs.filter(log => log.studentId === studentId && log.timestamp.startsWith(today));
-    if (studentLogs.length === 0) return 'no-logs';
-    const lastLog = studentLogs[studentLogs.length - 1];
-    return lastLog.status === 'IN' ? 'present' : 'absent';
+    const studentLogs = logs.filter(l => l.studentId === studentId && l.timestamp.startsWith(today));
+    if (!studentLogs.length) return 'no-logs';
+    return studentLogs[studentLogs.length - 1].status === 'IN' ? 'present' : 'absent';
   };
 
   const exportToCSV = () => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
-    const csvContent = [headers.join(','), ...logs.map(log => [log.timestamp, log.studentId, `"${log.name}"`, log.class, log.status].join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const rows = logs.map(l => [l.timestamp, l.studentId, l.name, l.class, l.status].join(','));
+    const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -222,30 +197,36 @@ export default function AttendancePortal() {
     a.click();
   };
 
-  useEffect(() => {
-    if (authenticated) fetchData();
-  }, [authenticated]);
-
   if (!mounted) return null;
 
+  // --- Auth View ---
   if (!authenticated) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500`}>
-        <div className="relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300">
-          <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-full">{darkMode ? <Sun size={20} /> : <Moon size={20} />}</button>
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-blue-50'} flex items-center justify-center p-4`}>
+        <div className={`w-full max-w-md p-8 rounded-3xl shadow-2xl border ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-white'}`}>
           <div className="flex justify-center mb-6">
-            <div className="bg-blue-500 p-4 rounded-2xl animate-bounce"><Lock size={40} className="text-white" /></div>
+            <div className="bg-blue-600 p-4 rounded-2xl text-white"><Lock size={40} /></div>
           </div>
-          <h1 className="text-4xl font-bold text-center mb-2">Welcome Back</h1>
-          <form onSubmit={handleLogin} className="space-y-5">
-            <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2" placeholder="Username" required />
+          <h1 className="text-3xl font-bold text-center mb-6">RFID Portal</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input 
+              type="text" placeholder="Username" required
+              className={`w-full p-3 rounded-xl border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'}`}
+              value={username} onChange={e => setUsername(e.target.value)}
+            />
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2" placeholder="Password" required />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
+              <input 
+                type={showPassword ? "text" : "password"} placeholder="Password" required
+                className={`w-full p-3 rounded-xl border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50'}`}
+                value={password} onChange={e => setPassword(e.target.value)}
+              />
+              <button type="button" className="absolute right-3 top-3" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
-            {loginError && <div className="text-red-500 text-sm">{loginError}</div>}
-            <button type="submit" disabled={loggingIn} className="w-full bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition-all">
-              {loggingIn ? 'Signing In...' : 'Secure Sign In'}
+            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+            <button className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">
+              {loggingIn ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
         </div>
@@ -253,50 +234,36 @@ export default function AttendancePortal() {
     );
   }
 
-  // --- Sub-components for Tabs ---
+  // --- Main Dashboard Views ---
   const DashboardTab = () => (
     <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-blue-600' },
-          { title: 'Present Today', value: stats.presentToday, icon: UserCheck, color: 'from-green-500 to-green-600' },
-          { title: 'Absent Today', value: stats.absentToday, icon: UserX, color: 'from-red-500 to-red-600' },
-          { title: 'Attendance Rate', value: `${stats.attendanceRate}%`, icon: TrendingUp, color: 'from-purple-500 to-purple-600' },
-        ].map((stat, idx) => (
-          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700 text-white' : 'bg-white border-gray-200'} p-6 rounded-2xl border shadow-xl`}>
-            <div className={`bg-gradient-to-br ${stat.color} w-12 h-12 flex items-center justify-center rounded-xl mb-4`}><stat.icon className="text-white" size={24}/></div>
-            <p className="text-sm opacity-70">{stat.title}</p>
-            <p className="text-3xl font-bold">{stat.value}</p>
+          { label: 'Total', val: stats.totalStudents, icon: Users, color: 'bg-blue-500' },
+          { label: 'Present', val: stats.presentToday, icon: UserCheck, color: 'bg-green-500' },
+          { label: 'Absent', val: stats.absentToday, icon: UserX, color: 'bg-red-500' },
+          { label: 'Rate', val: `${stats.attendanceRate}%`, icon: TrendingUp, color: 'bg-purple-500' },
+        ].map((s, i) => (
+          <div key={i} className={`p-6 rounded-2xl shadow-lg border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
+            <div className={`${s.color} w-10 h-10 rounded-lg flex items-center justify-center text-white mb-2`}>
+              <s.icon size={20} />
+            </div>
+            <p className="text-sm opacity-60">{s.label}</p>
+            <p className="text-2xl font-bold">{s.val}</p>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`${darkMode ? 'bg-gray-800/40' : 'bg-white'} p-6 rounded-2xl border shadow-xl`}>
-          <h3 className="font-bold mb-4">Weekly Attendance Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="present" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className={`${darkMode ? 'bg-gray-800/40' : 'bg-white'} p-6 rounded-2xl border shadow-xl`}>
-            <h3 className="font-bold mb-4">Daily Comparison</h3>
-            <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={weeklyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="present" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="absent" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
-        </div>
+      <div className={`p-6 rounded-2xl shadow-lg border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
+        <h3 className="font-bold mb-4">Weekly Trend</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={weeklyData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Area type="monotone" dataKey="present" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -304,41 +271,37 @@ export default function AttendancePortal() {
   const ClassroomMonitorTab = () => (
     <div className="space-y-6 animate-fade-in">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute left-3 top-3 text-gray-400" size={20} />
         <input 
-          type="text" 
-          placeholder="Search students..." 
-          className="w-full pl-10 pr-4 py-3 rounded-xl border-2" 
-          onChange={(e) => setSearchQuery(e.target.value)} 
+          type="text" placeholder="Search students..." 
+          className={`w-full pl-10 p-3 rounded-xl border ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}
+          onChange={e => setSearchQuery(e.target.value)}
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {classes.map((className, idx) => {
-          const classStudents = students.filter(s => s.class === className);
-          const presentCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
-          const isExpanded = selectedClass === className;
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {classes.map((cls, i) => {
+          const classStudents = students.filter(s => s.class === cls);
+          const present = classStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
           return (
-            <div key={idx} className={`${darkMode ? 'bg-gray-800/40' : 'bg-white'} rounded-2xl border shadow-xl overflow-hidden`}>
-              <div className="p-6 cursor-pointer" onClick={() => setSelectedClass(isExpanded ? null : className)}>
+            <div key={i} className={`rounded-2xl shadow-lg border overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
+              <div className="p-6 cursor-pointer hover:bg-blue-500/5" onClick={() => setSelectedClass(selectedClass === cls ? null : cls)}>
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold">{className}</h3>
-                  <ChevronRight className={isExpanded ? 'rotate-90' : ''} />
+                  <h3 className="font-bold text-lg">{cls}</h3>
+                  <ChevronRight size={20} className={selectedClass === cls ? 'rotate-90' : ''} />
                 </div>
-                <p className="mt-2 text-sm opacity-70">{presentCount} / {classStudents.length} Students Present</p>
+                <div className="mt-4 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500" style={{ width: `${(present / (classStudents.length || 1)) * 100}%` }} />
+                </div>
+                <p className="text-xs mt-2 opacity-60">{present} / {classStudents.length} Present</p>
               </div>
-              {isExpanded && (
-                <div className="p-4 border-t space-y-2">
-                  {classStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map((student, sIdx) => {
-                    const status = getStudentStatus(student.studentId);
-                    return (
-                      <div key={sIdx} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <span>{student.name}</span>
-                        <span className={`text-xs px-2 py-1 rounded-full text-white ${status === 'present' ? 'bg-green-500' : 'bg-red-500'}`}>
-                          {status.toUpperCase()}
-                        </span>
-                      </div>
-                    );
-                  })}
+              {selectedClass === cls && (
+                <div className="p-4 border-t border-gray-700/20 max-h-60 overflow-y-auto">
+                  {classStudents.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map((s, si) => (
+                    <div key={si} className="flex justify-between items-center py-2 text-sm">
+                      <span>{s.name}</span>
+                      <span className={`w-2 h-2 rounded-full ${getStudentStatus(s.studentId) === 'present' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -350,61 +313,67 @@ export default function AttendancePortal() {
 
   const LogsTab = () => (
     <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Recent Activity</h2>
-            <button onClick={exportToCSV} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl"><Download size={18}/> Export CSV</button>
-        </div>
-        <div className="overflow-x-auto rounded-2xl border">
-            <table className="w-full text-left">
-                <thead className={darkMode ? 'bg-gray-800' : 'bg-gray-50'}>
-                    <tr>
-                        <th className="p-4">Time</th>
-                        <th className="p-4">Student</th>
-                        <th className="p-4">Class</th>
-                        <th className="p-4">Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {logs.map((log, i) => (
-                        <tr key={i} className="border-t">
-                            <td className="p-4">{new Date(log.timestamp).toLocaleTimeString()}</td>
-                            <td className="p-4">{log.name}</td>
-                            <td className="p-4">{log.class}</td>
-                            <td className="p-4">
-                                <span className={log.status === 'IN' ? 'text-green-500' : 'text-red-500'}>{log.status}</span>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">Attendance History</h2>
+        <button onClick={exportToCSV} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+          <Download size={16} /> Export
+        </button>
+      </div>
+      <div className={`rounded-2xl shadow-lg border overflow-x-auto ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-gray-700/20 opacity-60 text-xs uppercase">
+              <th className="p-4">Time</th>
+              <th className="p-4">Student</th>
+              <th className="p-4">Class</th>
+              <th className="p-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700/10">
+            {logs.map((log, i) => (
+              <tr key={i} className="text-sm">
+                <td className="p-4">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                <td className="p-4 font-medium">{log.name}</td>
+                <td className="p-4">{log.class}</td>
+                <td className="p-4">
+                  <span className={`px-2 py-1 rounded-md text-xs font-bold ${log.status === 'IN' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                    {log.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} transition-all`}>
-      <header className="p-6 border-b backdrop-blur-md sticky top-0 z-10 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">RFID Attendance</h1>
-          <p className="text-sm opacity-70">{getGreeting()}, {userInfo?.username}</p>
-        </div>
-        <div className="flex gap-4">
-          <button onClick={toggleTheme} className="p-2 rounded-full bg-gray-200 dark:bg-gray-700">{darkMode ? <Sun size={20}/> : <Moon size={20}/>}</button>
-          <button onClick={handleLogout} className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg"><LogOut size={18}/> Logout</button>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <header className={`sticky top-0 z-20 p-4 border-b backdrop-blur-md ${darkMode ? 'bg-gray-900/80 border-gray-800' : 'bg-white/80 border-gray-200'}`}>
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-black tracking-tight text-blue-600">RFID.PORTAL</h1>
+          <div className="flex items-center gap-3">
+            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-gray-500/10">
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button onClick={handleLogout} className="flex items-center gap-2 bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-bold">
+              <LogOut size={18} /> Logout
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-6">
-        <div className="flex gap-4 mb-8">
-            {['Dashboard', 'Classroom', 'Logs'].map((tab, i) => (
-                <button 
-                    key={i} 
-                    onClick={() => setActiveTab(i)} 
-                    className={`px-6 py-2 rounded-full transition-all ${activeTab === i ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-800'}`}
-                >
-                    {tab}
-                </button>
-            ))}
+      <main className="max-w-7xl mx-auto p-4 md:p-8">
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
+          {['Dashboard', 'Classroom', 'Logs'].map((tab, idx) => (
+            <button
+              key={idx} onClick={() => setActiveTab(idx)}
+              className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === idx ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'opacity-50 hover:opacity-100'}`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
         {activeTab === 0 && <DashboardTab />}
@@ -414,7 +383,7 @@ export default function AttendancePortal() {
 
       <style jsx global>{`
         @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.4s ease-out; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
       `}</style>
     </div>
   );
