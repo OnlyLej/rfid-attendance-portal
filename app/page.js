@@ -184,26 +184,72 @@ export default function AttendancePortal() {
       const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
 
+      console.log('Fetching dashboard data...', { startDate, endDate });
+
       // Use getDashboardStats to get everything in one call
       const dashboardData = await secureApiCall('getDashboardStats', {
         startDate,
         endDate
       });
 
+      console.log('Dashboard response:', dashboardData);
+
       if (dashboardData.success) {
-        setStudents(dashboardData.students || []);
-        setLogs(dashboardData.logs || []);
-        setStats(dashboardData.stats || stats);
-        calculateWeeklyData(dashboardData.logs || []);
+        const fetchedStudents = dashboardData.students || [];
+        const fetchedLogs = dashboardData.logs || [];
+        const fetchedStats = dashboardData.stats || {
+          totalStudents: 0,
+          presentToday: 0,
+          absentToday: 0,
+          attendanceRate: 0
+        };
+
+        console.log('Data received:', {
+          students: fetchedStudents.length,
+          logs: fetchedLogs.length,
+          stats: fetchedStats
+        });
+
+        setStudents(fetchedStudents);
+        setLogs(fetchedLogs);
+        setStats(fetchedStats);
+        calculateWeeklyData(fetchedLogs);
+      } else {
+        console.error('Dashboard fetch failed:', dashboardData.message);
+        // Set empty data instead of failing completely
+        setStudents([]);
+        setLogs([]);
+        setStats({
+          totalStudents: 0,
+          presentToday: 0,
+          absentToday: 0,
+          attendanceRate: 0
+        });
       }
 
       // Get classes separately
-      const classesData = await secureApiCall('getClasses');
-      if (classesData.success) {
-        setClasses(classesData.classes || []);
+      try {
+        const classesData = await secureApiCall('getClasses');
+        console.log('Classes response:', classesData);
+        if (classesData.success) {
+          setClasses(classesData.classes || []);
+        }
+      } catch (classError) {
+        console.error('Error fetching classes:', classError);
+        setClasses([]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Set default empty state
+      setStudents([]);
+      setLogs([]);
+      setClasses([]);
+      setStats({
+        totalStudents: 0,
+        presentToday: 0,
+        absentToday: 0,
+        attendanceRate: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -526,34 +572,56 @@ export default function AttendancePortal() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
-                <tr>
-                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
-                  <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                {logs.slice(0, 50).map((log, idx) => (
-                  <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.timestamp}</td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                        log.status === 'IN' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
-                      }`}>
-                        {log.status}
-                      </span>
-                    </td>
+            {loading ? (
+              <div className="p-12 text-center">
+                <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading data...</p>
+              </div>
+            ) : logs.length === 0 ? (
+              <div className="p-12 text-center">
+                <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records found</p>
+                <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {students.length === 0 ? 'No students in your assigned classes' : 'Students haven\'t checked in yet'}
+                </p>
+                <button
+                  onClick={fetchData}
+                  className="mt-4 flex items-center gap-2 mx-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                >
+                  <RefreshCw size={18} />
+                  Refresh Data
+                </button>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
+                  <tr>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
+                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                  {logs.slice(0, 50).map((log, idx) => (
+                    <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.timestamp}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                          log.status === 'IN' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                        }`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
