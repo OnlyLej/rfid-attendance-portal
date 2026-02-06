@@ -127,7 +127,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
   // Calculate class comparison data
   const classComparisonData = useMemo(() => {
-    if (!classes || classes.length === 0) return [];
+    if (!classes || classes.length === 0 || !students || students.length === 0) return [];
     
     return classes.map(cls => {
       const classStudents = students.filter(s => s.class === cls);
@@ -137,17 +137,35 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         log.timestamp?.startsWith(today) && 
         log.status === 'IN'
       );
-      const presentStudents = new Set(todayLogs.map(log => log.studentId));
-      const rate = classStudents.length > 0 ? Math.round((presentStudents.size / classStudents.length) * 100) : 0;
+      
+      // Debug logging
+      console.log(`Class ${cls}:`, {
+        totalStudents: classStudents.length,
+        todayLogsCount: todayLogs.length,
+        todayLogs: todayLogs
+      });
+      
+      const presentStudents = new Set();
+      todayLogs.forEach(log => {
+        if (log.studentId) {
+          presentStudents.add(log.studentId);
+        }
+      });
+      
+      const presentCount = presentStudents.size;
+      const totalCount = classStudents.length;
+      const rate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
       
       return { 
         name: cls.length > 12 ? `${cls.substring(0, 10)}...` : cls, 
-        attendance: rate,
-        present: presentStudents.size, 
-        total: classStudents.length 
+        attendanceRate: rate,
+        attendance: rate, // Keep both for compatibility
+        present: presentCount, 
+        total: totalCount 
       };
-    }).filter(cls => cls.total > 0)
-      .sort((a, b) => b.attendance - a.attendance);
+    })
+    .filter(cls => cls.total > 0)
+    .sort((a, b) => b.attendanceRate - a.attendanceRate);
   }, [classes, students, logs]);
 
   return (
@@ -590,18 +608,23 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                     {classComparisonData[0].present}/{classComparisonData[0].total} students present
                   </p>
                 </div>
-                <div className={`text-3xl font-bold ${classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'}`}>
+                <div className={`text-3xl font-bold ${
+                  classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : 
+                  classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
+                }`}>
                   {classComparisonData[0].attendanceRate}%
                 </div>
               </div>
               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                  style={{ width: `${classComparisonData[0].attendanceRate}%` }}
+                  style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
                 ></div>
               </div>
               <div className="flex justify-between text-sm">
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Rank: 1/{classComparisonData.length}</span>
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                  Rank: 1/{classComparisonData.length}
+                </span>
                 <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
                   {classComparisonData.length > 1 
                     ? `Next: ${classComparisonData[1].name} (${classComparisonData[1].attendanceRate}%)`
@@ -612,6 +635,9 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
           ) : (
             <div className="text-center py-4">
               <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No class data available</p>
+              <p className={`text-sm mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Check if classes and students are properly assigned
+              </p>
             </div>
           )}
         </div>
