@@ -1651,7 +1651,11 @@ export default function AttendancePortal() {
       setStudents(fetchedStudents);
       setLogs(sortedLogs);
       setStats(fetchedStats);
-      calculateWeeklyData(fetchedLogs, fetchedStudents);
+      
+      // Calculate weekly data and set it
+      const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
+      console.log('Setting weekly data:', calculatedWeeklyData);
+      setWeeklyData(calculatedWeeklyData);
       
       // Get classes for teachers only
       if (userType === 'teacher') {
@@ -1679,6 +1683,7 @@ export default function AttendancePortal() {
       absentToday: 0,
       attendanceRate: 0
     });
+    setWeeklyData([]); // Also reset weeklyData on error
   } finally {
     setLoading(false);
   }
