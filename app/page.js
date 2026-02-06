@@ -5,7 +5,7 @@ import {
   Calendar, Users, Clock, TrendingUp, Download, Lock, Eye, EyeOff, LogOut,
   BarChart3, Activity, UserCheck, UserX, AlertCircle, Sun, Moon,
   ChevronRight, Search, RefreshCw, Award, Target, Shield, Bell,
-  Filter, ArrowUpDown, X, User, Info
+  Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
@@ -16,8 +16,55 @@ const API_ENDPOINT = '/api/proxy';
 const AUTH_ENDPOINT = '/api/auth';
 const SESSION_TIMEOUT = 30 * 60 * 1000;
 
-// Dashboard Tab Component
+// Custom hooks for animations
+const useFadeIn = (delay = 0) => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  return visible;
+};
+
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+};
+
+// Animated Card Component
+const AnimatedCard = ({ children, delay = 0, className = '' }) => {
+  const visible = useFadeIn(delay);
+  
+  return (
+    <div 
+      className={`${className} ${visible ? 'animate-fade-in-up' : 'opacity-0'} 
+      transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// Dashboard Tab Component - Enhanced for mobile
 const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) => {
+  const isMobile = useIsMobile();
+  
   // Calculate daily data for the last 7 days
   const dailyData = useMemo(() => {
     const days = [];
@@ -27,7 +74,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       const dateString = date.toISOString().split('T')[0];
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
       
       // Get logs for this day
       const dayLogs = logs.filter(log => log.timestamp?.startsWith(dateString));
@@ -53,14 +100,14 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     }
     
     return days;
-  }, [logs, students]);
+  }, [logs, students, isMobile]);
 
   // Calculate attendance by time of day
   const hourlyData = useMemo(() => {
     const hours = Array.from({ length: 12 }, (_, i) => {
       const hour = i + 7; // 7 AM to 6 PM
       return {
-        name: `${hour}:00`,
+        name: isMobile ? `${hour}` : `${hour}:00`,
         count: 0
       };
     });
@@ -78,7 +125,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     });
     
     return hours;
-  }, [logs]);
+  }, [logs, isMobile]);
 
   // Calculate monthly attendance trend
   const monthlyData = useMemo(() => {
@@ -88,8 +135,10 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now);
       date.setMonth(now.getMonth() - i);
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      const year = date.getFullYear();
+      const monthName = isMobile ? 
+        date.toLocaleDateString('en-US', { month: 'short' }).charAt(0) :
+        date.toLocaleDateString('en-US', { month: 'short' });
+      const year = date.getFullYear().toString().slice(-2);
       
       // Get logs for this month
       const monthLogs = logs.filter(log => {
@@ -116,14 +165,14 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         : 0;
       
       months.push({
-        name: `${monthName} '${year.toString().slice(-2)}`,
+        name: isMobile ? monthName : `${monthName} '${year}`,
         attendance: avgDailyAttendance,
         days: attendanceDays.size
       });
     }
     
     return months;
-  }, [logs]);
+  }, [logs, isMobile]);
 
   // Calculate class comparison data
   const classComparisonData = useMemo(() => {
@@ -138,13 +187,6 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         log.status === 'IN'
       );
       
-      // Debug logging
-      console.log(`Class ${cls}:`, {
-        totalStudents: classStudents.length,
-        todayLogsCount: todayLogs.length,
-        todayLogs: todayLogs
-      });
-      
       const presentStudents = new Set();
       todayLogs.forEach(log => {
         if (log.studentId) {
@@ -157,276 +199,110 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       const rate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
       
       return { 
-        name: cls.length > 12 ? `${cls.substring(0, 10)}...` : cls, 
+        name: cls.length > (isMobile ? 8 : 12) ? 
+          `${cls.substring(0, isMobile ? 6 : 10)}...` : cls, 
         attendanceRate: rate,
-        attendance: rate, // Keep both for compatibility
+        attendance: rate,
         present: presentCount, 
         total: totalCount 
       };
     })
     .filter(cls => cls.total > 0)
     .sort((a, b) => b.attendanceRate - a.attendanceRate);
-  }, [classes, students, logs]);
+  }, [classes, students, logs, isMobile]);
+
+  // Chart configuration based on screen size
+  const chartHeight = isMobile ? 200 : 250;
+  const tickFontSize = isMobile ? 10 : 12;
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Stats Cards - Updated for 5 cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      {/* Stats Cards - Responsive grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
         {[
-          { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-blue-600', bg: darkMode ? 'bg-blue-500/10' : 'bg-blue-50' },
-          { title: 'Present Today', value: stats.presentToday, icon: UserCheck, color: 'from-green-500 to-green-600', bg: darkMode ? 'bg-green-500/10' : 'bg-green-50' },
-          { title: 'Absent Today', value: stats.absentToday, icon: UserX, color: 'from-red-500 to-red-600', bg: darkMode ? 'bg-red-500/10' : 'bg-red-50' },
-          { title: 'Attendance Rate', value: `${stats.attendanceRate}%`, icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: darkMode ? 'bg-purple-500/10' : 'bg-purple-50' },
+          { 
+            title: 'Total', 
+            value: stats.totalStudents, 
+            icon: Users, 
+            color: 'from-blue-500 to-blue-600', 
+            bg: darkMode ? 'bg-blue-500/10' : 'bg-blue-50',
+            delay: 100
+          },
+          { 
+            title: 'Present', 
+            value: stats.presentToday, 
+            icon: UserCheck, 
+            color: 'from-green-500 to-green-600', 
+            bg: darkMode ? 'bg-green-500/10' : 'bg-green-50',
+            delay: 200
+          },
+          { 
+            title: 'Absent', 
+            value: stats.absentToday, 
+            icon: UserX, 
+            color: 'from-red-500 to-red-600', 
+            bg: darkMode ? 'bg-red-500/10' : 'bg-red-50',
+            delay: 300
+          },
+          { 
+            title: 'Rate', 
+            value: `${stats.attendanceRate}%`, 
+            icon: TrendingUp, 
+            color: 'from-purple-500 to-purple-600', 
+            bg: darkMode ? 'bg-purple-500/10' : 'bg-purple-50',
+            delay: 400
+          },
           {
-            title: 'This Week Avg',
+            title: 'Week Avg',
             value: `${weeklyData.length > 0 ? Math.round(weeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / weeklyData.length) : 0}%`,
             icon: Calendar,
             color: 'from-indigo-500 to-indigo-600',
-            bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'
+            bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50',
+            delay: 500
           },
         ].map((stat, idx) => (
-          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} shadow-lg border border-blue-100/50 backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className={`bg-gradient-to-br ${stat.color} p-3 rounded-xl`}>
-                <stat.icon size={24} className="text-white" />
+          <AnimatedCard key={idx} delay={stat.delay}>
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100/50'} 
+              shadow-lg border backdrop-blur-xl p-3 md:p-4 lg:p-6 rounded-xl md:rounded-2xl 
+              transform transition-all duration-300 ${stat.bg} h-full`}>
+              <div className="flex items-center justify-between mb-2 md:mb-4">
+                <div className={`bg-gradient-to-br ${stat.color} p-2 md:p-3 rounded-lg md:rounded-xl`}>
+                  <stat.icon size={isMobile ? 18 : 24} className="text-white" />
+                </div>
+                {isMobile && (
+                  <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                    {stat.title.charAt(0)}
+                  </span>
+                )}
+              </div>
+              <div>
+                <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1 truncate`}>
+                  {isMobile && stat.title.length > 6 ? stat.title.substring(0, 5) + '..' : stat.title}
+                </p>
+                <p className={`text-xl md:text-2xl lg:text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  {stat.value}
+                </p>
               </div>
             </div>
-            <div>
-              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{stat.title}</p>
-              <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{stat.value}</p>
-            </div>
-          </div>
+          </AnimatedCard>
         ))}
       </div>
 
-      {/* Charts Grid - Enhanced with more charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Grid - Responsive layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Weekly Attendance Trend */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Activity className="text-blue-500" size={20} />
-            Weekly Attendance Trend
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart 
-                data={weeklyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="present" 
-                  name="Present" 
-                  stroke="#10b981" 
-                  fill="#10b981" 
-                  fillOpacity={0.6}
-                  strokeWidth={2}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="absent" 
-                  name="Absent" 
-                  stroke="#ef4444" 
-                  fill="#ef4444" 
-                  fillOpacity={0.6}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        {/* Daily Attendance (Last 7 Days) */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Calendar className="text-green-500" size={20} />
-            Daily Attendance (Last 7 Days)
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={dailyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                  formatter={(value, name) => {
-                    if (name === 'present') return [`${value} students`, 'Present'];
-                    if (name === 'absent') return [`${value} students`, 'Absent'];
-                    return [value, name];
-                  }}
-                />
-                <Legend />
-                <Bar 
-                  dataKey="present" 
-                  name="Present" 
-                  fill="#10b981" 
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar 
-                  dataKey="absent" 
-                  name="Absent" 
-                  fill="#ef4444" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        {/* Monthly Attendance Trend */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <TrendingUp className="text-purple-500" size={20} />
-            Monthly Attendance Trend
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart 
-                data={monthlyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  label={{ value: 'Avg Daily', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                  formatter={(value, name) => {
-                    if (name === 'attendance') return [`${value} students`, 'Avg Daily Attendance'];
-                    return [value, name];
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="attendance" 
-                  name="Avg Daily Attendance" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={3} 
-                  dot={{ fill: '#8b5cf6', r: 5 }}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        {/* Attendance by Time of Day */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Clock className="text-orange-500" size={20} />
-            Check-ins by Time of Day
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={hourlyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                  formatter={(value) => [`${value} check-ins`, 'Count']}
-                />
-                <Bar 
-                  dataKey="count" 
-                  name="Check-ins" 
-                  fill="#f59e0b" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        {/* Class Performance Comparison */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Target className="text-indigo-500" size={20} />
-            Class Performance (Today)
-          </h3>
-          <div className="h-64">
-            {classComparisonData.length > 0 ? (
+        <AnimatedCard delay={100}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Weekly Trend</span>
+            </h3>
+            <div style={{ height: chartHeight }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={classComparisonData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                <AreaChart 
+                  data={weeklyData}
+                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
                 >
                   <CartesianGrid 
                     strokeDasharray="3 3" 
@@ -436,12 +312,11 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                   <XAxis 
                     dataKey="name" 
                     stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: tickFontSize }}
                   />
                   <YAxis 
                     stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fontSize: tickFontSize }}
                   />
                   <Tooltip 
                     contentStyle={{ 
@@ -449,204 +324,399 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                       border: 'none', 
                       borderRadius: '12px', 
                       boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      color: darkMode ? '#ffffff' : '#000000'
+                      color: darkMode ? '#ffffff' : '#000000',
+                      fontSize: isMobile ? 12 : 14
                     }}
-                    formatter={(value, name, props) => {
-                      if (name === 'attendance') {
-                        return [`${value}% (${props.payload.present}/${props.payload.total} students)`, 'Attendance'];
-                      }
+                  />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="present" 
+                    name="Present" 
+                    stroke="#10b981" 
+                    fill="#10b981" 
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="absent" 
+                    name="Absent" 
+                    stroke="#ef4444" 
+                    fill="#ef4444" 
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </AnimatedCard>
+        
+        {/* Daily Attendance */}
+        <AnimatedCard delay={200}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Daily Attendance</span>
+            </h3>
+            <div style={{ height: chartHeight }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={dailyData}
+                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                >
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: tickFontSize }}
+                  />
+                  <YAxis 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: tickFontSize }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      color: darkMode ? '#ffffff' : '#000000',
+                      fontSize: isMobile ? 12 : 14
+                    }}
+                    formatter={(value, name) => {
+                      if (name === 'present') return [`${value} students`, 'Present'];
+                      if (name === 'absent') return [`${value} students`, 'Absent'];
                       return [value, name];
                     }}
                   />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
                   <Bar 
-                    dataKey="attendance" 
-                    name="Attendance %" 
-                    fill="#6366f1" 
+                    dataKey="present" 
+                    name="Present" 
+                    fill="#10b981" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="absent" 
+                    name="Absent" 
+                    fill="#ef4444" 
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center">
-                <Target size={48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  No class data available
-                </p>
-                <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  Classes will appear here once assigned
-                </p>
+            </div>
+          </div>
+        </AnimatedCard>
+        
+        {/* Monthly Trend - Only on larger screens */}
+        {!isMobile && (
+          <>
+            <AnimatedCard delay={300}>
+              <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full`}>
+                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                  <TrendingUp className="text-purple-500" size={20} />
+                  Monthly Trend
+                </h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={monthlyData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                        vertical={false}
+                      />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                        label={{ value: 'Avg Daily', angle: -90, position: 'insideLeft' }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                          border: 'none', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                          color: darkMode ? '#ffffff' : '#000000'
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="attendance" 
+                        name="Avg Daily" 
+                        stroke="#8b5cf6" 
+                        strokeWidth={3} 
+                        dot={{ fill: '#8b5cf6', r: 5 }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
+            </AnimatedCard>
 
-        {/* Weekly Attendance Rate */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <BarChart3 className="text-red-500" size={20} />
-            Weekly Attendance Rate
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={weeklyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-              >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  domain={[0, 100]}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                  formatter={(value) => [`${value}%`, 'Attendance Rate']}
-                />
-                <Bar 
-                  dataKey="attendanceRate" 
-                  name="Attendance Rate" 
-                  fill="#ef4444" 
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+            {/* Attendance by Time */}
+            <AnimatedCard delay={400}>
+              <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full`}>
+                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                  <Clock className="text-orange-500" size={20} />
+                  Check-ins by Time
+                </h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={hourlyData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                        vertical={false}
+                      />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                          border: 'none', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                          color: darkMode ? '#ffffff' : '#000000'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        name="Check-ins" 
+                        fill="#f59e0b" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </AnimatedCard>
+          </>
+        )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Today's Summary */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Calendar className="text-blue-500" size={20} />
-            Today's Summary
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Total Check-ins:</span>
-              <span className="font-bold">{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Attendance Rate:</span>
-              <span className="font-bold text-green-500">{dailyData.length > 0 ? `${dailyData[dailyData.length - 1].attendanceRate}%` : '0%'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Absent:</span>
-              <span className="font-bold text-red-500">{dailyData.length > 0 ? dailyData[dailyData.length - 1].absent : 0}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Week Summary */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <TrendingUp className="text-green-500" size={20} />
-            This Week Summary
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Avg Daily Attendance:</span>
-              <span className="font-bold">
-                {dailyData.length > 0 
-                  ? Math.round(dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length)
-                  : 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Best Day:</span>
-              <span className="font-bold text-green-500">
-                {dailyData.length > 0 
-                  ? dailyData.reduce((max, day) => day.present > max.present ? day : max, dailyData[0]).name
-                  : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Weekly Trend:</span>
-              <span className={`font-bold ${
-                weeklyData.length > 1 && weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
-                  ? 'text-green-500' 
-                  : 'text-red-500'
-              }`}>
-                {weeklyData.length > 1 
-                  ? weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
-                    ? '↗ Improving' 
-                    : '↘ Declining'
-                  : 'Stable'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Performing Class */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Award className="text-yellow-500" size={20} />
-            Top Performing Class
-          </h3>
-          {classComparisonData.length > 0 ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">{classComparisonData[0].name}</p>
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {classComparisonData[0].present}/{classComparisonData[0].total} students present
+        {/* Class Performance - Always show */}
+        <AnimatedCard delay={isMobile ? 300 : 500}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Class Performance</span>
+            </h3>
+            <div style={{ height: chartHeight }}>
+              {classComparisonData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={classComparisonData}
+                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: tickFontSize }}
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 50 : undefined}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                      tick={{ fontSize: tickFontSize }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000',
+                        fontSize: isMobile ? 12 : 14
+                      }}
+                      formatter={(value, name, props) => {
+                        if (name === 'attendance') {
+                          return [`${value}% (${props.payload.present}/${props.payload.total})`, 'Attendance'];
+                        }
+                        return [value, name];
+                      }}
+                    />
+                    <Bar 
+                      dataKey="attendance" 
+                      name="Attendance %" 
+                      fill="#6366f1" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center">
+                  <Target size={isMobile ? 32 : 48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+                  <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
+                    No class data available
                   </p>
                 </div>
-                <div className={`text-3xl font-bold ${
-                  classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : 
-                  classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
-                }`}>
-                  {classComparisonData[0].attendanceRate}%
+              )}
+            </div>
+          </div>
+        </AnimatedCard>
+      </div>
+
+      {/* Summary Cards - Responsive */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        {[
+          { 
+            title: "Today's Summary", 
+            icon: Calendar, 
+            iconColor: "text-blue-500",
+            content: (
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Total Check-ins:</span>
+                  <span className="font-bold">{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Attendance Rate:</span>
+                  <span className="font-bold text-green-500">{dailyData.length > 0 ? `${dailyData[dailyData.length - 1].attendanceRate}%` : '0%'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Absent:</span>
+                  <span className="font-bold text-red-500">{dailyData.length > 0 ? dailyData[dailyData.length - 1].absent : 0}</span>
                 </div>
               </div>
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                  style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
-                ></div>
+            ),
+            delay: 600
+          },
+          { 
+            title: "Week Summary", 
+            icon: TrendingUp, 
+            iconColor: "text-green-500",
+            content: (
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Avg Daily:</span>
+                  <span className="font-bold">
+                    {dailyData.length > 0 
+                      ? Math.round(dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length)
+                      : 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Best Day:</span>
+                  <span className="font-bold text-green-500">
+                    {dailyData.length > 0 
+                      ? dailyData.reduce((max, day) => day.present > max.present ? day : max, dailyData[0]).name
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
+                  <span className={`font-bold ${
+                    weeklyData.length > 1 && weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                      ? 'text-green-500' 
+                      : 'text-red-500'
+                  }`}>
+                    {weeklyData.length > 1 
+                      ? weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                        ? '↗' 
+                        : '↘'
+                      : '→'}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Rank: 1/{classComparisonData.length}
-                </span>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  {classComparisonData.length > 1 
-                    ? `Next: ${classComparisonData[1].name} (${classComparisonData[1].attendanceRate}%)`
-                    : 'Only class'}
-                </span>
+            ),
+            delay: 700
+          },
+          { 
+            title: "Top Class", 
+            icon: Award, 
+            iconColor: "text-yellow-500",
+            content: classComparisonData.length > 0 ? (
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-lg md:text-xl font-bold truncate">{classComparisonData[0].name}</p>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm`}>
+                      {classComparisonData[0].present}/{classComparisonData[0].total} present
+                    </p>
+                  </div>
+                  <div className={`text-2xl md:text-3xl font-bold ${
+                    classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : 
+                    classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
+                  }`}>
+                    {classComparisonData[0].attendanceRate}%
+                  </div>
+                </div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                    style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    Rank: 1/{classComparisonData.length}
+                  </span>
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                    {classComparisonData.length > 1 
+                      ? `Next: ${classComparisonData[1].attendanceRate}%`
+                      : 'Only class'}
+                  </span>
+                </div>
               </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>No class data</p>
+              </div>
+            ),
+            delay: 800
+          }
+        ].map((card, idx) => (
+          <AnimatedCard key={idx} delay={card.delay}>
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+              backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+              <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                <card.icon className={card.iconColor} size={isMobile ? 16 : 20} />
+                {isMobile && card.title.length > 10 ? card.title.substring(0, 8) + '..' : card.title}
+              </h3>
+              {card.content}
             </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No class data available</p>
-              <p className={`text-sm mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                Check if classes and students are properly assigned
-              </p>
-            </div>
-          )}
-        </div>
+          </AnimatedCard>
+        ))}
       </div>
     </div>
   );
 };
 
-// Classroom Monitor Tab Component
+// Classroom Monitor Tab Component - Enhanced for mobile
 const ClassroomMonitorTab = ({ 
   darkMode, 
   students, 
@@ -657,6 +727,8 @@ const ClassroomMonitorTab = ({
   setSelectedClass,
   getStudentStatus 
 }) => {
+  const isMobile = useIsMobile();
+
   // Filter classes based on search query
   const filteredClasses = useMemo(() => {
     if (!searchQuery) return classes;
@@ -689,53 +761,58 @@ const ClassroomMonitorTab = ({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Search Bar */}
-      <div className="flex gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      {/* Enhanced Search Bar for Mobile */}
+      <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+        <div className="relative flex-1">
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} 
+            size={isMobile ? 18 : 20} />
           <input
             type="text"
-            placeholder="Search by class name, student name, or ID..."
+            placeholder={isMobile ? "Search class, student, ID..." : "Search by class name, student name, or ID..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800/40 border-gray-700 text-white' : 'bg-white/90 border-blue-100 text-gray-800'} border-2 backdrop-blur-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+            className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800/60 border-gray-700 text-white' : 'bg-white/90 border-blue-100 text-gray-800'} 
+              border-2 backdrop-blur-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm md:text-base`}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
               className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              <X size={18} />
+              <X size={isMobile ? 16 : 18} />
             </button>
           )}
         </div>
         
         {/* Search Results Info */}
         {searchQuery && (
-          <div className={`px-4 py-2 rounded-xl ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-            <span className="text-sm font-medium">
-              Found {filteredClasses.length} of {classes.length} classes
+          <div className={`px-3 md:px-4 py-2 rounded-xl ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'} 
+            text-sm flex-shrink-0 flex items-center`}>
+            <span className="font-medium whitespace-nowrap">
+              {filteredClasses.length}/{classes.length} classes
             </span>
           </div>
         )}
       </div>
 
-      {/* Class Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Class Cards - Responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {filteredClasses.length === 0 ? (
-          <div className="col-span-3">
-            <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl p-8 rounded-2xl border shadow-xl text-center`}>
-              <Search size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
-              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                No matching classes found
+          <div className="col-span-full">
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
+              backdrop-blur-xl p-6 md:p-8 rounded-2xl border shadow-xl text-center animate-pulse`}>
+              <Search size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+              <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                No matching classes
               </h3>
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                No classes or students match "{searchQuery}"
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm md:text-base`}>
+                No classes match "{searchQuery}"
               </p>
               <button
                 onClick={() => setSearchQuery('')}
-                className={`mt-4 px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-blue-50 hover:bg-blue-100 text-blue-600'} transition-colors`}
+                className={`mt-4 px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-blue-50 hover:bg-blue-100 text-blue-600'} 
+                  transition-colors text-sm md:text-base`}
               >
                 Clear search
               </button>
@@ -751,130 +828,135 @@ const ClassroomMonitorTab = ({
             const isExpanded = selectedClass === className;
             
             return (
-              <div
-                key={idx}
-                className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
-              >
-                {/* Class Header */}
-                <div
-                  onClick={() => setSelectedClass(isExpanded ? null : className)}
-                  className="p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-2xl"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                        {className}
-                        {searchQuery && filteredStudents.length !== classStudents.length && (
-                          <span className="ml-2 text-sm font-normal px-2 py-1 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                            {filteredStudents.length}/{classStudents.length}
-                          </span>
+              <AnimatedCard key={idx} delay={idx * 100}>
+                <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
+                  backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl transition-all duration-300 h-full flex flex-col`}>
+                  {/* Class Header */}
+                  <div
+                    onClick={() => setSelectedClass(isExpanded ? null : className)}
+                    className="p-4 md:p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-xl md:rounded-t-2xl flex-grow"
+                  >
+                    <div className="flex items-start justify-between mb-3 md:mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`text-lg md:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} truncate`}>
+                          {className}
+                          {searchQuery && filteredStudents.length !== classStudents.length && (
+                            <span className="ml-2 text-xs font-normal px-2 py-1 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                              {filteredStudents.length}/{classStudents.length}
+                            </span>
+                          )}
+                        </h3>
+                        {searchQuery && (
+                          <p className={`text-xs md:text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
+                            {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} match search
+                          </p>
                         )}
-                      </h3>
-                      {searchQuery && (
-                        <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} match search
-                        </p>
+                      </div>
+                      <ChevronRight 
+                        size={isMobile ? 20 : 24} 
+                        className={`${isExpanded ? 'rotate-90' : ''} transition-transform flex-shrink-0 ${darkMode ? 'text-gray-400' : 'text-gray-600'} ml-2`} 
+                      />
+                    </div>
+                    
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 gap-2 md:gap-3 mb-3 md:mb-4">
+                      {[
+                        { count: presentCount, color: 'green', label: 'Present' },
+                        { count: absentCount, color: 'red', label: 'Absent' },
+                        { count: noLogsCount, color: 'gray', label: 'No Logs' }
+                      ].map((stat, statIdx) => (
+                        <div key={statIdx} 
+                          className={`${darkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50 border border-${stat.color}-100'} 
+                            rounded-lg p-2 md:p-3 text-center`}>
+                          <p className={`text-xs ${darkMode ? `text-${stat.color}-400` : `text-${stat.color}-600`} mb-1 truncate`}>
+                            {isMobile ? stat.label.charAt(0) : stat.label}
+                          </p>
+                          <p className={`text-xl md:text-2xl font-bold ${darkMode ? `text-${stat.color}-400` : `text-${stat.color}-600`}`}>
+                            {stat.count}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
+                          {searchQuery ? 'Filtered:' : 'Total:'} {filteredStudents.length}
+                        </span>
+                        <span className="font-semibold text-green-600 dark:text-green-400 whitespace-nowrap">
+                          {filteredStudents.length > 0 ? Math.round((presentCount / filteredStudents.length) * 100) : 0}%
+                        </span>
+                      </div>
+                      <div className={`h-2 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                          style={{ width: `${filteredStudents.length > 0 ? (presentCount / filteredStudents.length) * 100 : 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expanded Student List */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 space-y-2 max-h-64 md:max-h-96 overflow-y-auto animate-slide-down">
+                      {filteredStudents.length === 0 ? (
+                        <div className="text-center py-3 md:py-4">
+                          <Search size={isMobile ? 20 : 24} className={`mx-auto mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                          <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            No students match search
+                          </p>
+                        </div>
+                      ) : (
+                        filteredStudents
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((student, sIdx) => {
+                            const status = getStudentStatus(student.studentId);
+                            return (
+                              <div 
+                                key={sIdx} 
+                                className={`flex items-center justify-between p-2 md:p-3 rounded-xl transition-all transform hover:scale-[1.02] animate-fade-in-up
+                                  ${status === 'present' ? `${darkMode ? 'bg-green-500/10 hover:bg-green-500/20' : 'bg-green-50 hover:bg-green-100 border border-green-100'}` :
+                                  status === 'absent' ? `${darkMode ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-red-50 hover:bg-red-100 border border-red-100'}` :
+                                  `${darkMode ? 'bg-gray-500/10 hover:bg-gray-500/20' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'}`
+                                }`}
+                                style={{ animationDelay: `${sIdx * 50}ms` }}
+                              >
+                                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                                  <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full flex-shrink-0 ${
+                                    status === 'present' ? 'bg-green-500 shadow-lg shadow-green-500/50' :
+                                    status === 'absent' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
+                                    'bg-gray-400 shadow-lg shadow-gray-400/50'
+                                  }`}></div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'} truncate text-sm md:text-base`}>
+                                      {student.name}
+                                      {searchQuery && (
+                                        <span className="ml-1 md:ml-2 text-xs px-1 md:px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                          Match
+                                        </span>
+                                      )}
+                                    </p>
+                                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
+                                      {student.studentId}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className={`px-2 md:px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap flex-shrink-0 ml-2
+                                  ${status === 'present' ? 'bg-green-500 text-white' :
+                                    status === 'absent' ? 'bg-red-500 text-white' :
+                                    'bg-gray-400 text-white'
+                                  }`}>
+                                  {status === 'present' ? 'IN' : status === 'absent' ? 'OUT' : 'NO LOGS'}
+                                </span>
+                              </div>
+                            );
+                          })
                       )}
                     </div>
-                    <ChevronRight 
-                      size={24} 
-                      className={`${isExpanded ? 'rotate-90' : ''} transition-transform ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
-                    />
-                  </div>
-                  
-                  {/* Stats Row */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className={`${darkMode ? 'bg-green-500/10' : 'bg-green-50 border border-green-100'} rounded-lg p-3`}>
-                      <p className={`text-xs ${darkMode ? 'text-green-400' : 'text-green-600'} mb-1`}>Present</p>
-                      <p className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{presentCount}</p>
-                    </div>
-                    <div className={`${darkMode ? 'bg-red-500/10' : 'bg-red-50 border border-red-100'} rounded-lg p-3`}>
-                      <p className={`text-xs ${darkMode ? 'text-red-400' : 'text-red-600'} mb-1`}>Absent</p>
-                      <p className={`text-2xl font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>{absentCount}</p>
-                    </div>
-                    <div className={`${darkMode ? 'bg-gray-500/10' : 'bg-gray-50 border border-gray-100'} rounded-lg p-3`}>
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>No Logs</p>
-                      <p className={`text-2xl font-bold ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{noLogsCount}</p>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                        {searchQuery ? 'Filtered:' : 'Total:'} {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''}
-                      </span>
-                      <span className="font-semibold text-green-600 dark:text-green-400">
-                        {filteredStudents.length > 0 ? Math.round((presentCount / filteredStudents.length) * 100) : 0}%
-                      </span>
-                    </div>
-                    <div className={`h-2 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                        style={{ width: `${filteredStudents.length > 0 ? (presentCount / filteredStudents.length) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {/* Expanded Student List */}
-                {isExpanded && (
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2 max-h-96 overflow-y-auto">
-                    {filteredStudents.length === 0 ? (
-                      <div className="text-center py-4">
-                        <Search size={24} className={`mx-auto mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          No students match your search in this class
-                        </p>
-                      </div>
-                    ) : (
-                      filteredStudents
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((student, sIdx) => {
-                          const status = getStudentStatus(student.studentId);
-                          return (
-                            <div 
-                              key={sIdx} 
-                              className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                                status === 'present' ? `${darkMode ? 'bg-green-500/10 hover:bg-green-500/20' : 'bg-green-50 hover:bg-green-100 border border-green-100'}` :
-                                status === 'absent' ? `${darkMode ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-red-50 hover:bg-red-100 border border-red-100'}` :
-                                `${darkMode ? 'bg-gray-500/10 hover:bg-gray-500/20' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'}`
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${
-                                  status === 'present' ? 'bg-green-500 shadow-lg shadow-green-500/50' :
-                                  status === 'absent' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
-                                  'bg-gray-400 shadow-lg shadow-gray-400/50'
-                                }`}></div>
-                                <div>
-                                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                                    {student.name}
-                                    {searchQuery && (
-                                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                                        Match
-                                      </span>
-                                    )}
-                                  </p>
-                                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                                    {student.studentId}
-                                  </p>
-                                </div>
-                              </div>
-                              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                                status === 'present' ? 'bg-green-500 text-white' :
-                                status === 'absent' ? 'bg-red-500 text-white' :
-                                'bg-gray-400 text-white'
-                              }`}>
-                                {status === 'present' ? 'IN' : status === 'absent' ? 'OUT' : 'NO LOGS'}
-                              </span>
-                            </div>
-                          );
-                        })
-                    )}
-                  </div>
-                )}
-              </div>
+              </AnimatedCard>
             );
           })
         )}
@@ -883,17 +965,20 @@ const ClassroomMonitorTab = ({
   );
 };
 
-// Enhanced Logs Tab Component with filters
+// Enhanced Logs Tab Component - Responsive
 const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, classes }) => {
+  const isMobile = useIsMobile();
+  const [showFilters, setShowFilters] = useState(!isMobile);
+  
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [sortOrder, setSortOrder] = useState('newest');
   const [dateFilter, setDateFilter] = useState({
     startDate: '',
     endDate: ''
   });
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'IN', 'OUT'
-  const [classFilter, setClassFilter] = useState('all'); // 'all' or specific class
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('all');
 
   // Reset all filters
   const resetFilters = () => {
@@ -963,259 +1048,338 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-          Attendance Logs
-        </h2>
-        <div className="flex items-center gap-3">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      {/* Header with mobile controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+            Attendance Logs
+          </h2>
+          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+            {filteredLogs.length} of {allLogs.length} records
+          </p>
+        </div>
+        <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+          {isMobile && (
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50 hover:bg-blue-100'} transition-colors`}
+            >
+              <Filter size={18} />
+              <span className="text-sm">Filters</span>
+            </button>
+          )}
           <button
             onClick={resetFilters}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
+            className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white text-sm md:text-base"
           >
             <X size={18} />
-            Reset Filters
+            {!isMobile && "Reset"}
           </button>
           <button
             onClick={() => exportToCSV(filteredLogs)}
             disabled={filteredLogs.length === 0}
-            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-3 md:px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
           >
             <Download size={18} />
-            Export CSV
+            {!isMobile && "Export"}
           </button>
         </div>
       </div>
 
-      {/* Enhanced Filter Controls */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            Filter Logs
-          </h3>
-          <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-            {filteredLogs.length} of {allLogs.length} logs
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Search */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Search
-            </label>
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Student ID, Name, Class..."
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-              />
-            </div>
-          </div>
-
-          {/* Sort Order */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Sort Order
-            </label>
-            <div className="relative">
-              <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500`}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="all">All Status</option>
-              <option value="IN">IN Only</option>
-              <option value="OUT">OUT Only</option>
-            </select>
-          </div>
-
-          {/* Class Filter */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Class
-            </label>
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="all">All Classes</option>
-              {uniqueClasses.map((cls, idx) => (
-                <option key={idx} value={cls}>{cls}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Quick Date Presets */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Quick Date Range
-            </label>
-            <select
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === 'today') {
-                  setDateFilter({ startDate: today, endDate: today });
-                } else if (value === 'week') {
-                  setDateFilter({ startDate: oneWeekAgo, endDate: today });
-                } else if (value === 'month') {
-                  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                  setDateFilter({ startDate: oneMonthAgo, endDate: today });
-                } else if (value === 'custom') {
-                  // Keep current custom dates
-                }
-              }}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="">Custom Range</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Date Range Pickers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.startDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-              max={today}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              End Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.endDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-              max={today}
-              min={dateFilter.startDate}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-        </div>
-
-        {/* Active Filters Display */}
-        {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || classFilter !== 'all') && (
-          <div className="mt-4 pt-4 border-t border-gray-700/50">
-            <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
-            <div className="flex flex-wrap gap-2">
-              {searchTerm && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                  Search: "{searchTerm}"
-                </span>
-              )}
-              {dateFilter.startDate && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                  From: {dateFilter.startDate}
-                </span>
-              )}
-              {dateFilter.endDate && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                  To: {dateFilter.endDate}
-                </span>
-              )}
-              {statusFilter !== 'all' && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
-                  Status: {statusFilter}
-                </span>
-              )}
-              {classFilter !== 'all' && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
-                  Class: {classFilter}
-                </span>
+      {/* Enhanced Filter Controls - Mobile responsive */}
+      {(showFilters || !isMobile) && (
+        <AnimatedCard>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100/50'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                <h3 className={`text-base md:text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  Filter Logs
+                </h3>
+              </div>
+              {isMobile && (
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                >
+                  <XIcon size={18} />
+                </button>
               )}
             </div>
-          </div>
-        )}
-      </div>
 
-      {/* Logs Table */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+              {/* Search */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Search
+                </label>
+                <div className="relative">
+                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="ID, Name, Class..."
+                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                      border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                  />
+                </div>
+              </div>
+
+              {/* Sort Order */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Sort
+                </label>
+                <div className="relative">
+                  <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                      border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                >
+                  <option value="all">All Status</option>
+                  <option value="IN">IN Only</option>
+                  <option value="OUT">OUT Only</option>
+                </select>
+              </div>
+
+              {/* Class Filter */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Class
+                </label>
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                >
+                  <option value="all">All Classes</option>
+                  {uniqueClasses.map((cls, idx) => (
+                    <option key={idx} value={cls}>
+                      {cls.length > 15 ? cls.substring(0, 12) + '...' : cls}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quick Date Presets */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Quick Range
+                </label>
+                <select
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'today') {
+                      setDateFilter({ startDate: today, endDate: today });
+                    } else if (value === 'week') {
+                      setDateFilter({ startDate: oneWeekAgo, endDate: today });
+                    } else if (value === 'month') {
+                      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                      setDateFilter({ startDate: oneMonthAgo, endDate: today });
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                >
+                  <option value="">Select Range</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Range Pickers - Stacked on mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-4">
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFilter.startDate}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                  max={today}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFilter.endDate}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                  max={today}
+                  min={dateFilter.startDate}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                />
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || classFilter !== 'all') && (
+              <div className="mt-4 pt-4 border-t border-gray-700/50 animate-fade-in">
+                <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                      Search: "{searchTerm}"
+                    </span>
+                  )}
+                  {dateFilter.startDate && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                      From: {dateFilter.startDate}
+                    </span>
+                  )}
+                  {dateFilter.endDate && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                      To: {dateFilter.endDate}
+                    </span>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
+                      Status: {statusFilter}
+                    </span>
+                  )}
+                  {classFilter !== 'all' && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
+                      Class: {classFilter}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </AnimatedCard>
+      )}
+
+      {/* Logs Table - Mobile optimized */}
+      <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100/50'} 
+        backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center">
-              <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading logs...</p>
+            <div className="p-8 md:p-12 text-center">
+              <div className="inline-block animate-pulse">
+                <RefreshCw size={isMobile ? 32 : 48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              </div>
+              <p className={`text-base md:text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'} animate-pulse`}>
+                Loading logs...
+              </p>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No attendance records match your filters</p>
-              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                Try changing your filter criteria or reset filters
+            <div className="p-8 md:p-12 text-center animate-fade-in">
+              <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+              <p className={`text-base md:text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                No records match your filters
               </p>
             </div>
           ) : (
             <>
-              <div className="px-6 py-4 border-b border-gray-700/50">
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Showing {filteredLogs.length} of {allLogs.length} logs • Sorted by {sortOrder === 'newest' ? 'newest to oldest' : 'oldest to newest'}
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-700/50">
+                <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Showing {filteredLogs.length} records • Sorted {sortOrder === 'newest' ? 'newest first' : 'oldest first'}
                 </p>
               </div>
-              <table className="w-full">
-                <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
-                  <tr>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+              {isMobile ? (
+                // Mobile cards view
+                <div className="p-4 space-y-3">
                   {filteredLogs.map((log, idx) => (
-                    <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{log.name}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                    <div 
+                      key={idx} 
+                      className={`${darkMode ? 'bg-gray-700/30 hover:bg-gray-700/50' : 'bg-gray-50/50 hover:bg-gray-50/70'} 
+                        p-4 rounded-xl transition-all duration-200 transform hover:scale-[1.01] animate-fade-in-up`}
+                      style={{ animationDelay: `${idx * 30}ms` }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'} mb-1`}>
+                            {log.name}
+                          </p>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                            {log.studentId} • {log.class}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                           log.status === 'IN' 
                             ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
                             : 'bg-red-500/20 text-red-600 dark:text-red-400'
                         }`}>
                           {log.status}
                         </span>
-                      </td>
-                    </tr>
+                      </div>
+                      <div className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {new Date(log.timestamp).toLocaleDateString()} • 
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              ) : (
+                // Desktop table view
+                <table className="w-full">
+                  <thead className={darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'}>
+                    <tr>
+                      <th className={`px-4 md:px-6 py-3 md:py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Timestamp</th>
+                      <th className={`px-4 md:px-6 py-3 md:py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Student ID</th>
+                      <th className={`px-4 md:px-6 py-3 md:py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Name</th>
+                      <th className={`px-4 md:px-6 py-3 md:py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Class</th>
+                      <th className={`px-4 md:px-6 py-3 md:py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-500'} uppercase`}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                    {filteredLogs.map((log, idx) => (
+                      <tr 
+                        key={idx} 
+                        className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors duration-150 animate-fade-in-up`}
+                        style={{ animationDelay: `${idx * 20}ms` }}
+                      >
+                        <td className={`px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                          {new Date(log.timestamp).toLocaleString()}
+                        </td>
+                        <td className={`px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
+                        <td className={`px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{log.name}</td>
+                        <td className={`px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
+                        <td className="px-4 md:px-6 py-3 md:py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            log.status === 'IN' 
+                              ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+                              : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                          }`}>
+                            {log.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </>
           )}
         </div>
@@ -1224,7 +1388,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   );
 };
 
-// Parent Logs Tab Component
+// Parent Logs Tab Component - Enhanced for mobile
 const ParentLogsTab = ({ 
   darkMode, 
   loading, 
@@ -1232,11 +1396,14 @@ const ParentLogsTab = ({
   userInfo, 
   students, 
   exportToCSV,
-  childInfo: propChildInfo,  // Renamed to avoid conflict
-  childStats: propChildStats, // Renamed to avoid conflict
+  childInfo: propChildInfo,
+  childStats: propChildStats,
   parentChildId 
 }) => {
-  // Filter states for parent view
+  const isMobile = useIsMobile();
+  const [showFilters, setShowFilters] = useState(!isMobile);
+  
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [dateFilter, setDateFilter] = useState({
@@ -1245,26 +1412,14 @@ const ParentLogsTab = ({
   });
   const [statusFilter, setStatusFilter] = useState('all');
   
-  // Use the renamed props
   const childInfo = propChildInfo;
   const childStats = propChildStats;
 
   // Filter logs to show only parent's child
   const childLogs = useMemo(() => {
-    if (!parentChildId) {
-      console.log('No child ID found for parent');
-      return [];
-    }
+    if (!parentChildId) return [];
     
-    console.log('Filtering logs for child ID:', parentChildId);
-    console.log('Total logs available:', allLogs.length);
-    
-    const filtered = allLogs.filter(log => {
-      const matches = log.studentId === parentChildId;
-      return matches;
-    });
-    
-    console.log('Child logs found:', filtered.length);
+    const filtered = allLogs.filter(log => log.studentId === parentChildId);
     return filtered;
   }, [allLogs, parentChildId]);
 
@@ -1280,8 +1435,6 @@ const ParentLogsTab = ({
   const filteredLogs = useMemo(() => {
     let filtered = [...childLogs];
 
-    console.log('Starting with child logs:', filtered.length);
-
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -1290,7 +1443,6 @@ const ParentLogsTab = ({
         log.name?.toLowerCase().includes(term) ||
         log.class?.toLowerCase().includes(term)
       );
-      console.log('After search filter:', filtered.length);
     }
 
     // Apply date filter
@@ -1300,7 +1452,6 @@ const ParentLogsTab = ({
         const logDate = log.timestamp.split('T')[0];
         return logDate >= dateFilter.startDate;
       });
-      console.log('After start date filter:', filtered.length);
     }
     if (dateFilter.endDate) {
       filtered = filtered.filter(log => {
@@ -1308,13 +1459,11 @@ const ParentLogsTab = ({
         const logDate = log.timestamp.split('T')[0];
         return logDate <= dateFilter.endDate;
       });
-      console.log('After end date filter:', filtered.length);
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(log => log.status === statusFilter);
-      console.log('After status filter:', filtered.length);
     }
 
     // Apply sorting
@@ -1324,7 +1473,6 @@ const ParentLogsTab = ({
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-    console.log('Final filtered logs:', filtered.length);
     return filtered;
   }, [childLogs, searchTerm, sortOrder, dateFilter, statusFilter]);
 
@@ -1333,338 +1481,413 @@ const ParentLogsTab = ({
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Welcome Header */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              Welcome, {userInfo?.fullName || userInfo?.username || 'Parent'}!
-            </h2>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-2`}>
-              {childInfo 
-                ? `Viewing attendance for ${childInfo.name} (${childInfo.class})`
-                : 'Loading child information...'
-              }
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => exportToCSV(filteredLogs)}
-              disabled={filteredLogs.length === 0}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download size={18} />
-              Export CSV
-            </button>
-          </div>
-        </div>
-        
-        {/* Child Summary */}
-        {childInfo && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-            <div className={`${darkMode ? 'bg-blue-500/10' : 'bg-blue-50 border border-blue-100'} p-4 rounded-xl`}>
-              <p className={`text-sm ${darkMode ? 'text-blue-300' : 'text-blue-600'} mb-1`}>Student ID</p>
-              <p className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{childInfo.studentId}</p>
-            </div>
-            <div className={`${darkMode ? 'bg-green-500/10' : 'bg-green-50 border border-green-100'} p-4 rounded-xl`}>
-              <p className={`text-sm ${darkMode ? 'text-green-300' : 'text-green-600'} mb-1`}>Today's Logs</p>
-              <p className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{childStats.todayLogs}</p>
-            </div>
-            <div className={`${darkMode ? 'bg-purple-500/10' : 'bg-purple-50 border border-purple-100'} p-4 rounded-xl`}>
-              <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-600'} mb-1`}>Total Records</p>
-              <p className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{childStats.totalLogs}</p>
-            </div>
-            <div className={`${darkMode ? 'bg-orange-500/10' : 'bg-orange-50 border border-orange-100'} p-4 rounded-xl`}>
-              <p className={`text-sm ${darkMode ? 'text-orange-300' : 'text-orange-600'} mb-1`}>Attendance Rate</p>
-              <p className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{childStats.attendanceRate}%</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Filter Controls for Parents */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            Filter Attendance Records
-          </h3>
-          <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-            {filteredLogs.length} of {childLogs.length} records
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Search
-            </label>
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by date, status..."
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-              />
-            </div>
-          </div>
-
-          {/* Sort Order */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Sort Order
-            </label>
-            <div className="relative">
-              <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500`}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="all">All Status</option>
-              <option value="IN">IN Only</option>
-              <option value="OUT">OUT Only</option>
-            </select>
-          </div>
-
-          {/* Quick Date Presets */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Quick Presets
-            </label>
-            <select
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === 'today') {
-                  setDateFilter({ startDate: today, endDate: today });
-                } else if (value === 'week') {
-                  setDateFilter({ startDate: oneWeekAgo, endDate: today });
-                } else if (value === 'month') {
-                  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                  setDateFilter({ startDate: oneMonthAgo, endDate: today });
-                } else if (value === 'clear') {
-                  setDateFilter({ startDate: '', endDate: '' });
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
+      {/* Welcome Header - Mobile optimized */}
+      <AnimatedCard delay={100}>
+        <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
+          backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                Welcome, {userInfo?.fullName?.split(' ')[0] || 'Parent'}!
+              </h2>
+              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 md:mt-2 text-sm md:text-base`}>
+                {childInfo 
+                  ? `Viewing attendance for ${isMobile ? childInfo.name.split(' ')[0] : childInfo.name}`
+                  : 'Loading child information...'
                 }
-              }}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="">Select Range</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-              <option value="clear">Clear Dates</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Date Range Pickers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.startDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-              max={today}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              End Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.endDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-              max={today}
-              min={dateFilter.startDate}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={resetFilters}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
-            >
-              <X size={18} />
-              Reset All Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Active Filters Display */}
-        {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all') && (
-          <div className="mt-4 pt-4 border-t border-gray-700/50">
-            <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
-            <div className="flex flex-wrap gap-2">
-              {searchTerm && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                  Search: "{searchTerm}"
-                </span>
-              )}
-              {dateFilter.startDate && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                  From: {dateFilter.startDate}
-                </span>
-              )}
-              {dateFilter.endDate && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                  To: {dateFilter.endDate}
-                </span>
-              )}
-              {statusFilter !== 'all' && (
-                <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
-                  Status: {statusFilter}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Attendance Records Table */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="p-12 text-center">
-              <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading records...</p>
-            </div>
-          ) : !parentChildId ? (
-            <div className="p-12 text-center">
-              <User size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                No Child Assigned
-              </h3>
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Your account is not linked to any student.
-              </p>
-              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                Please contact the school administration to link your child to your account.
               </p>
             </div>
-          ) : childLogs.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                No Attendance Records Found
-              </h3>
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                No attendance logs found for {childInfo?.name || 'your child'}.
-              </p>
-              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                This could mean:
-              </p>
-              <ul className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'} text-left max-w-md mx-auto`}>
-                <li>• Your child hasn't logged any attendance yet</li>
-                <li>• The student ID in your account doesn't match the logs</li>
-                <li>• There might be a data synchronization delay</li>
-              </ul>
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="p-12 text-center">
-              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                No Records Match Your Filters
-              </h3>
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Try changing your filter criteria or reset filters
-              </p>
+            <div className="flex items-center gap-2 md:gap-3">
               <button
-                onClick={resetFilters}
-                className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all"
+                onClick={() => exportToCSV(filteredLogs)}
+                disabled={filteredLogs.length === 0}
+                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 md:px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
               >
-                Reset All Filters
+                <Download size={18} />
+                {!isMobile && "Export CSV"}
               </button>
             </div>
-          ) : (
-            <>
-              <div className="px-6 py-4 border-b border-gray-700/50">
-                <div className="flex justify-between items-center">
-                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Showing {filteredLogs.length} of {childLogs.length} records • 
-                    Sorted by {sortOrder === 'newest' ? 'newest to oldest' : 'oldest to newest'}
+          </div>
+          
+          {/* Child Summary - Mobile responsive */}
+          {childInfo && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
+              {[
+                { label: 'Student ID', value: childInfo.studentId, color: 'blue' },
+                { label: "Today's Logs", value: childStats.todayLogs, color: 'green' },
+                { label: 'Total Records', value: childStats.totalLogs, color: 'purple' },
+                { label: 'Attendance Rate', value: `${childStats.attendanceRate}%`, color: 'orange' }
+              ].map((stat, idx) => (
+                <div key={idx} 
+                  className={`${darkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50 border border-${stat.color}-100`} 
+                    p-3 md:p-4 rounded-xl`}>
+                  <p className={`text-xs ${darkMode ? `text-${stat.color}-300` : `text-${stat.color}-600`} mb-1 truncate`}>
+                    {isMobile && stat.label.includes(' ') ? stat.label.split(' ')[0] : stat.label}
                   </p>
-                  <p className={`text-sm font-medium ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>
-                    Child: {childInfo?.name || 'Unknown'} • {childInfo?.class || 'Unknown'}
+                  <p className={`text-lg md:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                    {stat.value}
                   </p>
                 </div>
-              </div>
-              <table className="w-full">
-                <thead className={darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70 border-b border-blue-100'}>
-                  <tr>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Timestamp</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Status</th>
-                    <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Details</th>
-                  </tr>
-                </thead>
-                <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                  {filteredLogs.map((log, idx) => (
-                    <tr 
-                      key={idx} 
-                      className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50/50'} transition-colors`}
-                    >
-                      <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                        <div className="text-sm font-medium">
-                          {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'N/A'}
-                        </div>
-                        <div className="text-xs opacity-75">
-                          {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
-                          log.status === 'IN' 
-                            ? `${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-200'}` 
-                            : `${darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700 border border-red-200'}`
-                        }`}>
-                          {log.status || 'UNKNOWN'}
-                        </span>
-                      </td>
-                      <td className={`px-6 py-4 ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                        <div className="text-sm">
-                          <span className="font-medium">{log.name || 'Unknown'}</span>
-                          <div className="text-xs opacity-75 mt-1">
-                            Class: {log.class || 'Unknown'} • ID: {log.studentId || 'N/A'}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      </AnimatedCard>
+
+      {/* Filter Controls - Mobile toggle */}
+      {(showFilters || !isMobile) && (
+        <AnimatedCard delay={200}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+                <h3 className={`text-base md:text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  Filter Records
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                  {filteredLogs.length} of {childLogs.length}
+                </span>
+                {isMobile && (
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+                  >
+                    <XIcon size={18} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {/* Search */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Search
+                </label>
+                <div className="relative">
+                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by date, status..."
+                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                      border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                  />
+                </div>
+              </div>
+
+              {/* Sort Order */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Sort
+                </label>
+                <div className="relative">
+                  <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                      border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                >
+                  <option value="all">All Status</option>
+                  <option value="IN">IN Only</option>
+                  <option value="OUT">OUT Only</option>
+                </select>
+              </div>
+
+              {/* Quick Date Presets */}
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Quick Presets
+                </label>
+                <select
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === 'today') {
+                      setDateFilter({ startDate: today, endDate: today });
+                    } else if (value === 'week') {
+                      setDateFilter({ startDate: oneWeekAgo, endDate: today });
+                    } else if (value === 'month') {
+                      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                      setDateFilter({ startDate: oneMonthAgo, endDate: today });
+                    } else if (value === 'clear') {
+                      setDateFilter({ startDate: '', endDate: '' });
+                    }
+                  }}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                >
+                  <option value="">Select Range</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                  <option value="clear">Clear Dates</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Range Pickers */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-4">
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFilter.startDate}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                  max={today}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={dateFilter.endDate}
+                  onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                  max={today}
+                  min={dateFilter.startDate}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
+                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={resetFilters}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white text-sm md:text-base"
+                >
+                  <X size={18} />
+                  Reset All Filters
+                </button>
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all') && (
+              <div className="mt-4 pt-4 border-t border-gray-700/50 animate-fade-in">
+                <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                      Search: "{searchTerm}"
+                    </span>
+                  )}
+                  {dateFilter.startDate && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                      From: {dateFilter.startDate}
+                    </span>
+                  )}
+                  {dateFilter.endDate && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                      To: {dateFilter.endDate}
+                    </span>
+                  )}
+                  {statusFilter !== 'all' && (
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
+                      Status: {statusFilter}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </AnimatedCard>
+      )}
+
+      {/* Mobile Filter Toggle Button */}
+      {isMobile && !showFilters && (
+        <button
+          onClick={() => setShowFilters(true)}
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50 hover:bg-blue-100'} 
+            transition-colors border ${darkMode ? 'border-gray-600' : 'border-blue-200'} animate-pulse`}
+        >
+          <Filter size={18} />
+          <span className="font-medium">Show Filters ({filteredLogs.length}/{childLogs.length})</span>
+        </button>
+      )}
+
+      {/* Attendance Records - Mobile optimized */}
+      <AnimatedCard delay={300}>
+        <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
+          backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl overflow-hidden`}>
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="p-8 md:p-12 text-center">
+                <RefreshCw size={isMobile ? 32 : 48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <p className={`text-base md:text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading records...</p>
+              </div>
+            ) : !parentChildId ? (
+              <div className="p-8 md:p-12 text-center">
+                <User size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  No Child Assigned
+                </h3>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm md:text-base`}>
+                  Account not linked to any student
+                </p>
+              </div>
+            ) : childLogs.length === 0 ? (
+              <div className="p-8 md:p-12 text-center">
+                <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  No Records Found
+                </h3>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm md:text-base`}>
+                  No attendance logs found yet
+                </p>
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="p-8 md:p-12 text-center">
+                <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
+                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                  No Matching Records
+                </h3>
+                <button
+                  onClick={resetFilters}
+                  className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all text-sm md:text-base"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-700/50">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Showing {filteredLogs.length} of {childLogs.length} records
+                    </p>
+                    <p className={`text-xs md:text-sm font-medium ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>
+                      {childInfo?.name || 'Child'} • {childInfo?.class || 'Class'}
+                    </p>
+                  </div>
+                </div>
+                {isMobile ? (
+                  // Mobile cards view
+                  <div className="p-4 space-y-3">
+                    {filteredLogs.map((log, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50/50'} 
+                          p-4 rounded-xl transition-colors animate-fade-in-up`}
+                        style={{ animationDelay: `${idx * 30}ms` }}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
+                            log.status === 'IN' 
+                              ? `${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-200'}` 
+                              : `${darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700 border border-red-200'}`
+                          }`}>
+                            {log.status || 'UNKNOWN'}
+                          </span>
+                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User size={14} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+                            <span className="font-medium text-sm">{log.name || 'Unknown'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className={darkMode ? 'text-gray-500' : 'text-gray-600'}>
+                              Class: {log.class || 'Unknown'}
+                            </span>
+                            <span className={darkMode ? 'text-gray-500' : 'text-gray-600'}>
+                              • ID: {log.studentId || 'N/A'}
+                            </span>
+                          </div>
+                          {log.timestamp && (
+                            <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
+                              Time: {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Desktop table view
+                  <table className="w-full">
+                    <thead className={darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70 border-b border-blue-100'}>
+                      <tr>
+                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Timestamp</th>
+                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Status</th>
+                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                      {filteredLogs.map((log, idx) => (
+                        <tr 
+                          key={idx} 
+                          className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50/50'} transition-colors animate-fade-in-up`}
+                          style={{ animationDelay: `${idx * 20}ms` }}
+                        >
+                          <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                            <div className="text-sm font-medium">
+                              {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'N/A'}
+                            </div>
+                            <div className="text-xs opacity-75">
+                              {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
+                              log.status === 'IN' 
+                                ? `${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-200'}` 
+                                : `${darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700 border border-red-200'}`
+                            }`}>
+                              {log.status || 'UNKNOWN'}
+                            </span>
+                          </td>
+                          <td className={`px-6 py-4 ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                            <div className="text-sm">
+                              <span className="font-medium">{log.name || 'Unknown'}</span>
+                              <div className="text-xs opacity-75 mt-1">
+                                Class: {log.class || 'Unknown'} • ID: {log.studentId || 'N/A'}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </AnimatedCard>
     </div>
   );
 };
 
-// Main component
+// Main component with mobile menu
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -1691,6 +1914,7 @@ export default function AttendancePortal() {
     attendanceRate: 0
   });
   const [weeklyData, setWeeklyData] = useState([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Add parent-specific states
   const [parentChildId, setParentChildId] = useState(null);
@@ -1700,6 +1924,8 @@ export default function AttendancePortal() {
     todayLogs: 0,
     attendanceRate: 0
   });
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setMounted(true);
@@ -1724,49 +1950,34 @@ export default function AttendancePortal() {
   // Calculate child info when userInfo or students change
   useEffect(() => {
     if (userType === 'parent' && userInfo && students.length > 0) {
-      console.log('Calculating parent child info...', { userInfo, studentsCount: students.length });
-      
-      // Extract child ID from userInfo
       let childId = null;
       
       if (userInfo?.studentId) {
         childId = userInfo.studentId;
-        console.log('Found studentId in userInfo:', childId);
       } else if (userInfo?.child?.studentId) {
         childId = userInfo.child.studentId;
-        console.log('Found child.studentId in userInfo:', childId);
       } else if (userInfo?.children && userInfo.children.length > 0) {
         childId = userInfo.children[0].studentId;
-        console.log('Found children array, using first child:', childId);
       } else if (students.length === 1) {
-        // If parent has only one student in their view, use that
         childId = students[0].studentId;
-        console.log('Using only student in students list:', childId);
       } else if (students.length > 0) {
-        // Try to match with logs
         const logStudentIds = [...new Set(logs.map(log => log.studentId))];
         if (logStudentIds.length === 1) {
           childId = logStudentIds[0];
-          console.log('Using student ID from logs:', childId);
         }
       }
       
-      console.log('Setting parentChildId:', childId);
       setParentChildId(childId);
       
       if (childId) {
-        // Find child info from students list
         const childStudent = students.find(s => s.studentId === childId);
         if (childStudent) {
-          console.log('Found child in students list:', childStudent);
           setChildInfo({
             studentId: childStudent.studentId,
             name: childStudent.name,
             class: childStudent.class
           });
         } else {
-          // Fallback to userInfo
-          console.log('Using fallback child info from userInfo');
           setChildInfo({
             studentId: childId,
             name: userInfo?.child?.name || userInfo?.fullName || 'My Child',
@@ -1775,7 +1986,6 @@ export default function AttendancePortal() {
         }
       }
     } else if (userType === 'parent') {
-      console.log('Cannot calculate child info:', { userType, hasUserInfo: !!userInfo, studentsCount: students.length });
       setChildInfo(null);
       setParentChildId(null);
     }
@@ -1785,12 +1995,9 @@ export default function AttendancePortal() {
   useEffect(() => {
     if (userType === 'parent' && parentChildId) {
       const childLogs = logs.filter(log => log.studentId === parentChildId);
-      console.log('Calculating child stats:', { parentChildId, childLogsCount: childLogs.length });
-      
       const today = new Date().toISOString().split('T')[0];
       const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
       
-      // Calculate attendance rate (percentage of days with IN logs)
       const uniqueDays = new Set(childLogs.map(log => log.timestamp?.split('T')[0]));
       const daysWithIN = new Set(
         childLogs.filter(log => log.status === 'IN').map(log => log.timestamp?.split('T')[0])
@@ -1903,7 +2110,6 @@ export default function AttendancePortal() {
       const data = await response.json();
 
       if (data.success) {
-        // Store session data
         sessionStorage.setItem('sessionToken', data.sessionToken);
         sessionStorage.setItem('userType', data.userType);
         sessionStorage.setItem('username', data.username);
@@ -1939,23 +2145,19 @@ export default function AttendancePortal() {
       todayLogs: 0,
       attendanceRate: 0
     });
+    setMobileMenuOpen(false);
   };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Get data for the last 60 days to calculate 8 weeks of data
       const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
-
-      console.log('Fetching dashboard data...', { startDate, endDate });
 
       const dashboardData = await secureApiCall('getDashboardStats', {
         startDate,
         endDate
       });
-
-      console.log('Dashboard response:', dashboardData);
 
       if (dashboardData.success) {
         const fetchedStudents = dashboardData.students || [];
@@ -1967,13 +2169,6 @@ export default function AttendancePortal() {
           attendanceRate: 0
         };
 
-        console.log('Data received:', {
-          students: fetchedStudents.length,
-          logs: fetchedLogs.length,
-          stats: fetchedStats
-        });
-
-        // Sort logs by newest first initially
         const sortedLogs = fetchedLogs.sort((a, b) => 
           new Date(b.timestamp) - new Date(a.timestamp)
         );
@@ -1982,12 +2177,9 @@ export default function AttendancePortal() {
         setLogs(sortedLogs);
         setStats(fetchedStats);
         
-        // Calculate weekly data and set it
         const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
-        console.log('Setting weekly data:', calculatedWeeklyData);
         setWeeklyData(calculatedWeeklyData);
         
-        // Get classes for teachers only
         if (userType === 'teacher') {
           try {
             const classesData = await secureApiCall('getClasses');
@@ -2005,7 +2197,6 @@ export default function AttendancePortal() {
 
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Set default empty state
       setStudents([]);
       setLogs([]);
       setClasses([]);
@@ -2022,15 +2213,7 @@ export default function AttendancePortal() {
   };
 
   const calculateWeeklyData = (logData, studentsList) => {
-    console.log('Calculating weekly data with:', {
-      totalLogs: logData.length,
-      totalStudents: studentsList.length
-    });
-    
-    // If no logs or students, return empty data
     if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
-      console.log('No data available for weekly calculation');
-      // Create placeholder for last 8 weeks
       const weeks = [];
       const today = new Date();
       for (let i = 7; i >= 0; i--) {
@@ -2047,27 +2230,20 @@ export default function AttendancePortal() {
       return weeks;
     }
     
-    // Group logs by week
     const weeklyMap = {};
-    
-    // First, get unique student IDs from logs for this period
     const studentIdsInLogs = [...new Set(logData.map(log => log.studentId))];
-    console.log('Unique student IDs in logs:', studentIdsInLogs.length);
     
-    // For each log, determine if it represents attendance for that day
     logData.forEach(log => {
       if (!log.timestamp || !log.studentId) return;
       
       try {
         const date = new Date(log.timestamp);
-        // Get the start of the week (Monday)
         const weekStart = new Date(date);
         const dayOfWeek = date.getDay();
         const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         weekStart.setDate(date.getDate() + diffToMonday);
         weekStart.setHours(0, 0, 0, 0);
         
-        // Format as YYYY-MM-DD for the week start
         const weekKey = weekStart.toISOString().split('T')[0];
         
         if (!weeklyMap[weekKey]) {
@@ -2075,14 +2251,12 @@ export default function AttendancePortal() {
           weeklyMap[weekKey] = {
             name: weekLabel,
             date: new Date(weekStart),
-            dailyAttendance: {} // Track attendance by date for this week
+            dailyAttendance: {}
           };
         }
         
-        // Get just the date part (YYYY-MM-DD)
         const logDate = date.toISOString().split('T')[0];
         
-        // Initialize daily attendance tracking if not exists
         if (!weeklyMap[weekKey].dailyAttendance[logDate]) {
           weeklyMap[weekKey].dailyAttendance[logDate] = {
             students: new Set(),
@@ -2090,10 +2264,8 @@ export default function AttendancePortal() {
           };
         }
         
-        // Add student to this date's tracking
         weeklyMap[weekKey].dailyAttendance[logDate].students.add(log.studentId);
         
-        // If student checked IN on this date, mark as present
         if (log.status === 'IN') {
           weeklyMap[weekKey].dailyAttendance[logDate].present.add(log.studentId);
         }
@@ -2103,7 +2275,6 @@ export default function AttendancePortal() {
       }
     });
     
-    // Calculate weekly statistics
     const weeklyArray = Object.keys(weeklyMap).map(weekKey => {
       const week = weeklyMap[weekKey];
       const dailyAttendance = week.dailyAttendance;
@@ -2111,19 +2282,16 @@ export default function AttendancePortal() {
       let totalStudentDays = 0;
       let presentStudentDays = 0;
       
-      // For each day in the week, calculate attendance
       Object.values(dailyAttendance).forEach(day => {
         totalStudentDays += day.students.size;
         presentStudentDays += day.present.size;
       });
       
-      // Calculate weekly attendance rate
       const attendanceRate = totalStudentDays > 0 
         ? Math.round((presentStudentDays / totalStudentDays) * 100) 
         : 0;
       
-      // Estimate present/absent counts (this is approximate for charts)
-      const estimatedPresent = Math.round(presentStudentDays / 5); // Approximate per week
+      const estimatedPresent = Math.round(presentStudentDays / 5);
       const estimatedAbsent = Math.round((totalStudentDays - presentStudentDays) / 5);
       
       return {
@@ -2135,15 +2303,11 @@ export default function AttendancePortal() {
       };
     });
     
-    // Sort by date and get last 8 weeks
     const sortedWeeks = weeklyArray
-      .sort((a, b) => b.date - a.date) // Most recent first
-      .slice(0, 8) // Show last 8 weeks
-      .reverse(); // Show oldest to newest for chart
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 8)
+      .reverse();
     
-    console.log('Weekly data calculated:', sortedWeeks);
-    
-    // If no weekly data, create placeholder
     if (sortedWeeks.length === 0) {
       const today = new Date();
       const dayOfWeek = today.getDay();
@@ -2167,7 +2331,7 @@ export default function AttendancePortal() {
   const getStudentStatus = (studentId) => {
     const today = new Date().toISOString().split('T')[0];
     const studentLogs = logs.filter(log => 
-      log.studentId === studentId && log.timestamp.startsWith(today)
+      log.studentId === studentId && log.timestamp?.startsWith(today)
     );
     
     if (studentLogs.length === 0) return 'no-logs';
@@ -2233,7 +2397,7 @@ export default function AttendancePortal() {
           <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
         </div>
 
-        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
+        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
           <button
             onClick={toggleTheme}
             className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
@@ -2247,14 +2411,14 @@ export default function AttendancePortal() {
             </div>
           </div>
           
-          <h1 className={`text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
             Welcome Back
           </h1>
-          <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8`}>
+          <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
             RFID Attendance Portal
           </p>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
             <div className="space-y-2">
               <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 Username
@@ -2296,7 +2460,7 @@ export default function AttendancePortal() {
             </div>
 
             {loginError && (
-              <div className="bg-red-500/10 border-2 border-red-500/50 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm backdrop-blur-sm">
+              <div className="bg-red-500/10 border-2 border-red-500/50 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm backdrop-blur-sm animate-shake">
                 <div className="flex items-center gap-2">
                   <AlertCircle size={18} />
                   {loginError}
@@ -2341,115 +2505,151 @@ export default function AttendancePortal() {
         <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
       </div>
 
-      {/* Header - Enhanced */}
+      {/* Header - Mobile optimized */}
       <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            {/* Enhanced Left Side */}
-            <div className="flex items-center gap-4">
-              {/* Logo/Icon with animation */}
-              <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-3 rounded-2xl shadow-lg`}>
-                {userType === 'teacher' ? 
-                  <Users size={28} className="text-white" /> : 
-                  <User size={28} className="text-white" />
-                }
-              </div>
-              
-              {/* Enhanced Title Section */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-                    {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                      {userType === 'teacher' ? '👨‍🏫' : '👨‍👦'}
-                    </span>
-                  </h1>
-                </div>
-                
-                {/* Enhanced Greeting with time icon */}
-                <div className="flex items-center gap-2 mt-1">
-                  <div className={`p-1 rounded ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                    <Clock size={14} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
-                  </div>
-                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {getGreeting()}, <span className="font-semibold text-blue-500">{userInfo?.fullName || username}</span>! 👋
-                    <span className="ml-2 text-xs opacity-75">
-                      {new Date().toLocaleDateString('en-US', { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                  </p>
-                </div>
-                
-                {/* Quick Stats for Teachers */}
-                {userType === 'teacher' && (
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
-                      📊 {stats.totalStudents || 0} Students
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-                      🏫 {classes.length || 0} Classes
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      stats.attendanceRate >= 90 ? 
-                        (darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600') :
-                        stats.attendanceRate >= 70 ?
-                        (darkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
-                        (darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600')
-                    }`}>
-                      📈 {stats.attendanceRate || 0}% Rate
-                    </span>
-                  </div>
-                )}
-                
-                {/* Quick Stats for Parents - SAFE CHECK */}
-                {userType === 'parent' && childInfo && (
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-                      👤 {childInfo.name}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
-                      🏫 {childInfo.class}
-                    </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
-                      📋 {childStats.totalLogs || 0} Records
-                    </span>
-                  </div>
-                )}
+          {/* Mobile menu button */}
+          {isMobile && (
+            <div className="flex items-center justify-between py-4">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`p-2 rounded-xl ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-100 text-blue-600'}`}
+              >
+                {mobileMenuOpen ? <XIcon size={24} /> : <Menu size={24} />}
+              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className={`p-2 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-blue-100 text-blue-600'}`}
+                >
+                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 rounded-xl"
+                >
+                  <LogOut size={18} />
+                </button>
               </div>
             </div>
-            
-            {/* Right Side Controls */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={toggleTheme}
-                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
-              >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              
-              <button
-                onClick={fetchData}
-                disabled={loading}
-                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
-              >
-                <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md"
-              >
-                <LogOut size={20} />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
+          )}
 
-          {/* Tabs for Teachers */}
-          {userType === 'teacher' && (
+          {/* Mobile menu */}
+          {isMobile && mobileMenuOpen && (
+            <div className={`py-4 border-t ${darkMode ? 'border-gray-700' : 'border-blue-100'} animate-slide-down`}>
+              <div className="space-y-3">
+                {userType === 'teacher' && (
+                  <div className="space-y-2">
+                    {[
+                      { name: 'Dashboard', icon: BarChart3 },
+                      { name: 'Classroom', icon: Users },
+                      { name: 'Logs', icon: Calendar }
+                    ].map((tab, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setActiveTab(idx);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
+                          activeTab === idx
+                            ? `${darkMode ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'}`
+                            : `${darkMode ? 'bg-gray-700/50 text-gray-300' : 'bg-white/80 text-gray-700'}`
+                        }`}
+                      >
+                        <tab.icon size={20} />
+                        {tab.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="pt-3 border-t border-gray-700/50">
+                  <div className="px-4 py-2">
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {getGreeting()}, <span className="font-semibold">{userInfo?.fullName?.split(' ')[0] || username}</span>
+                    </p>
+                    {userType === 'parent' && childInfo && (
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Child: {childInfo.name}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={fetchData}
+                    disabled={loading}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-blue-50 hover:bg-blue-100'} transition-colors`}
+                  >
+                    <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                    Refresh Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop header */}
+          {!isMobile && (
+            <div className="flex justify-between items-center py-6">
+              {/* Left Side */}
+              <div className="flex items-center gap-4">
+                <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-3 rounded-2xl shadow-lg`}>
+                  {userType === 'teacher' ? 
+                    <Users size={28} className="text-white" /> : 
+                    <User size={28} className="text-white" />
+                  }
+                </div>
+                
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                      {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
+                      <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                        {userType === 'teacher' ? '👨‍🏫' : '👨‍👦'}
+                      </span>
+                    </h1>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className={`p-1 rounded ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
+                      <Clock size={14} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
+                    </div>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {getGreeting()}, <span className="font-semibold text-blue-500">{userInfo?.fullName?.split(' ')[0] || username}</span>! 👋
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right Side Controls */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleTheme}
+                  className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
+                >
+                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                
+                <button
+                  onClick={fetchData}
+                  disabled={loading}
+                  className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
+                >
+                  <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md"
+                >
+                  <LogOut size={20} />
+                  Logout
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Tabs for Teachers - Desktop */}
+          {!isMobile && userType === 'teacher' && (
             <div className="flex gap-2 pb-4">
               {[
                 { name: 'Dashboard', icon: BarChart3 },
@@ -2478,7 +2678,7 @@ export default function AttendancePortal() {
       </div>
 
       {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         {userType === 'teacher' ? (
           <>
             {activeTab === 0 && (
@@ -2522,21 +2722,127 @@ export default function AttendancePortal() {
             userInfo={userInfo}
             students={students}
             exportToCSV={exportToCSV}
-            childInfo={childInfo}  // Pass childInfo
-            childStats={childStats} // Pass childStats
-            parentChildId={parentChildId} // Pass parentChildId
+            childInfo={childInfo}
+            childStats={childStats}
+            parentChildId={parentChildId}
           />
         )}
       </div>
+
+      {/* Mobile bottom navigation for teachers */}
+      {isMobile && userType === 'teacher' && !mobileMenuOpen && (
+        <div className={`fixed bottom-0 left-0 right-0 ${darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-blue-100'} 
+          border-t backdrop-blur-xl z-50`}>
+          <div className="flex justify-around items-center h-16">
+            {[
+              { name: 'Dashboard', icon: BarChart3 },
+              { name: 'Classroom', icon: Users },
+              { name: 'Logs', icon: Calendar }
+            ].map((tab, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveTab(idx)}
+                className={`flex flex-col items-center justify-center p-2 ${activeTab === idx ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}
+              >
+                <tab.icon size={24} />
+                <span className="text-xs mt-1">{tab.name}</span>
+                {activeTab === idx && (
+                  <div className="w-6 h-1 bg-blue-600 dark:bg-blue-400 rounded-full mt-1"></div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in { animation: fade-in 0.5s ease-out; }
-        html.dark { color-scheme: dark; }
+        
+        @keyframes fade-in-up {
+          from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+          }
+        }
+        
+        @keyframes slide-down {
+          from { 
+            opacity: 0; 
+            transform: translateY(-20px); 
+            max-height: 0;
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+            max-height: 500px;
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .animate-fade-in { 
+          animation: fade-in 0.5s ease-out; 
+        }
+        
+        .animate-fade-in-up { 
+          animation: fade-in-up 0.4s ease-out forwards; 
+          opacity: 0;
+        }
+        
+        .animate-slide-down { 
+          animation: slide-down 0.3s ease-out forwards; 
+        }
+        
+        .animate-shake { 
+          animation: shake 0.5s ease-in-out; 
+        }
+        
+        html.dark { 
+          color-scheme: dark; 
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+          .text-balance {
+            text-wrap: balance;
+          }
+          
+          input, select, button {
+            font-size: 16px !important; /* Prevents zoom on iOS */
+          }
+        }
+        
+        /* Smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        /* Better touch targets on mobile */
+        @media (max-width: 768px) {
+          button, 
+          [role="button"],
+          input[type="submit"],
+          input[type="button"] {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          input, select, textarea {
+            font-size: 16px; /* Prevents iOS zoom */
+          }
+        }
       `}</style>
     </div>
   );
-}
+  }
