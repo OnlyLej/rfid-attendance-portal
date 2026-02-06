@@ -43,11 +43,11 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
     {/* Charts Grid */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Weekly Attendance Trend */}
+            // Weekly Attendance Trend - Now shows weekly data
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <Activity className="text-blue-500" size={20} />
-          Weekly Attendance Trend
+          Weekly Attendance Trend (Last 8 Weeks)
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={weeklyData}>
@@ -62,18 +62,123 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
             <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip contentStyle={{ 
-              backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-              border: 'none', 
-              borderRadius: '12px', 
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
-            }} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
+              }}
+              formatter={(value) => [`${value} students`, 'Count']}
+              labelFormatter={(label) => label}
+            />
             <Legend />
-            <Area type="monotone" dataKey="present" stroke="#10b981" fillOpacity={1} fill="url(#colorPresent)" name="Present" />
-            <Area type="monotone" dataKey="absent" stroke="#ef4444" fillOpacity={1} fill="url(#colorAbsent)" name="Absent" />
+            <Area 
+              type="monotone" 
+              dataKey="present" 
+              stroke="#10b981" 
+              fillOpacity={1} 
+              fill="url(#colorPresent)" 
+              name="Present" 
+              strokeWidth={2}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="absent" 
+              stroke="#ef4444" 
+              fillOpacity={1} 
+              fill="url(#colorAbsent)" 
+              name="Absent" 
+              strokeWidth={2}
+            />
           </AreaChart>
+        </ResponsiveContainer>
+      </div>
+      
+      // Attendance Rate Trend - Updated for weekly
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+          <TrendingUp className="text-purple-500" size={20} />
+          Weekly Attendance Rate
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={weeklyData.map(week => ({
+            ...week,
+            attendanceRate: week.total > 0 ? Math.round((week.present / week.total) * 100) : 0
+          }))}>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            <YAxis 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px' 
+              }}
+              formatter={(value) => [`${value}%`, 'Attendance Rate']}
+              labelFormatter={(label) => label}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="attendanceRate" 
+              stroke="#8b5cf6" 
+              strokeWidth={3} 
+              dot={{ fill: '#8b5cf6', r: 5, strokeWidth: 2, stroke: darkMode ? '#1f2937' : '#ffffff' }} 
+              activeDot={{ r: 8, strokeWidth: 2, stroke: darkMode ? '#1f2937' : '#ffffff' }}
+              name="Attendance %"
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      
+      // Weekly Comparison Bar Chart - Updated for weekly
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+          <BarChart3 className="text-orange-500" size={20} />
+          Weekly Present vs Absent
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={weeklyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px' 
+              }}
+              formatter={(value) => [`${value} students`, 'Count']}
+              labelFormatter={(label) => label}
+            />
+            <Legend />
+            <Bar dataKey="present" fill="#10b981" radius={[8, 8, 0, 0]} name="Present" />
+            <Bar dataKey="absent" fill="#ef4444" radius={[8, 8, 0, 0]} name="Absent" />
+          </BarChart>
         </ResponsiveContainer>
       </div>
 
@@ -1358,12 +1463,12 @@ export default function AttendancePortal() {
   const fetchData = async () => {
   setLoading(true);
   try {
-    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    // Get data for the last 60 days to calculate 8 weeks of data
+    const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const endDate = new Date().toISOString().split('T')[0];
 
     console.log('Fetching dashboard data...', { startDate, endDate });
 
-    // For all users, use getDashboardStats which already filters based on role
     const dashboardData = await secureApiCall('getDashboardStats', {
       startDate,
       endDate
@@ -1477,17 +1582,67 @@ export default function AttendancePortal() {
     }
   };
 
-  const calculateWeeklyData = (logData) => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const weekData = days.map(day => ({ name: day, present: 0, absent: 0 }));
+    const calculateWeeklyData = (logData) => {
+    // Group logs by week
+    const weeklyMap = {};
     
     logData.forEach(log => {
+      if (!log.timestamp) return;
+      
       const date = new Date(log.timestamp);
-      const dayIndex = (date.getDay() + 6) % 7;
-      if (log.status === 'IN') weekData[dayIndex].present++;
+      // Get the start of the week (Monday)
+      const weekStart = new Date(date);
+      const dayOfWeek = date.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday = 1, Sunday = 0
+      weekStart.setDate(date.getDate() + diffToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      // Format as YYYY-MM-DD for the week start
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (!weeklyMap[weekKey]) {
+        weeklyMap[weekKey] = {
+          name: `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          present: 0,
+          absent: 0,
+          total: 0,
+          date: weekStart
+        };
+      }
+      
+      if (log.status === 'IN') {
+        weeklyMap[weekKey].present++;
+      } else if (log.status === 'OUT') {
+        weeklyMap[weekKey].absent++;
+      }
+      weeklyMap[weekKey].total++;
     });
-
-    setWeeklyData(weekData);
+    
+    // Convert to array and sort by date
+    const weeklyArray = Object.values(weeklyMap)
+      .sort((a, b) => b.date - a.date) // Most recent first
+      .slice(0, 8) // Show last 8 weeks
+      .reverse(); // Show oldest to newest for chart
+    
+    // If no weekly data, create placeholder for current week
+    if (weeklyArray.length === 0) {
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() + diffToMonday);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      weeklyArray.push({
+        name: `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        present: 0,
+        absent: 0,
+        total: 0,
+        date: weekStart
+      });
+    }
+    
+    return weeklyArray;
   };
 
   const getStudentStatus = (studentId) => {
