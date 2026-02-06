@@ -1332,30 +1332,8 @@ const ParentLogsTab = ({
   const today = new Date().toISOString().split('T')[0];
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-  // Debug button to check data
-  const checkData = () => {
-    console.log('=== PARENT PORTAL DEBUG ===');
-    console.log('User Info:', userInfo);
-    console.log('Parent Child ID:', parentChildId);
-    console.log('Child Info:', childInfo);
-    console.log('All Logs Count:', allLogs.length);
-    console.log('Child Logs Count:', childLogs.length);
-    console.log('Filtered Logs Count:', filteredLogs.length);
-    console.log('Child Stats:', childStats);
-    console.log('Sample Logs (first 3):', childLogs.slice(0, 3));
-    console.log('=======================');
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Debug Button */}
-      <button
-        onClick={checkData}
-        className="fixed bottom-4 right-4 z-50 px-3 py-2 bg-yellow-500 text-white rounded-lg shadow-lg hover:bg-yellow-600 text-sm"
-      >
-        Debug Data
-      </button>
-
       {/* Welcome Header */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <div className="flex items-center justify-between">
