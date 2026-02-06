@@ -46,6 +46,87 @@ const useIsMobile = () => {
   return isMobile;
 };
 
+// Helper function for dynamic colors
+const getColorClasses = (color, darkMode, type = 'bg') => {
+  const colorMap = {
+    green: {
+      dark: {
+        bg: 'bg-green-500/10',
+        text: 'text-green-400',
+        border: 'border-green-500/20'
+      },
+      light: {
+        bg: 'bg-green-50',
+        text: 'text-green-600',
+        border: 'border-green-100'
+      }
+    },
+    red: {
+      dark: {
+        bg: 'bg-red-500/10',
+        text: 'text-red-400',
+        border: 'border-red-500/20'
+      },
+      light: {
+        bg: 'bg-red-50',
+        text: 'text-red-600',
+        border: 'border-red-100'
+      }
+    },
+    blue: {
+      dark: {
+        bg: 'bg-blue-500/10',
+        text: 'text-blue-400',
+        border: 'border-blue-500/20'
+      },
+      light: {
+        bg: 'bg-blue-50',
+        text: 'text-blue-600',
+        border: 'border-blue-100'
+      }
+    },
+    purple: {
+      dark: {
+        bg: 'bg-purple-500/10',
+        text: 'text-purple-400',
+        border: 'border-purple-500/20'
+      },
+      light: {
+        bg: 'bg-purple-50',
+        text: 'text-purple-600',
+        border: 'border-purple-100'
+      }
+    },
+    orange: {
+      dark: {
+        bg: 'bg-orange-500/10',
+        text: 'text-orange-400',
+        border: 'border-orange-500/20'
+      },
+      light: {
+        bg: 'bg-orange-50',
+        text: 'text-orange-600',
+        border: 'border-orange-100'
+      }
+    },
+    gray: {
+      dark: {
+        bg: 'bg-gray-500/10',
+        text: 'text-gray-400',
+        border: 'border-gray-500/20'
+      },
+      light: {
+        bg: 'bg-gray-50',
+        text: 'text-gray-600',
+        border: 'border-gray-100'
+      }
+    }
+  };
+
+  const colors = colorMap[color] || colorMap.gray;
+  return darkMode ? colors.dark[type] : colors.light[type];
+};
+
 // Animated Card Component
 const AnimatedCard = ({ children, delay = 0, className = '' }) => {
   const visible = useFadeIn(delay);
@@ -224,53 +305,67 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             title: 'Total', 
             value: stats.totalStudents, 
             icon: Users, 
-            color: 'from-blue-500 to-blue-600', 
-            bg: darkMode ? 'bg-blue-500/10' : 'bg-blue-50',
+            color: 'blue',
             delay: 100
           },
           { 
             title: 'Present', 
             value: stats.presentToday, 
             icon: UserCheck, 
-            color: 'from-green-500 to-green-600', 
-            bg: darkMode ? 'bg-green-500/10' : 'bg-green-50',
+            color: 'green',
             delay: 200
           },
           { 
             title: 'Absent', 
             value: stats.absentToday, 
             icon: UserX, 
-            color: 'from-red-500 to-red-600', 
-            bg: darkMode ? 'bg-red-500/10' : 'bg-red-50',
+            color: 'red',
             delay: 300
           },
           { 
             title: 'Rate', 
             value: `${stats.attendanceRate}%`, 
             icon: TrendingUp, 
-            color: 'from-purple-500 to-purple-600', 
-            bg: darkMode ? 'bg-purple-500/10' : 'bg-purple-50',
+            color: 'purple',
             delay: 400
           },
           {
             title: 'Week Avg',
             value: `${weeklyData.length > 0 ? Math.round(weeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / weeklyData.length) : 0}%`,
             icon: Calendar,
-            color: 'from-indigo-500 to-indigo-600',
-            bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50',
+            color: 'indigo',
             delay: 500
           },
         ].map((stat, idx) => (
           <AnimatedCard key={idx} delay={stat.delay}>
             <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100/50'} 
               shadow-lg border backdrop-blur-xl p-3 md:p-4 lg:p-6 rounded-xl md:rounded-2xl 
-              transform transition-all duration-300 ${stat.bg} h-full`}>
+              transform transition-all duration-300 h-full`}
+              style={{ 
+                backgroundColor: darkMode ? 
+                  (stat.color === 'blue' ? 'rgba(59, 130, 246, 0.1)' :
+                   stat.color === 'green' ? 'rgba(34, 197, 94, 0.1)' :
+                   stat.color === 'red' ? 'rgba(239, 68, 68, 0.1)' :
+                   stat.color === 'purple' ? 'rgba(168, 85, 247, 0.1)' :
+                   'rgba(99, 102, 241, 0.1)') : undefined
+              }}>
               <div className="flex items-center justify-between mb-2 md:mb-4">
-                <div className={`bg-gradient-to-br ${stat.color} p-2 md:p-3 rounded-lg md:rounded-xl`}>
+                <div className={`${darkMode ? 
+                  (stat.color === 'blue' ? 'bg-blue-500' :
+                   stat.color === 'green' ? 'bg-green-500' :
+                   stat.color === 'red' ? 'bg-red-500' :
+                   stat.color === 'purple' ? 'bg-purple-500' :
+                   'bg-indigo-500') : 
+                  (stat.color === 'blue' ? 'bg-blue-500' :
+                   stat.color === 'green' ? 'bg-green-500' :
+                   stat.color === 'red' ? 'bg-red-500' :
+                   stat.color === 'purple' ? 'bg-purple-500' :
+                   'bg-indigo-500')} 
+                  p-2 md:p-3 rounded-lg md:rounded-xl`}>
                   <stat.icon size={isMobile ? 18 : 24} className="text-white" />
                 </div>
                 {isMobile && (
-                  <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'}`}>
+                  <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700/50 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
                     {stat.title.charAt(0)}
                   </span>
                 )}
@@ -866,12 +961,12 @@ const ClassroomMonitorTab = ({
                         { count: noLogsCount, color: 'gray', label: 'No Logs' }
                       ].map((stat, statIdx) => (
                         <div key={statIdx} 
-                          className={`${darkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50 border border-${stat.color}-100'} 
+                          className={`${getColorClasses(stat.color, darkMode, 'bg')} border ${getColorClasses(stat.color, darkMode, 'border')}
                             rounded-lg p-2 md:p-3 text-center`}>
-                          <p className={`text-xs ${darkMode ? `text-${stat.color}-400` : `text-${stat.color}-600`} mb-1 truncate`}>
+                          <p className={`text-xs ${getColorClasses(stat.color, darkMode, 'text')} mb-1 truncate`}>
                             {isMobile ? stat.label.charAt(0) : stat.label}
                           </p>
-                          <p className={`text-xl md:text-2xl font-bold ${darkMode ? `text-${stat.color}-400` : `text-${stat.color}-600`}`}>
+                          <p className={`text-xl md:text-2xl font-bold ${getColorClasses(stat.color, darkMode, 'text')}`}>
                             {stat.count}
                           </p>
                         </div>
@@ -912,14 +1007,27 @@ const ClassroomMonitorTab = ({
                           .sort((a, b) => a.name.localeCompare(b.name))
                           .map((student, sIdx) => {
                             const status = getStudentStatus(student.studentId);
+                            const statusBg = status === 'present' ? 'bg-green-500/10' :
+                                            status === 'absent' ? 'bg-red-500/10' :
+                                            'bg-gray-500/10';
+                            const statusBorder = status === 'present' ? 'border-green-100' :
+                                               status === 'absent' ? 'border-red-100' :
+                                               'border-gray-100';
+                            const statusBgLight = status === 'present' ? 'bg-green-50' :
+                                                status === 'absent' ? 'bg-red-50' :
+                                                'bg-gray-50';
+                            const statusHover = status === 'present' ? 'hover:bg-green-500/20' :
+                                              status === 'absent' ? 'hover:bg-red-500/20' :
+                                              'hover:bg-gray-500/20';
+                            const statusHoverLight = status === 'present' ? 'hover:bg-green-100' :
+                                                   status === 'absent' ? 'hover:bg-red-100' :
+                                                   'hover:bg-gray-100';
+                            
                             return (
                               <div 
                                 key={sIdx} 
                                 className={`flex items-center justify-between p-2 md:p-3 rounded-xl transition-all transform hover:scale-[1.02] animate-fade-in-up
-                                  ${status === 'present' ? `${darkMode ? 'bg-green-500/10 hover:bg-green-500/20' : 'bg-green-50 hover:bg-green-100 border border-green-100'}` :
-                                  status === 'absent' ? `${darkMode ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-red-50 hover:bg-red-100 border border-red-100'}` :
-                                  `${darkMode ? 'bg-gray-500/10 hover:bg-gray-500/20' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'}`
-                                }`}
+                                  ${darkMode ? `${statusBg} ${statusHover}` : `${statusBgLight} ${statusHoverLight} border ${statusBorder}`}`}
                                 style={{ animationDelay: `${sIdx * 50}ms` }}
                               >
                                 <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
@@ -1520,9 +1628,9 @@ const ParentLogsTab = ({
                 { label: 'Attendance Rate', value: `${childStats.attendanceRate}%`, color: 'orange' }
               ].map((stat, idx) => (
                 <div key={idx} 
-                  className={`${darkMode ? `bg-${stat.color}-500/10` : `bg-${stat.color}-50 border border-${stat.color}-100`} 
+                  className={`${getColorClasses(stat.color, darkMode, 'bg')} border ${getColorClasses(stat.color, darkMode, 'border')}
                     p-3 md:p-4 rounded-xl`}>
-                  <p className={`text-xs ${darkMode ? `text-${stat.color}-300` : `text-${stat.color}-600`} mb-1 truncate`}>
+                  <p className={`text-xs ${getColorClasses(stat.color, darkMode, 'text')} mb-1 truncate`}>
                     {isMobile && stat.label.includes(' ') ? stat.label.split(' ')[0] : stat.label}
                   </p>
                   <p className={`text-lg md:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
@@ -2819,7 +2927,7 @@ export default function AttendancePortal() {
           }
           
           input, select, button {
-            font-size: 16px !important; /* Prevents zoom on iOS */
+            font-size: 16px !important;
           }
         }
         
@@ -2839,10 +2947,10 @@ export default function AttendancePortal() {
           }
           
           input, select, textarea {
-            font-size: 16px; /* Prevents iOS zoom */
+            font-size: 16px;
           }
         }
       `}</style>
     </div>
   );
-  }
+        }
