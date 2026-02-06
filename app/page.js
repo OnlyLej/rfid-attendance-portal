@@ -120,6 +120,18 @@ const getColorClasses = (color, darkMode, type = 'bg') => {
         text: 'text-gray-600',
         border: 'border-gray-100'
       }
+    },
+    indigo: {
+      dark: {
+        bg: 'bg-indigo-500/10',
+        text: 'text-indigo-400',
+        border: 'border-indigo-500/20'
+      },
+      light: {
+        bg: 'bg-indigo-50',
+        text: 'text-indigo-600',
+        border: 'border-indigo-100'
+      }
     }
   };
 
@@ -297,7 +309,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
   const tickFontSize = isMobile ? 10 : 12;
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
       {/* Stats Cards - Responsive grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 lg:gap-6">
         {[
@@ -340,29 +352,10 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
           <AnimatedCard key={idx} delay={stat.delay}>
             <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100/50'} 
               shadow-lg border backdrop-blur-xl p-3 md:p-4 lg:p-6 rounded-xl md:rounded-2xl 
-              transform transition-all duration-300 h-full`}
-              style={{ 
-                backgroundColor: darkMode ? 
-                  (stat.color === 'blue' ? 'rgba(59, 130, 246, 0.1)' :
-                   stat.color === 'green' ? 'rgba(34, 197, 94, 0.1)' :
-                   stat.color === 'red' ? 'rgba(239, 68, 68, 0.1)' :
-                   stat.color === 'purple' ? 'rgba(168, 85, 247, 0.1)' :
-                   'rgba(99, 102, 241, 0.1)') : undefined
-              }}>
+              transform transition-all duration-300 h-full w-full`}>
               <div className="flex items-center justify-between mb-2 md:mb-4">
-                <div className={`${darkMode ? 
-                  (stat.color === 'blue' ? 'bg-blue-500' :
-                   stat.color === 'green' ? 'bg-green-500' :
-                   stat.color === 'red' ? 'bg-red-500' :
-                   stat.color === 'purple' ? 'bg-purple-500' :
-                   'bg-indigo-500') : 
-                  (stat.color === 'blue' ? 'bg-blue-500' :
-                   stat.color === 'green' ? 'bg-green-500' :
-                   stat.color === 'red' ? 'bg-red-500' :
-                   stat.color === 'purple' ? 'bg-purple-500' :
-                   'bg-indigo-500')} 
-                  p-2 md:p-3 rounded-lg md:rounded-xl`}>
-                  <stat.icon size={isMobile ? 18 : 24} className="text-white" />
+                <div className={`p-2 md:p-3 rounded-lg md:rounded-xl ${getColorClasses(stat.color, darkMode, 'bg')}`}>
+                  <stat.icon size={isMobile ? 18 : 24} className={getColorClasses(stat.color, darkMode, 'text')} />
                 </div>
                 {isMobile && (
                   <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-gray-700/50 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
@@ -388,12 +381,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         {/* Weekly Attendance Trend */}
         <AnimatedCard delay={100}>
           <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Weekly Trend</span>
             </h3>
-            <div style={{ height: chartHeight }}>
+            <div style={{ height: chartHeight, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart 
                   data={weeklyData}
@@ -451,12 +444,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         {/* Daily Attendance */}
         <AnimatedCard delay={200}>
           <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Daily Attendance</span>
             </h3>
-            <div style={{ height: chartHeight }}>
+            <div style={{ height: chartHeight, width: '100%' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={dailyData}
@@ -515,7 +508,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
           <>
             <AnimatedCard delay={300}>
               <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full`}>
+                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
                 <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
                   <TrendingUp className="text-purple-500" size={20} />
                   Monthly Trend
@@ -567,7 +560,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             {/* Attendance by Time */}
             <AnimatedCard delay={400}>
               <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full`}>
+                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
                 <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
                   <Clock className="text-orange-500" size={20} />
                   Check-ins by Time
@@ -617,12 +610,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         {/* Class Performance - Always show */}
         <AnimatedCard delay={isMobile ? 300 : 500}>
           <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Class Performance</span>
             </h3>
-            <div style={{ height: chartHeight }}>
+            <div style={{ height: chartHeight, width: '100%' }}>
               {classComparisonData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
@@ -757,9 +750,9 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             content: classComparisonData.length > 0 ? (
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-lg md:text-xl font-bold truncate">{classComparisonData[0].name}</p>
-                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm`}>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
                       {classComparisonData[0].present}/{classComparisonData[0].total} present
                     </p>
                   </div>
@@ -777,10 +770,10 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
                     Rank: 1/{classComparisonData.length}
                   </span>
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
                     {classComparisonData.length > 1 
                       ? `Next: ${classComparisonData[1].attendanceRate}%`
                       : 'Only class'}
@@ -797,10 +790,10 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         ].map((card, idx) => (
           <AnimatedCard key={idx} delay={card.delay}>
             <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-              backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full`}>
+              backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
               <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
                 <card.icon className={card.iconColor} size={isMobile ? 16 : 20} />
-                {isMobile && card.title.length > 10 ? card.title.substring(0, 8) + '..' : card.title}
+                <span className="truncate">{card.title}</span>
               </h3>
               {card.content}
             </div>
@@ -856,10 +849,10 @@ const ClassroomMonitorTab = ({
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
       {/* Enhanced Search Bar for Mobile */}
       <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
-        <div className="relative flex-1">
+        <div className="relative flex-1 w-full">
           <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} 
             size={isMobile ? 18 : 20} />
           <input
@@ -896,7 +889,7 @@ const ClassroomMonitorTab = ({
         {filteredClasses.length === 0 ? (
           <div className="col-span-full">
             <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
-              backdrop-blur-xl p-6 md:p-8 rounded-2xl border shadow-xl text-center animate-pulse`}>
+              backdrop-blur-xl p-6 md:p-8 rounded-2xl border shadow-xl text-center animate-pulse w-full`}>
               <Search size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
               <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                 No matching classes
@@ -925,7 +918,7 @@ const ClassroomMonitorTab = ({
             return (
               <AnimatedCard key={idx} delay={idx * 100}>
                 <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
-                  backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl transition-all duration-300 h-full flex flex-col`}>
+                  backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl transition-all duration-300 h-full flex flex-col w-full`}>
                   {/* Class Header */}
                   <div
                     onClick={() => setSelectedClass(isExpanded ? null : className)}
@@ -962,7 +955,7 @@ const ClassroomMonitorTab = ({
                       ].map((stat, statIdx) => (
                         <div key={statIdx} 
                           className={`${getColorClasses(stat.color, darkMode, 'bg')} border ${getColorClasses(stat.color, darkMode, 'border')}
-                            rounded-lg p-2 md:p-3 text-center`}>
+                            rounded-lg p-2 md:p-3 text-center w-full`}>
                           <p className={`text-xs ${getColorClasses(stat.color, darkMode, 'text')} mb-1 truncate`}>
                             {isMobile ? stat.label.charAt(0) : stat.label}
                           </p>
@@ -983,7 +976,7 @@ const ClassroomMonitorTab = ({
                           {filteredStudents.length > 0 ? Math.round((presentCount / filteredStudents.length) * 100) : 0}%
                         </span>
                       </div>
-                      <div className={`h-2 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                      <div className={`h-2 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden w-full`}>
                         <div 
                           className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
                           style={{ width: `${filteredStudents.length > 0 ? (presentCount / filteredStudents.length) * 100 : 0}%` }}
@@ -994,9 +987,9 @@ const ClassroomMonitorTab = ({
 
                   {/* Expanded Student List */}
                   {isExpanded && (
-                    <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 space-y-2 max-h-64 md:max-h-96 overflow-y-auto animate-slide-down">
+                    <div className="border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 space-y-2 max-h-64 md:max-h-96 overflow-y-auto w-full">
                       {filteredStudents.length === 0 ? (
-                        <div className="text-center py-3 md:py-4">
+                        <div className="text-center py-3 md:py-4 w-full">
                           <Search size={isMobile ? 20 : 24} className={`mx-auto mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                           <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                             No students match search
@@ -1027,7 +1020,8 @@ const ClassroomMonitorTab = ({
                               <div 
                                 key={sIdx} 
                                 className={`flex items-center justify-between p-2 md:p-3 rounded-xl transition-all transform hover:scale-[1.02] animate-fade-in-up
-                                  ${darkMode ? `${statusBg} ${statusHover}` : `${statusBgLight} ${statusHoverLight} border ${statusBorder}`}`}
+                                  ${darkMode ? `${statusBg} ${statusHover}` : `${statusBgLight} ${statusHoverLight} border ${statusBorder}`}
+                                  w-full`}
                                 style={{ animationDelay: `${sIdx * 50}ms` }}
                               >
                                 <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
@@ -1156,18 +1150,18 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
       {/* Header with mobile controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
+        <div className="w-full sm:w-auto">
+          <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} truncate`}>
             Attendance Logs
           </h2>
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
             {filteredLogs.length} of {allLogs.length} records
           </p>
         </div>
-        <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2 md:gap-3 w-full sm:w-auto flex-wrap">
           {isMobile && (
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -1199,7 +1193,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
       {(showFilters || !isMobile) && (
         <AnimatedCard>
           <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100/50'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl w-full`}>
             <div className="flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
@@ -1223,7 +1217,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
                 <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Search
                 </label>
-                <div className="relative">
+                <div className="relative w-full">
                   <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
                   <input
                     type="text"
@@ -1241,7 +1235,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
                 <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Sort
                 </label>
-                <div className="relative">
+                <div className="relative w-full">
                   <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
                   <select
                     value={sortOrder}
@@ -1322,7 +1316,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
 
             {/* Date Range Pickers - Stacked on mobile */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-4">
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   Start Date
                 </label>
@@ -1335,7 +1329,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
                     border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full">
                 <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                   End Date
                 </label>
@@ -1353,31 +1347,31 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
 
             {/* Active Filters Display */}
             {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || classFilter !== 'all') && (
-              <div className="mt-4 pt-4 border-t border-gray-700/50 animate-fade-in">
+              <div className="mt-4 pt-4 border-t border-gray-700/50 animate-fade-in w-full">
                 <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
                 <div className="flex flex-wrap gap-2">
                   {searchTerm && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'} truncate`}>
                       Search: "{searchTerm}"
                     </span>
                   )}
                   {dateFilter.startDate && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'} truncate`}>
                       From: {dateFilter.startDate}
                     </span>
                   )}
                   {dateFilter.endDate && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'} truncate`}>
                       To: {dateFilter.endDate}
                     </span>
                   )}
                   {statusFilter !== 'all' && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'} truncate`}>
                       Status: {statusFilter}
                     </span>
                   )}
                   {classFilter !== 'all' && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
+                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'} truncate`}>
                       Class: {classFilter}
                     </span>
                   )}
@@ -1390,10 +1384,10 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
 
       {/* Logs Table - Mobile optimized */}
       <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100/50'} 
-        backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl overflow-hidden`}>
+        backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl overflow-hidden w-full`}>
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-8 md:p-12 text-center">
+            <div className="p-8 md:p-12 text-center w-full">
               <div className="inline-block animate-pulse">
                 <RefreshCw size={isMobile ? 32 : 48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
               </div>
@@ -1402,7 +1396,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
               </p>
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="p-8 md:p-12 text-center animate-fade-in">
+            <div className="p-8 md:p-12 text-center animate-fade-in w-full">
               <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
               <p className={`text-base md:text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 No records match your filters
@@ -1417,24 +1411,24 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
               </div>
               {isMobile ? (
                 // Mobile cards view
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-3 w-full">
                   {filteredLogs.map((log, idx) => (
                     <div 
                       key={idx} 
                       className={`${darkMode ? 'bg-gray-700/30 hover:bg-gray-700/50' : 'bg-gray-50/50 hover:bg-gray-50/70'} 
-                        p-4 rounded-xl transition-all duration-200 transform hover:scale-[1.01] animate-fade-in-up`}
+                        p-4 rounded-xl transition-all duration-200 transform hover:scale-[1.01] animate-fade-in-up w-full`}
                       style={{ animationDelay: `${idx * 30}ms` }}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'} mb-1`}>
+                      <div className="flex justify-between items-start mb-2 w-full">
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'} mb-1 truncate`}>
                             {log.name}
                           </p>
-                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} truncate`}>
                             {log.studentId} • {log.class}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full flex-shrink-0 ml-2 ${
                           log.status === 'IN' 
                             ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
                             : 'bg-red-500/20 text-red-600 dark:text-red-400'
@@ -1442,7 +1436,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
                           {log.status}
                         </span>
                       </div>
-                      <div className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <div className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
                         {new Date(log.timestamp).toLocaleDateString()} • 
                         {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
@@ -1496,506 +1490,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   );
 };
 
-// Parent Logs Tab Component - Enhanced for mobile
-const ParentLogsTab = ({ 
-  darkMode, 
-  loading, 
-  logs: allLogs, 
-  userInfo, 
-  students, 
-  exportToCSV,
-  childInfo: propChildInfo,
-  childStats: propChildStats,
-  parentChildId 
-}) => {
-  const isMobile = useIsMobile();
-  const [showFilters, setShowFilters] = useState(!isMobile);
-  
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest');
-  const [dateFilter, setDateFilter] = useState({
-    startDate: '',
-    endDate: ''
-  });
-  const [statusFilter, setStatusFilter] = useState('all');
-  
-  const childInfo = propChildInfo;
-  const childStats = propChildStats;
-
-  // Filter logs to show only parent's child
-  const childLogs = useMemo(() => {
-    if (!parentChildId) return [];
-    
-    const filtered = allLogs.filter(log => log.studentId === parentChildId);
-    return filtered;
-  }, [allLogs, parentChildId]);
-
-  // Reset all filters
-  const resetFilters = () => {
-    setSearchTerm('');
-    setSortOrder('newest');
-    setDateFilter({ startDate: '', endDate: '' });
-    setStatusFilter('all');
-  };
-
-  // Filter and sort logs
-  const filteredLogs = useMemo(() => {
-    let filtered = [...childLogs];
-
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(log =>
-        log.studentId?.toLowerCase().includes(term) ||
-        log.name?.toLowerCase().includes(term) ||
-        log.class?.toLowerCase().includes(term)
-      );
-    }
-
-    // Apply date filter
-    if (dateFilter.startDate) {
-      filtered = filtered.filter(log => {
-        if (!log.timestamp) return false;
-        const logDate = log.timestamp.split('T')[0];
-        return logDate >= dateFilter.startDate;
-      });
-    }
-    if (dateFilter.endDate) {
-      filtered = filtered.filter(log => {
-        if (!log.timestamp) return false;
-        const logDate = log.timestamp.split('T')[0];
-        return logDate <= dateFilter.endDate;
-      });
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(log => log.status === statusFilter);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.timestamp);
-      const dateB = new Date(b.timestamp);
-      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
-    });
-
-    return filtered;
-  }, [childLogs, searchTerm, sortOrder, dateFilter, statusFilter]);
-
-  // Get date range for default values
-  const today = new Date().toISOString().split('T')[0];
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  return (
-    <div className="space-y-4 md:space-y-6 animate-fade-in">
-      {/* Welcome Header - Mobile optimized */}
-      <AnimatedCard delay={100}>
-        <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
-          backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                Welcome, {userInfo?.fullName?.split(' ')[0] || 'Parent'}!
-              </h2>
-              <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 md:mt-2 text-sm md:text-base`}>
-                {childInfo 
-                  ? `Viewing attendance for ${isMobile ? childInfo.name.split(' ')[0] : childInfo.name}`
-                  : 'Loading child information...'
-                }
-              </p>
-            </div>
-            <div className="flex items-center gap-2 md:gap-3">
-              <button
-                onClick={() => exportToCSV(filteredLogs)}
-                disabled={filteredLogs.length === 0}
-                className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-3 md:px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
-              >
-                <Download size={18} />
-                {!isMobile && "Export CSV"}
-              </button>
-            </div>
-          </div>
-          
-          {/* Child Summary - Mobile responsive */}
-          {childInfo && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
-              {[
-                { label: 'Student ID', value: childInfo.studentId, color: 'blue' },
-                { label: "Today's Logs", value: childStats.todayLogs, color: 'green' },
-                { label: 'Total Records', value: childStats.totalLogs, color: 'purple' },
-                { label: 'Attendance Rate', value: `${childStats.attendanceRate}%`, color: 'orange' }
-              ].map((stat, idx) => (
-                <div key={idx} 
-                  className={`${getColorClasses(stat.color, darkMode, 'bg')} border ${getColorClasses(stat.color, darkMode, 'border')}
-                    p-3 md:p-4 rounded-xl`}>
-                  <p className={`text-xs ${getColorClasses(stat.color, darkMode, 'text')} mb-1 truncate`}>
-                    {isMobile && stat.label.includes(' ') ? stat.label.split(' ')[0] : stat.label}
-                  </p>
-                  <p className={`text-lg md:text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                    {stat.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </AnimatedCard>
-
-      {/* Filter Controls - Mobile toggle */}
-      {(showFilters || !isMobile) && (
-        <AnimatedCard delay={200}>
-          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl`}>
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-                <h3 className={`text-base md:text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                  Filter Records
-                </h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                  {filteredLogs.length} of {childLogs.length}
-                </span>
-                {isMobile && (
-                  <button
-                    onClick={() => setShowFilters(false)}
-                    className={`p-2 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-                  >
-                    <XIcon size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {/* Search */}
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Search
-                </label>
-                <div className="relative">
-                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by date, status..."
-                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                      border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                  />
-                </div>
-              </div>
-
-              {/* Sort Order */}
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Sort
-                </label>
-                <div className="relative">
-                  <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                      border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Status Filter */}
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Status
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                >
-                  <option value="all">All Status</option>
-                  <option value="IN">IN Only</option>
-                  <option value="OUT">OUT Only</option>
-                </select>
-              </div>
-
-              {/* Quick Date Presets */}
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Quick Presets
-                </label>
-                <select
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === 'today') {
-                      setDateFilter({ startDate: today, endDate: today });
-                    } else if (value === 'week') {
-                      setDateFilter({ startDate: oneWeekAgo, endDate: today });
-                    } else if (value === 'month') {
-                      const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                      setDateFilter({ startDate: oneMonthAgo, endDate: today });
-                    } else if (value === 'clear') {
-                      setDateFilter({ startDate: '', endDate: '' });
-                    }
-                  }}
-                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                >
-                  <option value="">Select Range</option>
-                  <option value="today">Today</option>
-                  <option value="week">Last 7 Days</option>
-                  <option value="month">Last 30 Days</option>
-                  <option value="clear">Clear Dates</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Date Range Pickers */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mt-4">
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={dateFilter.startDate}
-                  onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-                  max={today}
-                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={dateFilter.endDate}
-                  onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-                  max={today}
-                  min={dateFilter.startDate}
-                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white border-blue-200 text-gray-900'} 
-                    border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-sm md:text-base`}
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={resetFilters}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white text-sm md:text-base"
-                >
-                  <X size={18} />
-                  Reset All Filters
-                </button>
-              </div>
-            </div>
-
-            {/* Active Filters Display */}
-            {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all') && (
-              <div className="mt-4 pt-4 border-t border-gray-700/50 animate-fade-in">
-                <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
-                <div className="flex flex-wrap gap-2">
-                  {searchTerm && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                      Search: "{searchTerm}"
-                    </span>
-                  )}
-                  {dateFilter.startDate && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                      From: {dateFilter.startDate}
-                    </span>
-                  )}
-                  {dateFilter.endDate && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                      To: {dateFilter.endDate}
-                    </span>
-                  )}
-                  {statusFilter !== 'all' && (
-                    <span className={`px-2 md:px-3 py-1 rounded-full text-xs ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
-                      Status: {statusFilter}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </AnimatedCard>
-      )}
-
-      {/* Mobile Filter Toggle Button */}
-      {isMobile && !showFilters && (
-        <button
-          onClick={() => setShowFilters(true)}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50 hover:bg-blue-100'} 
-            transition-colors border ${darkMode ? 'border-gray-600' : 'border-blue-200'} animate-pulse`}
-        >
-          <Filter size={18} />
-          <span className="font-medium">Show Filters ({filteredLogs.length}/{childLogs.length})</span>
-        </button>
-      )}
-
-      {/* Attendance Records - Mobile optimized */}
-      <AnimatedCard delay={300}>
-        <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/90 border-blue-100'} 
-          backdrop-blur-xl rounded-xl md:rounded-2xl border shadow-xl overflow-hidden`}>
-          <div className="overflow-x-auto">
-            {loading ? (
-              <div className="p-8 md:p-12 text-center">
-                <RefreshCw size={isMobile ? 32 : 48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <p className={`text-base md:text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading records...</p>
-              </div>
-            ) : !parentChildId ? (
-              <div className="p-8 md:p-12 text-center">
-                <User size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                  No Child Assigned
-                </h3>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm md:text-base`}>
-                  Account not linked to any student
-                </p>
-              </div>
-            ) : childLogs.length === 0 ? (
-              <div className="p-8 md:p-12 text-center">
-                <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                  No Records Found
-                </h3>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-sm md:text-base`}>
-                  No attendance logs found yet
-                </p>
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="p-8 md:p-12 text-center">
-                <Calendar size={isMobile ? 32 : 48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-                <h3 className={`text-lg md:text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                  No Matching Records
-                </h3>
-                <button
-                  onClick={resetFilters}
-                  className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all text-sm md:text-base"
-                >
-                  Reset Filters
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-700/50">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                    <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Showing {filteredLogs.length} of {childLogs.length} records
-                    </p>
-                    <p className={`text-xs md:text-sm font-medium ${darkMode ? 'text-blue-300' : 'text-blue-600'}`}>
-                      {childInfo?.name || 'Child'} • {childInfo?.class || 'Class'}
-                    </p>
-                  </div>
-                </div>
-                {isMobile ? (
-                  // Mobile cards view
-                  <div className="p-4 space-y-3">
-                    {filteredLogs.map((log, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50/50'} 
-                          p-4 rounded-xl transition-colors animate-fade-in-up`}
-                        style={{ animationDelay: `${idx * 30}ms` }}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
-                            log.status === 'IN' 
-                              ? `${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-200'}` 
-                              : `${darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700 border border-red-200'}`
-                          }`}>
-                            {log.status || 'UNKNOWN'}
-                          </span>
-                          <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'N/A'}
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <User size={14} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
-                            <span className="font-medium text-sm">{log.name || 'Unknown'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className={darkMode ? 'text-gray-500' : 'text-gray-600'}>
-                              Class: {log.class || 'Unknown'}
-                            </span>
-                            <span className={darkMode ? 'text-gray-500' : 'text-gray-600'}>
-                              • ID: {log.studentId || 'N/A'}
-                            </span>
-                          </div>
-                          {log.timestamp && (
-                            <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-                              Time: {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  // Desktop table view
-                  <table className="w-full">
-                    <thead className={darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70 border-b border-blue-100'}>
-                      <tr>
-                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Timestamp</th>
-                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Status</th>
-                        <th className={`px-6 py-4 text-left text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'} uppercase`}>Details</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                      {filteredLogs.map((log, idx) => (
-                        <tr 
-                          key={idx} 
-                          className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50/50'} transition-colors animate-fade-in-up`}
-                          style={{ animationDelay: `${idx * 20}ms` }}
-                        >
-                          <td className={`px-6 py-4 whitespace-nowrap ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                            <div className="text-sm font-medium">
-                              {log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'N/A'}
-                            </div>
-                            <div className="text-xs opacity-75">
-                              {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${
-                              log.status === 'IN' 
-                                ? `${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-200'}` 
-                                : `${darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700 border border-red-200'}`
-                            }`}>
-                              {log.status || 'UNKNOWN'}
-                            </span>
-                          </td>
-                          <td className={`px-6 py-4 ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                            <div className="text-sm">
-                              <span className="font-medium">{log.name || 'Unknown'}</span>
-                              <div className="text-xs opacity-75 mt-1">
-                                Class: {log.class || 'Unknown'} • ID: {log.studentId || 'N/A'}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </AnimatedCard>
-    </div>
-  );
-};
-
-// Main component with mobile menu
+// Main component with mobile menu - UPDATED HEADER
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -2499,13 +1994,13 @@ export default function AttendancePortal() {
 
   if (!authenticated) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500`}>
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500 overflow-x-hidden`}>
         <div className="absolute inset-0 overflow-hidden">
           <div className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full ${darkMode ? 'bg-blue-500/5' : 'bg-blue-400/20'} blur-3xl animate-pulse`}></div>
           <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
         </div>
 
-        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
+        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300 mx-4`}>
           <button
             onClick={toggleTheme}
             className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
@@ -2607,18 +2102,18 @@ export default function AttendancePortal() {
 
   // Main Dashboard View
   return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
+    <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500 overflow-x-hidden`}>
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full ${darkMode ? 'bg-blue-500/5' : 'bg-blue-400/20'} blur-3xl animate-pulse`}></div>
         <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
       </div>
 
-      {/* Header - Mobile optimized */}
-      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Header - Fixed and properly contained */}
+      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl w-full overflow-hidden`}>
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           {/* Mobile menu button */}
           {isMobile && (
-            <div className="flex items-center justify-between py-4">
+            <div className="flex items-center justify-between py-4 w-full">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className={`p-2 rounded-xl ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-100 text-blue-600'}`}
@@ -2644,7 +2139,7 @@ export default function AttendancePortal() {
 
           {/* Mobile menu */}
           {isMobile && mobileMenuOpen && (
-            <div className={`py-4 border-t ${darkMode ? 'border-gray-700' : 'border-blue-100'} animate-slide-down`}>
+            <div className={`py-4 border-t ${darkMode ? 'border-gray-700' : 'border-blue-100'} animate-slide-down w-full`}>
               <div className="space-y-3">
                 {userType === 'teacher' && (
                   <div className="space-y-2">
@@ -2666,18 +2161,18 @@ export default function AttendancePortal() {
                         }`}
                       >
                         <tab.icon size={20} />
-                        {tab.name}
+                        <span className="truncate">{tab.name}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 <div className="pt-3 border-t border-gray-700/50">
                   <div className="px-4 py-2">
-                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
                       {getGreeting()}, <span className="font-semibold">{userInfo?.fullName?.split(' ')[0] || username}</span>
                     </p>
                     {userType === 'parent' && childInfo && (
-                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'} truncate`}>
                         Child: {childInfo.name}
                       </p>
                     )}
@@ -2688,77 +2183,74 @@ export default function AttendancePortal() {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 hover:bg-gray-700' : 'bg-blue-50 hover:bg-blue-100'} transition-colors`}
                   >
                     <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                    Refresh Data
+                    <span className="truncate">Refresh Data</span>
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Desktop header */}
+          {/* Desktop header - FIXED */}
           {!isMobile && (
-            <div className="flex justify-between items-center py-6">
-              {/* Left Side */}
-              <div className="flex items-center gap-4">
-                <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-3 rounded-2xl shadow-lg`}>
+            <div className="flex justify-between items-center py-6 w-full">
+              {/* Left Side - Made more compact */}
+              <div className="flex items-center gap-3 max-w-[50%]">
+                <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-2 rounded-xl shadow-lg flex-shrink-0`}>
                   {userType === 'teacher' ? 
-                    <Users size={28} className="text-white" /> : 
-                    <User size={28} className="text-white" />
+                    <Users size={24} className="text-white" /> : 
+                    <User size={24} className="text-white" />
                   }
                 </div>
                 
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                    <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} truncate`}>
                       {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
-                      <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                        {userType === 'teacher' ? '👨‍🏫' : '👨‍👦'}
-                      </span>
                     </h1>
                   </div>
                   
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-1 mt-1">
                     <div className={`p-1 rounded ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                      <Clock size={14} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
+                      <Clock size={12} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
                     </div>
-                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {getGreeting()}, <span className="font-semibold text-blue-500">{userInfo?.fullName?.split(' ')[0] || username}</span>! 👋
+                    <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
+                      {getGreeting()}, <span className="font-semibold text-blue-500 truncate">{userInfo?.fullName?.split(' ')[0] || username}</span>
                     </p>
                   </div>
                 </div>
               </div>
               
-              {/* Right Side Controls */}
-              <div className="flex items-center gap-3">
+              {/* Right Side Controls - More compact */}
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={toggleTheme}
-                  className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
+                  className={`p-2 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
                 >
-                  {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 </button>
                 
                 <button
                   onClick={fetchData}
                   disabled={loading}
-                  className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
+                  className={`p-2 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
                 >
-                  <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw size={18} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
                 </button>
                 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md"
+                  className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-3 py-2 rounded-xl transition-all transform hover:scale-105 shadow-md text-sm"
                 >
-                  <LogOut size={20} />
-                  Logout
+                  <LogOut size={16} />
+                  <span>Logout</span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* Tabs for Teachers - Desktop */}
+          {/* Tabs for Teachers - Desktop - FIXED */}
           {!isMobile && userType === 'teacher' && (
-            <div className="flex gap-2 pb-4">
+            <div className="flex gap-2 pb-4 w-full overflow-x-auto scrollbar-hide">
               {[
                 { name: 'Dashboard', icon: BarChart3 },
                 { name: 'Classroom', icon: Users },
@@ -2767,17 +2259,14 @@ export default function AttendancePortal() {
                 <button
                   key={idx}
                   onClick={() => setActiveTab(idx)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 whitespace-nowrap flex-shrink-0 ${
                     activeTab === idx
                       ? `${darkMode ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'}`
                       : `${darkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-white/80 text-gray-700 hover:bg-white border border-blue-100'}`
                   }`}
                 >
-                  <tab.icon size={18} />
+                  <tab.icon size={16} />
                   {tab.name}
-                  {activeTab === idx && (
-                    <div className="ml-1 w-2 h-2 rounded-full bg-white/50"></div>
-                  )}
                 </button>
               ))}
             </div>
@@ -2786,7 +2275,7 @@ export default function AttendancePortal() {
       </div>
 
       {/* Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+      <div className="relative max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 overflow-x-hidden">
         {userType === 'teacher' ? (
           <>
             {activeTab === 0 && (
@@ -2823,17 +2312,19 @@ export default function AttendancePortal() {
             )}
           </>
         ) : (
-          <ParentLogsTab 
-            darkMode={darkMode}
-            loading={loading}
-            logs={logs}
-            userInfo={userInfo}
-            students={students}
-            exportToCSV={exportToCSV}
-            childInfo={childInfo}
-            childStats={childStats}
-            parentChildId={parentChildId}
-          />
+          <div className="overflow-x-hidden">
+            <ParentLogsTab 
+              darkMode={darkMode}
+              loading={loading}
+              logs={logs}
+              userInfo={userInfo}
+              students={students}
+              exportToCSV={exportToCSV}
+              childInfo={childInfo}
+              childStats={childStats}
+              parentChildId={parentChildId}
+            />
+          </div>
         )}
       </div>
 
@@ -2841,7 +2332,7 @@ export default function AttendancePortal() {
       {isMobile && userType === 'teacher' && !mobileMenuOpen && (
         <div className={`fixed bottom-0 left-0 right-0 ${darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-blue-100'} 
           border-t backdrop-blur-xl z-50`}>
-          <div className="flex justify-around items-center h-16">
+          <div className="flex justify-around items-center h-16 w-full px-2">
             {[
               { name: 'Dashboard', icon: BarChart3 },
               { name: 'Classroom', icon: Users },
@@ -2850,10 +2341,10 @@ export default function AttendancePortal() {
               <button
                 key={idx}
                 onClick={() => setActiveTab(idx)}
-                className={`flex flex-col items-center justify-center p-2 ${activeTab === idx ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}
+                className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${activeTab === idx ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}
               >
-                <tab.icon size={24} />
-                <span className="text-xs mt-1">{tab.name}</span>
+                <tab.icon size={22} />
+                <span className="text-xs mt-1 truncate w-full text-center">{tab.name}</span>
                 {activeTab === idx && (
                   <div className="w-6 h-1 bg-blue-600 dark:bg-blue-400 rounded-full mt-1"></div>
                 )}
@@ -2916,8 +2407,25 @@ export default function AttendancePortal() {
           animation: shake 0.5s ease-in-out; 
         }
         
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .scrollbar-hide {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+        
         html.dark { 
           color-scheme: dark; 
+        }
+        
+        /* Prevent horizontal scrolling */
+        body, html {
+          overflow-x: hidden;
+          max-width: 100vw;
         }
         
         /* Mobile optimizations */
@@ -2928,6 +2436,17 @@ export default function AttendancePortal() {
           
           input, select, button {
             font-size: 16px !important;
+          }
+          
+          /* Force full width on mobile */
+          .max-w-full {
+            max-width: 100% !important;
+          }
+          
+          /* Prevent any element from overflowing */
+          * {
+            max-width: 100%;
+            box-sizing: border-box;
           }
         }
         
@@ -2950,7 +2469,24 @@ export default function AttendancePortal() {
             font-size: 16px;
           }
         }
+        
+        /* Fix for charts overflow */
+        .recharts-wrapper {
+          max-width: 100% !important;
+        }
+        
+        /* Ensure tables don't overflow */
+        table {
+          width: 100% !important;
+          table-layout: fixed;
+        }
+        
+        td, th {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       `}</style>
     </div>
   );
-        }
+              }
