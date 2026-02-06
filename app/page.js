@@ -1224,8 +1224,18 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   );
 };
 
-// Parent Logs Tab Component - Fixed to show logs properly
-const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV, childInfo, childStats }) => {
+// Parent Logs Tab Component
+const ParentLogsTab = ({ 
+  darkMode, 
+  loading, 
+  logs: allLogs, 
+  userInfo, 
+  students, 
+  exportToCSV,
+  childInfo: propChildInfo,  // Renamed to avoid conflict
+  childStats: propChildStats, // Renamed to avoid conflict
+  parentChildId 
+}) => {
   // Filter states for parent view
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -1235,98 +1245,9 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   });
   const [statusFilter, setStatusFilter] = useState('all');
   
-  // Get parent's child ID from session
-  // Update the parentChildId extraction in the ParentLogsTab component:
-
-const parentChildId = useMemo(() => {
-  console.log('=== EXTRACTING PARENT CHILD ID ===');
-  console.log('Full userInfo:', userInfo);
-  
-  try {
-    // Method 1: Check if userInfo has studentId directly
-    if (userInfo?.studentId) {
-      console.log('Found studentId in userInfo:', userInfo.studentId);
-      return userInfo.studentId;
-    }
-    
-    // Method 2: Check if userInfo has child object
-    if (userInfo?.child?.studentId) {
-      console.log('Found child.studentId in userInfo:', userInfo.child.studentId);
-      return userInfo.child.studentId;
-    }
-    
-    // Method 3: Check if userInfo has children array
-    if (userInfo?.children && Array.isArray(userInfo.children) && userInfo.children.length > 0) {
-      const firstChild = userInfo.children[0];
-      console.log('Found children array, first child:', firstChild);
-      return firstChild.studentId;
-    }
-    
-    // Method 4: Check if parent is viewing data from students array (common in your dashboard data)
-    // Since your dashboard returns students for parents, let's check if there's a student in the data
-    if (students && students.length > 0) {
-      console.log('Found students in data, using first student:', students[0]);
-      return students[0].studentId;
-    }
-    
-    // Method 5: Check session storage for parent's linked student
-    const storedUserInfo = sessionStorage.getItem('userInfo');
-    if (storedUserInfo) {
-      try {
-        const parsed = JSON.parse(storedUserInfo);
-        console.log('Checking session storage:', parsed);
-        
-        if (parsed?.studentId) {
-          console.log('Found studentId in session:', parsed.studentId);
-          return parsed.studentId;
-        }
-        
-        if (parsed?.child?.studentId) {
-          console.log('Found child.studentId in session:', parsed.child.studentId);
-          return parsed.child.studentId;
-        }
-        
-        // Try to extract from any response data
-        if (parsed?.data?.studentId) {
-          console.log('Found data.studentId in session:', parsed.data.studentId);
-          return parsed.data.studentId;
-        }
-      } catch (e) {
-        console.error('Error parsing session storage:', e);
-      }
-    }
-    
-    console.log('No child ID found in any location');
-    return null;
-    
-  } catch (error) {
-    console.error('Error extracting parent child ID:', error);
-    return null;
-  }
-}, [userInfo, students]);
-
-  // Get child's info
-  const childInfo = useMemo(() => {
-    if (!parentChildId) return null;
-    
-    // Try to find child in students list
-    const childStudent = students.find(s => s.studentId === parentChildId);
-    
-    if (childStudent) {
-      return {
-        studentId: childStudent.studentId,
-        name: childStudent.name,
-        class: childStudent.class
-      };
-    }
-    
-    // Fallback to userInfo
-    return {
-      studentId: parentChildId,
-      name: userInfo?.child?.name || userInfo?.fullName || 'My Child',
-      class: userInfo?.child?.class || userInfo?.class || 'Unknown'
-    };
-  }, [parentChildId, students, userInfo]);
+  // Use the renamed props
+  const childInfo = propChildInfo;
+  const childStats = propChildStats;
 
   // Filter logs to show only parent's child
   const childLogs = useMemo(() => {
@@ -1340,9 +1261,6 @@ const parentChildId = useMemo(() => {
     
     const filtered = allLogs.filter(log => {
       const matches = log.studentId === parentChildId;
-      if (matches) {
-        console.log('Found matching log:', log);
-      }
       return matches;
     });
     
@@ -1413,41 +1331,6 @@ const parentChildId = useMemo(() => {
   // Get date range for default values
   const today = new Date().toISOString().split('T')[0];
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-  // Calculate child stats
-  const childStats = useMemo(() => {
-    if (!childInfo || childLogs.length === 0) {
-      return {
-        totalLogs: 0,
-        todayLogs: 0,
-        lastStatus: 'NO LOGS',
-        lastTime: 'N/A',
-        lastDate: 'N/A',
-        attendanceRate: 0
-      };
-    }
-    
-    const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
-    const lastEntry = childLogs[0]; // Most recent log
-    
-    // Calculate attendance rate (percentage of days with IN logs)
-    const uniqueDays = new Set(childLogs.map(log => log.timestamp?.split('T')[0]));
-    const daysWithIN = new Set(
-      childLogs.filter(log => log.status === 'IN').map(log => log.timestamp?.split('T')[0])
-    );
-    const attendanceRate = uniqueDays.size > 0 
-      ? Math.round((daysWithIN.size / uniqueDays.size) * 100) 
-      : 0;
-    
-    return {
-      totalLogs: childLogs.length,
-      todayLogs: todayLogs.length,
-      lastStatus: lastEntry?.status || 'NO LOGS',
-      lastTime: lastEntry ? new Date(lastEntry.timestamp).toLocaleTimeString() : 'N/A',
-      lastDate: lastEntry ? new Date(lastEntry.timestamp).toLocaleDateString() : 'N/A',
-      attendanceRate: attendanceRate
-    };
-  }, [childInfo, childLogs, today]);
 
   // Debug button to check data
   const checkData = () => {
