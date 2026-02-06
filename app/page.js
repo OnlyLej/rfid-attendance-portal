@@ -636,7 +636,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   );
 };
 
-// Parent Logs Tab Component with debugging
+// Parent Logs Tab Component - Fixed version
 const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV }) => {
   // Filter states for parent view
   const [searchTerm, setSearchTerm] = useState('');
@@ -648,42 +648,56 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeChild, setActiveChild] = useState('all'); // For multiple children
 
-  // Debug state
-  const [debugInfo, setDebugInfo] = useState({
-    allLogsCount: 0,
-    childLogsCount: 0,
-    filteredLogsCount: 0,
-    parentChildrenCount: 0
-  });
-
-  // Get parent's children from user info
+  // Get parent's children from session storage
   const parentChildren = useMemo(() => {
-    console.log('User Info for parent:', userInfo);
-    
-    // Try multiple ways to get children data
-    let children = [];
-    
-    if (userInfo?.children && Array.isArray(userInfo.children)) {
-      children = userInfo.children;
-    } else if (userInfo?.child && userInfo.child.studentId) {
-      // Single child format
-      children = [userInfo.child];
-    } else if (userInfo?.studentId) {
-      // Direct student ID on userInfo
-      children = [{
-        studentId: userInfo.studentId,
-        name: userInfo.fullName || userInfo.username,
-        class: userInfo.class || 'Unknown'
-      }];
+    try {
+      console.log('User Info for parent:', userInfo);
+      
+      // First try to get from userInfo directly
+      let children = [];
+      
+      // Check if we have studentId in userInfo (single child)
+      if (userInfo?.studentId) {
+        children = [{
+          studentId: userInfo.studentId,
+          name: userInfo.fullName || 'My Child',
+          class: userInfo.class || 'Unknown'
+        }];
+      }
+      // Check if we have children array
+      else if (userInfo?.children && Array.isArray(userInfo.children)) {
+        children = userInfo.children;
+      }
+      // Check if we have child object
+      else if (userInfo?.child) {
+        children = [userInfo.child];
+      }
+      // If no children found in userInfo, check session storage
+      else {
+        const storedUserInfo = sessionStorage.getItem('userInfo');
+        if (storedUserInfo) {
+          const parsedInfo = JSON.parse(storedUserInfo);
+          if (parsedInfo?.studentId) {
+            children = [{
+              studentId: parsedInfo.studentId,
+              name: parsedInfo.fullName || 'My Child',
+              class: parsedInfo.class || 'Unknown'
+            }];
+          }
+        }
+      }
+      
+      console.log('Parent children extracted:', children);
+      return children;
+    } catch (error) {
+      console.error('Error extracting parent children:', error);
+      return [];
     }
-    
-    console.log('Parent children extracted:', children);
-    return children;
   }, [userInfo]);
 
   // Filter logs to show only parent's children
   const childLogs = useMemo(() => {
-    if (!parentChildren.length) {
+    if (!parentChildren || parentChildren.length === 0) {
       console.log('No children found for parent');
       return [];
     }
@@ -693,21 +707,10 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
     
     const filteredLogs = allLogs.filter(log => {
       const matches = childIds.includes(log.studentId);
-      if (matches) {
-        console.log('Found matching log:', log);
-      }
       return matches;
     });
     
     console.log('Child logs found:', filteredLogs.length, 'out of', allLogs.length);
-    
-    // Update debug info
-    setDebugInfo(prev => ({
-      ...prev,
-      allLogsCount: allLogs.length,
-      childLogsCount: filteredLogs.length,
-      parentChildrenCount: parentChildren.length
-    }));
     
     return filteredLogs;
   }, [allLogs, parentChildren]);
@@ -729,21 +732,23 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(log =>
-        log.studentId.toLowerCase().includes(term) ||
-        log.name.toLowerCase().includes(term) ||
-        log.class.toLowerCase().includes(term)
+        log.studentId?.toLowerCase().includes(term) ||
+        log.name?.toLowerCase().includes(term) ||
+        log.class?.toLowerCase().includes(term)
       );
     }
 
     // Apply date filter
     if (dateFilter.startDate) {
       filtered = filtered.filter(log => {
+        if (!log.timestamp) return false;
         const logDate = log.timestamp.split('T')[0];
         return logDate >= dateFilter.startDate;
       });
     }
     if (dateFilter.endDate) {
       filtered = filtered.filter(log => {
+        if (!log.timestamp) return false;
         const logDate = log.timestamp.split('T')[0];
         return logDate <= dateFilter.endDate;
       });
@@ -766,12 +771,6 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-    // Update debug info
-    setDebugInfo(prev => ({
-      ...prev,
-      filteredLogsCount: filtered.length
-    }));
-
     return filtered;
   }, [childLogs, searchTerm, sortOrder, dateFilter, statusFilter, activeChild]);
 
@@ -783,27 +782,26 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const childStats = useMemo(() => {
     const stats = {};
     
-    parentChildren.forEach(child => {
-      const childLogs = allLogs.filter(log => log.studentId === child.studentId);
-      const todayLogs = childLogs.filter(log => log.timestamp.startsWith(today));
-      const lastEntry = childLogs[0]; // Most recent log
-      
-      stats[child.studentId] = {
-        name: child.name || 'Unknown',
-        class: child.class || 'Unknown',
-        totalLogs: childLogs.length,
-        todayLogs: todayLogs.length,
-        lastStatus: lastEntry?.status || 'NO LOGS',
-        lastTime: lastEntry ? new Date(lastEntry.timestamp).toLocaleTimeString() : 'N/A',
-        lastDate: lastEntry ? new Date(lastEntry.timestamp).toLocaleDateString() : 'N/A'
-      };
-    });
+    if (parentChildren && parentChildren.length > 0) {
+      parentChildren.forEach(child => {
+        const childLogs = allLogs.filter(log => log.studentId === child.studentId);
+        const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
+        const lastEntry = childLogs[0]; // Most recent log
+        
+        stats[child.studentId] = {
+          name: child.name || 'Unknown',
+          class: child.class || 'Unknown',
+          totalLogs: childLogs.length,
+          todayLogs: todayLogs.length,
+          lastStatus: lastEntry?.status || 'NO LOGS',
+          lastTime: lastEntry ? new Date(lastEntry.timestamp).toLocaleTimeString() : 'N/A',
+          lastDate: lastEntry ? new Date(lastEntry.timestamp).toLocaleDateString() : 'N/A'
+        };
+      });
+    }
     
     return stats;
   }, [allLogs, parentChildren, today]);
-
-  // Debug view toggle
-  const [showDebug, setShowDebug] = useState(false);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -812,82 +810,27 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
         <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Welcome, {userInfo?.fullName || 'Parent'}!
+              Welcome, {userInfo?.fullName || userInfo?.username || 'Parent'}!
             </h2>
             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-2`}>
-              Monitor your {parentChildren.length > 1 ? 'children' : 'child'}'s attendance records
+              {parentChildren && parentChildren.length > 0 
+                ? `Monitor your ${parentChildren.length > 1 ? 'children' : 'child'}'s attendance records`
+                : 'View attendance records'}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowDebug(!showDebug)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/30 transition-colors"
-              title="Debug info"
-            >
-              <Info size={18} />
-              Debug
-            </button>
-            <button
-              onClick={() => exportToCSV(filteredLogs)}
-              disabled={filteredLogs.length === 0}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download size={18} />
-              Export CSV
-            </button>
-          </div>
+          <button
+            onClick={() => exportToCSV(filteredLogs)}
+            disabled={filteredLogs.length === 0}
+            className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download size={18} />
+            Export CSV
+          </button>
         </div>
-        
-        {/* Debug Information */}
-        {showDebug && (
-          <div className="mt-4 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
-            <h3 className={`text-sm font-semibold mb-2 ${darkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>
-              Debug Information
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Total Logs:</span>
-                <span className="ml-2 font-semibold">{debugInfo.allLogsCount}</span>
-              </div>
-              <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Children:</span>
-                <span className="ml-2 font-semibold">{debugInfo.parentChildrenCount}</span>
-              </div>
-              <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Child Logs:</span>
-                <span className="ml-2 font-semibold">{debugInfo.childLogsCount}</span>
-              </div>
-              <div>
-                <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Filtered Logs:</span>
-                <span className="ml-2 font-semibold">{debugInfo.filteredLogsCount}</span>
-              </div>
-              {parentChildren.length > 0 && (
-                <div className="col-span-2">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>Child IDs:</span>
-                  <span className="ml-2 font-semibold">
-                    {parentChildren.map(c => c.studentId).join(', ')}
-                  </span>
-                </div>
-              )}
-            </div>
-            {userInfo && (
-              <div className="mt-2">
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-blue-400 hover:text-blue-300">
-                    View User Info
-                  </summary>
-                  <pre className="mt-2 p-2 bg-black/30 rounded overflow-auto max-h-40">
-                    {JSON.stringify(userInfo, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Children Summary Cards */}
-      {parentChildren.length > 0 ? (
+      {parentChildren && parentChildren.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {parentChildren.map((child, idx) => {
             const stats = childStats[child.studentId] || {};
@@ -910,7 +853,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                     </div>
                     <div>
                       <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {child.name || 'Unknown'}
+                        {child.name || child.studentId || 'My Child'}
                       </h3>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                         {child.class || 'Unknown'} • {child.studentId || 'No ID'}
@@ -954,202 +897,204 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
           <div className="text-center">
             <User size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
             <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              No Children Assigned
+              Welcome to Parent Portal
             </h3>
             <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              No children are currently assigned to your account.
+              Your attendance records are loading...
             </p>
             <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-              Please contact the school administration to link your children to your account.
+              You can view your child's attendance history here.
             </p>
           </div>
         </div>
       )}
 
       {/* Filter Controls for Parents */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Filter Attendance Records
-          </h3>
-          <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-            {filteredLogs.length} of {childLogs.length} records
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Child Filter */}
-          {parentChildren.length > 1 && (
-            <div className="space-y-2">
-              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Child
-              </label>
-              <select
-                value={activeChild}
-                onChange={(e) => setActiveChild(e.target.value)}
-                className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-              >
-                <option value="all">All Children</option>
-                {parentChildren.map((child, idx) => (
-                  <option key={idx} value={child.studentId}>
-                    {child.name || 'Unknown'} ({child.class || 'Unknown'})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Search */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Search
-            </label>
-            <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search records..."
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-              />
-            </div>
+      {parentChildren && parentChildren.length > 0 && (
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <div className="flex items-center gap-2 mb-4">
+            <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Filter Attendance Records
+            </h3>
+            <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+              {filteredLogs.length} of {childLogs.length} records
+            </span>
           </div>
 
-          {/* Sort Order */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Sort Order
-            </label>
-            <div className="relative">
-              <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500`}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Status
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="all">All Status</option>
-              <option value="IN">IN Only</option>
-              <option value="OUT">OUT Only</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Date Range Pickers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Start Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.startDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-              max={today}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              End Date
-            </label>
-            <input
-              type="date"
-              value={dateFilter.endDate}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-              max={today}
-              min={dateFilter.startDate}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Quick Presets
-            </label>
-            <select
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === 'today') {
-                  setDateFilter({ startDate: today, endDate: today });
-                } else if (value === 'week') {
-                  setDateFilter({ startDate: oneWeekAgo, endDate: today });
-                } else if (value === 'month') {
-                  const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                  setDateFilter({ startDate: oneMonthAgo, endDate: today });
-                }
-              }}
-              className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
-            >
-              <option value="">Select Range</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Reset Button */}
-        <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between items-center">
-          <div>
-            {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || activeChild !== 'all') && (
-              <div>
-                <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
-                <div className="flex flex-wrap gap-2">
-                  {searchTerm && (
-                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
-                      Search: "{searchTerm}"
-                    </span>
-                  )}
-                  {dateFilter.startDate && (
-                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                      From: {dateFilter.startDate}
-                    </span>
-                  )}
-                  {dateFilter.endDate && (
-                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
-                      To: {dateFilter.endDate}
-                    </span>
-                  )}
-                  {statusFilter !== 'all' && (
-                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
-                      Status: {statusFilter}
-                    </span>
-                  )}
-                  {activeChild !== 'all' && (
-                    <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
-                      Child: {parentChildren.find(c => c.studentId === activeChild)?.name || 'Unknown'}
-                    </span>
-                  )}
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Child Filter - Only show if multiple children */}
+            {parentChildren.length > 1 && (
+              <div className="space-y-2">
+                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Child
+                </label>
+                <select
+                  value={activeChild}
+                  onChange={(e) => setActiveChild(e.target.value)}
+                  className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="all">All Children</option>
+                  {parentChildren.map((child, idx) => (
+                    <option key={idx} value={child.studentId}>
+                      {child.name || child.studentId} ({child.class || 'Unknown'})
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
+
+            {/* Search */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Search
+              </label>
+              <div className="relative">
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search records..."
+                  className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+                />
+              </div>
+            </div>
+
+            {/* Sort Order */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Sort Order
+              </label>
+              <div className="relative">
+                <ArrowUpDown className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={18} />
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm appearance-none focus:ring-2 focus:ring-blue-500`}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+              >
+                <option value="all">All Status</option>
+                <option value="IN">IN Only</option>
+                <option value="OUT">OUT Only</option>
+              </select>
+            </div>
           </div>
-          <button
-            onClick={resetFilters}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
-          >
-            <X size={18} />
-            Reset Filters
-          </button>
+
+          {/* Date Range Pickers */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateFilter.startDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                max={today}
+                className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateFilter.endDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                max={today}
+                min={dateFilter.startDate}
+                className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Quick Presets
+              </label>
+              <select
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === 'today') {
+                    setDateFilter({ startDate: today, endDate: today });
+                  } else if (value === 'week') {
+                    setDateFilter({ startDate: oneWeekAgo, endDate: today });
+                  } else if (value === 'month') {
+                    const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                    setDateFilter({ startDate: oneMonthAgo, endDate: today });
+                  }
+                }}
+                className={`w-full px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 backdrop-blur-sm focus:ring-2 focus:ring-blue-500`}
+              >
+                <option value="">Select Range</option>
+                <option value="today">Today</option>
+                <option value="week">Last 7 Days</option>
+                <option value="month">Last 30 Days</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Reset Button */}
+          <div className="mt-4 pt-4 border-t border-gray-700/50 flex justify-between items-center">
+            <div>
+              {(searchTerm || dateFilter.startDate || dateFilter.endDate || statusFilter !== 'all' || activeChild !== 'all') && (
+                <div>
+                  <p className={`text-sm mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Active Filters:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {searchTerm && (
+                      <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                        Search: "{searchTerm}"
+                      </span>
+                    )}
+                    {dateFilter.startDate && (
+                      <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                        From: {dateFilter.startDate}
+                      </span>
+                    )}
+                    {dateFilter.endDate && (
+                      <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-600'}`}>
+                        To: {dateFilter.endDate}
+                      </span>
+                    )}
+                    {statusFilter !== 'all' && (
+                      <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-100 text-purple-600'}`}>
+                        Status: {statusFilter}
+                      </span>
+                    )}
+                    {activeChild !== 'all' && parentChildren.find(c => c.studentId === activeChild) && (
+                      <span className={`px-3 py-1 rounded-full text-sm ${darkMode ? 'bg-orange-500/20 text-orange-300' : 'bg-orange-100 text-orange-600'}`}>
+                        Child: {parentChildren.find(c => c.studentId === activeChild)?.name || 'Unknown'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all transform hover:scale-105 shadow-lg bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white"
+            >
+              <X size={18} />
+              Reset Filters
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Attendance Records Table */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
@@ -1159,7 +1104,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
               <RefreshCw size={48} className={`mx-auto mb-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
               <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Loading records...</p>
             </div>
-          ) : parentChildren.length === 0 ? (
+          ) : parentChildren && parentChildren.length === 0 ? (
             <div className="p-12 text-center">
               <User size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
               <p className={`text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>No children assigned to your account</p>
@@ -1179,12 +1124,6 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                 <li>• The student IDs in your account don't match the logs</li>
                 <li>• There might be a data synchronization delay</li>
               </ul>
-              <button
-                onClick={() => setShowDebug(true)}
-                className="mt-4 px-4 py-2 bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-xl hover:bg-yellow-500/30 transition-colors"
-              >
-                Show Debug Info
-              </button>
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className="p-12 text-center">
@@ -1215,17 +1154,23 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                   {filteredLogs.map((log, idx) => (
                     <tr key={idx} className={`${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'} transition-colors`}>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
-                        {new Date(log.timestamp).toLocaleString()}
+                        {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {log.name || 'Unknown'}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                        {log.class || 'Unknown'}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
                           log.status === 'IN' 
                             ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                            : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                            : log.status === 'OUT'
+                            ? 'bg-red-500/20 text-red-600 dark:text-red-400'
+                            : 'bg-gray-500/20 text-gray-600 dark:text-gray-400'
                         }`}>
-                          {log.status}
+                          {log.status || 'UNKNOWN'}
                         </span>
                       </td>
                     </tr>
@@ -1337,16 +1282,22 @@ export default function AttendancePortal() {
   const secureApiCall = async (action, params = {}) => {
     const sessionToken = sessionStorage.getItem('sessionToken');
     if (!sessionToken) throw new Error('Not authenticated');
-
-    const queryParams = new URLSearchParams({ action, ...params }).toString();
+  
+    const queryParams = new URLSearchParams({ 
+      action, 
+      sessionToken, // Add sessionToken to query params
+      ...params 
+    }).toString();
+    
     const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        // Keep header too for compatibility
         'X-Session-Token': sessionToken,
       },
     });
-
+  
     if (!response.ok) {
       if (response.status === 401) {
         handleLogout();
@@ -1354,7 +1305,7 @@ export default function AttendancePortal() {
       }
       throw new Error('API request failed');
     }
-
+  
     return response.json();
   };
 
@@ -1405,72 +1356,77 @@ export default function AttendancePortal() {
   };
 
   const fetchData = async () => {
-    setLoading(true);
-    try {
-      const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const endDate = new Date().toISOString().split('T')[0];
+  setLoading(true);
+  try {
+    const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
 
-      console.log('Fetching dashboard data...', { startDate, endDate });
+    console.log('Fetching dashboard data...', { startDate, endDate });
 
-      // For parents, fetch their specific children's data
-      if (userType === 'parent') {
-        try {
-          // Try to fetch parent-specific data
-          const parentData = await secureApiCall('getParentData', {
-            startDate,
-            endDate
-          });
+    // For all users, use getDashboardStats which already filters based on role
+    const dashboardData = await secureApiCall('getDashboardStats', {
+      startDate,
+      endDate
+    });
 
-          console.log('Parent data response:', parentData);
+    console.log('Dashboard response:', dashboardData);
 
-          if (parentData.success) {
-            const fetchedLogs = parentData.logs || [];
-            const sortedLogs = fetchedLogs.sort((a, b) => 
-              new Date(b.timestamp) - new Date(a.timestamp)
-            );
-
-            setLogs(sortedLogs);
-            setStudents(parentData.children || []);
-            
-            // For parents, we might not need all these stats
-            setStats({
-              totalStudents: parentData.children?.length || 0,
-              presentToday: parentData.todayPresent || 0,
-              absentToday: parentData.todayAbsent || 0,
-              attendanceRate: parentData.attendanceRate || 0
-            });
-
-            calculateWeeklyData(fetchedLogs);
-          } else {
-            // Fallback to regular dashboard data if parent-specific endpoint fails
-            console.log('Parent endpoint failed, using dashboard data');
-            await fetchDashboardData(startDate, endDate);
-          }
-        } catch (parentError) {
-          console.error('Error fetching parent data, using dashboard:', parentError);
-          await fetchDashboardData(startDate, endDate);
-        }
-      } else {
-        // Teachers get the full dashboard data
-        await fetchDashboardData(startDate, endDate);
-      }
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      // Set default empty state
-      setStudents([]);
-      setLogs([]);
-      setClasses([]);
-      setStats({
+    if (dashboardData.success) {
+      const fetchedStudents = dashboardData.students || [];
+      const fetchedLogs = dashboardData.logs || [];
+      const fetchedStats = dashboardData.stats || {
         totalStudents: 0,
         presentToday: 0,
         absentToday: 0,
         attendanceRate: 0
+      };
+
+      console.log('Data received:', {
+        students: fetchedStudents.length,
+        logs: fetchedLogs.length,
+        stats: fetchedStats
       });
-    } finally {
-      setLoading(false);
+
+      // Sort logs by newest first initially
+      const sortedLogs = fetchedLogs.sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
+      setStudents(fetchedStudents);
+      setLogs(sortedLogs);
+      setStats(fetchedStats);
+      calculateWeeklyData(fetchedLogs);
+      
+      // Get classes for teachers only
+      if (userType === 'teacher') {
+        try {
+          const classesData = await secureApiCall('getClasses');
+          if (classesData.success) {
+            setClasses(classesData.classes || []);
+          }
+        } catch (classError) {
+          console.error('Error fetching classes:', classError);
+          setClasses([]);
+        }
+      }
     }
-  };
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Set default empty state
+    setStudents([]);
+    setLogs([]);
+    setClasses([]);
+    setStats({
+      totalStudents: 0,
+      presentToday: 0,
+      absentToday: 0,
+      attendanceRate: 0
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Helper function to fetch dashboard data
   const fetchDashboardData = async (startDate, endDate) => {
