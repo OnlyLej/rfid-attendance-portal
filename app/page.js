@@ -26,6 +26,13 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         { title: 'Present Today', value: stats.presentToday, icon: UserCheck, color: 'from-green-500 to-green-600', bg: darkMode ? 'bg-green-500/10' : 'bg-green-50' },
         { title: 'Absent Today', value: stats.absentToday, icon: UserX, color: 'from-red-500 to-red-600', bg: darkMode ? 'bg-red-500/10' : 'bg-red-50' },
         { title: 'Attendance Rate', value: `${stats.attendanceRate}%`, icon: TrendingUp, color: 'from-purple-500 to-purple-600', bg: darkMode ? 'bg-purple-500/10' : 'bg-purple-50' },
+        {
+          title: 'This Week',
+          value: `${weeklyData.length > 0 ? weeklyData[weeklyData.length - 1].present : 0} present`,
+          icon: Calendar,
+          color: 'from-indigo-500 to-indigo-600',
+          bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'
+        },
       ].map((stat, idx) => (
         <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
           <div className="flex items-center justify-between mb-4">
