@@ -50,7 +50,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
     {/* Charts Grid */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            // Weekly Attendance Trend - Now shows weekly data
+    {// Weekly Attendance Trend - Now shows weekly data}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <Activity className="text-blue-500" size={20} />
@@ -110,7 +110,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </ResponsiveContainer>
       </div>
       
-      // Attendance Rate Trend - Updated for weekly
+      {// Attendance Rate Trend - Updated for weekly}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <TrendingUp className="text-purple-500" size={20} />
@@ -156,7 +156,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </ResponsiveContainer>
       </div>
       
-      // Weekly Comparison Bar Chart - Updated for weekly
+      {// Weekly Comparison Bar Chart - Updated for weekly}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <BarChart3 className="text-orange-500" size={20} />
