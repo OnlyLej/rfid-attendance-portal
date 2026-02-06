@@ -50,143 +50,232 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
     {/* Charts Grid */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    {/* Weekly Attendance Trend - Now shows weekly data*/}
+      {/* Weekly Attendance Trend */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <Activity className="text-blue-500" size={20} />
-          Weekly Attendance Trend (Last 8 Weeks)
+          Weekly Attendance Trend
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={weeklyData}>
-            <defs>
-              <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-              </linearGradient>
-              <linearGradient id="colorAbsent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px', 
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
-              }}
-              formatter={(value) => [`${value} students`, 'Count']}
-              labelFormatter={(label) => label}
-            />
-            <Legend />
-            <Area 
-              type="monotone" 
-              dataKey="present" 
-              stroke="#10b981" 
-              fillOpacity={1} 
-              fill="url(#colorPresent)" 
-              name="Present" 
-              strokeWidth={2}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="absent" 
-              stroke="#ef4444" 
-              fillOpacity={1} 
-              fill="url(#colorAbsent)" 
-              name="Absent" 
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        {weeklyData.length > 0 && weeklyData.some(w => w.present > 0 || w.absent > 0) ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                interval={0}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
+                }}
+                formatter={(value, name) => {
+                  if (name === 'present') return [`${value} students`, 'Present'];
+                  if (name === 'absent') return [`${value} students`, 'Absent'];
+                  return [value, name];
+                }}
+              />
+              <Legend />
+              <Area 
+                type="monotone" 
+                dataKey="present" 
+                stackId="1"
+                stroke="#10b981" 
+                fill="#10b981" 
+                fillOpacity={0.8}
+                name="Present" 
+                strokeWidth={2}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="absent" 
+                stackId="1"
+                stroke="#ef4444" 
+                fill="#ef4444" 
+                fillOpacity={0.8}
+                name="Absent" 
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-64 flex items-center justify-center">
+            <div className="text-center">
+              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No weekly attendance data available
+              </p>
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Attendance Rate Trend - Updated for weekly*/}
+      {/* Weekly Attendance Rate */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <TrendingUp className="text-purple-500" size={20} />
           Weekly Attendance Rate
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={weeklyData.map(week => ({
-            ...week,
-            attendanceRate: week.total > 0 ? Math.round((week.present / week.total) * 100) : 0
-          }))}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px' 
-              }}
-              formatter={(value) => [`${value}%`, 'Attendance Rate']}
-              labelFormatter={(label) => label}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="attendanceRate" 
-              stroke="#8b5cf6" 
-              strokeWidth={3} 
-              dot={{ fill: '#8b5cf6', r: 5, strokeWidth: 2, stroke: darkMode ? '#1f2937' : '#ffffff' }} 
-              activeDot={{ r: 8, strokeWidth: 2, stroke: darkMode ? '#1f2937' : '#ffffff' }}
-              name="Attendance %"
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {weeklyData.length > 0 && weeklyData.some(w => w.attendanceRate > 0) ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                interval={0}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px' 
+                }}
+                formatter={(value) => [`${value}%`, 'Attendance Rate']}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="attendanceRate" 
+                stroke="#8b5cf6" 
+                strokeWidth={3} 
+                dot={{ fill: '#8b5cf6', r: 5 }} 
+                name="Attendance %"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-64 flex items-center justify-center">
+            <div className="text-center">
+              <TrendingUp size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No attendance rate data available
+              </p>
+            </div>
+          </div>
+        )}
       </div>
       
-      {/* Weekly Comparison Bar Chart - Updated for weekly*/}
+      {/* Weekly Comparison */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <BarChart3 className="text-orange-500" size={20} />
-          Weekly Present vs Absent
+          Weekly Comparison
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={weeklyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px' 
-              }}
-              formatter={(value) => [`${value} students`, 'Count']}
-              labelFormatter={(label) => label}
-            />
-            <Legend />
-            <Bar dataKey="present" fill="#10b981" radius={[8, 8, 0, 0]} name="Present" />
-            <Bar dataKey="absent" fill="#ef4444" radius={[8, 8, 0, 0]} name="Absent" />
-          </BarChart>
-        </ResponsiveContainer>
+        {weeklyData.length > 0 && weeklyData.some(w => w.present > 0 || w.absent > 0) ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={weeklyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                interval={0}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px' 
+                }}
+              />
+              <Legend />
+              <Bar dataKey="present" fill="#10b981" radius={[4, 4, 0, 0]} name="Present" />
+              <Bar dataKey="absent" fill="#ef4444" radius={[4, 4, 0, 0]} name="Absent" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-64 flex items-center justify-center">
+            <div className="text-center">
+              <BarChart3 size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No weekly comparison data available
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Class Performance - Updated for weekly */}
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+          <Target className="text-indigo-500" size={20} />
+          Class Performance (This Week)
+        </h3>
+        {classes && classes.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={classes.map(cls => {
+              const classStudents = students.filter(s => s.class === cls);
+              const today = new Date();
+              const dayOfWeek = today.getDay();
+              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+              const weekStart = new Date(today);
+              weekStart.setDate(today.getDate() + diffToMonday);
+              weekStart.setHours(0, 0, 0, 0);
+              
+              const weekLogs = logs.filter(log => 
+                log.class === cls && 
+                new Date(log.timestamp) >= weekStart &&
+                log.status === 'IN'
+              );
+              const present = new Set(weekLogs.map(log => log.studentId)).size;
+              const rate = classStudents.length > 0 ? Math.round((present / classStudents.length) * 100) : 0;
+              return { 
+                name: cls.length > 10 ? `${cls.substring(0, 8)}...` : cls, 
+                rate, 
+                present, 
+                total: classStudents.length 
+              };
+            })}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                interval={0}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                domain={[0, 100]}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px' 
+                }}
+                formatter={(value, name, props) => {
+                  if (name === 'rate') {
+                    return [`${value}% (${props.payload.present}/${props.payload.total} students)`, 'Attendance'];
+                  }
+                  return [value, name];
+                }}
+              />
+              <Bar dataKey="rate" fill="#6366f1" radius={[4, 4, 0, 0]} name="Attendance %" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-64 flex items-center justify-center">
+            <div className="text-center">
+              <Target size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                No class data available
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Attendance Rate Line */}
@@ -1589,49 +1678,83 @@ export default function AttendancePortal() {
     }
   };
 
-    const calculateWeeklyData = (logData) => {
+   const calculateWeeklyData = (logData) => {
+    // If no logs, return empty data
+    if (!logData || logData.length === 0) {
+      // Create placeholder for last 8 weeks
+      const weeks = [];
+      for (let i = 7; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - (i * 7));
+        const dayOfWeek = date.getDay();
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() + diffToMonday);
+        
+        weeks.push({
+          name: `Week ${7-i+1}`,
+          present: 0,
+          absent: 0,
+          total: 0,
+          attendanceRate: 0
+        });
+      }
+      return weeks;
+    }
+    
     // Group logs by week
     const weeklyMap = {};
     
     logData.forEach(log => {
       if (!log.timestamp) return;
       
-      const date = new Date(log.timestamp);
-      // Get the start of the week (Monday)
-      const weekStart = new Date(date);
-      const dayOfWeek = date.getDay();
-      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday = 1, Sunday = 0
-      weekStart.setDate(date.getDate() + diffToMonday);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      // Format as YYYY-MM-DD for the week start
-      const weekKey = weekStart.toISOString().split('T')[0];
-      
-      if (!weeklyMap[weekKey]) {
-        weeklyMap[weekKey] = {
-          name: `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-          present: 0,
-          absent: 0,
-          total: 0,
-          date: weekStart
-        };
+      try {
+        const date = new Date(log.timestamp);
+        // Get the start of the week (Monday)
+        const weekStart = new Date(date);
+        const dayOfWeek = date.getDay();
+        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        weekStart.setDate(date.getDate() + diffToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+        
+        // Format as YYYY-MM-DD for the week start
+        const weekKey = weekStart.toISOString().split('T')[0];
+        
+        if (!weeklyMap[weekKey]) {
+          const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+          weeklyMap[weekKey] = {
+            name: weekLabel,
+            present: 0,
+            absent: 0,
+            total: 0,
+            date: new Date(weekStart)
+          };
+        }
+        
+        if (log.status === 'IN') {
+          weeklyMap[weekKey].present++;
+        } else if (log.status === 'OUT') {
+          weeklyMap[weekKey].absent++;
+        }
+        weeklyMap[weekKey].total++;
+      } catch (error) {
+        console.error('Error processing log:', error, log);
       }
-      
-      if (log.status === 'IN') {
-        weeklyMap[weekKey].present++;
-      } else if (log.status === 'OUT') {
-        weeklyMap[weekKey].absent++;
-      }
-      weeklyMap[weekKey].total++;
     });
     
     // Convert to array and sort by date
-    const weeklyArray = Object.values(weeklyMap)
+    let weeklyArray = Object.values(weeklyMap)
       .sort((a, b) => b.date - a.date) // Most recent first
       .slice(0, 8) // Show last 8 weeks
       .reverse(); // Show oldest to newest for chart
     
-    // If no weekly data, create placeholder for current week
+    // Add attendance rate calculation
+    weeklyArray = weeklyArray.map(week => ({
+      ...week,
+      attendanceRate: week.total > 0 ? Math.round((week.present / week.total) * 100) : 0
+    }));
+    
+    // Ensure we have at least 1 week
     if (weeklyArray.length === 0) {
       const today = new Date();
       const dayOfWeek = today.getDay();
@@ -1645,10 +1768,12 @@ export default function AttendancePortal() {
         present: 0,
         absent: 0,
         total: 0,
+        attendanceRate: 0,
         date: weekStart
       });
     }
     
+    console.log('Weekly data calculated:', weeklyArray);
     return weeklyArray;
   };
 
@@ -1854,9 +1979,9 @@ export default function AttendancePortal() {
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/50 hover:bg-white/80'} transition-all transform hover:scale-110 shadow-lg ${loading ? 'animate-spin' : ''}`}
+                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/50 hover:bg-white/80'} transition-all transform hover:scale-110 shadow-lg ${loading ? 'opacity-70' : ''}`}
               >
-                <RefreshCw size={20} className={darkMode ? 'text-gray-300' : 'text-gray-700'} />
+                <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} ${loading ? 'animate-spin' : ''}`} />
               </button>
               
               <button
