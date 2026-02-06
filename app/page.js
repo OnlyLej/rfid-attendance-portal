@@ -1236,37 +1236,74 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const [statusFilter, setStatusFilter] = useState('all');
   
   // Get parent's child ID from session
-  const parentChildId = useMemo(() => {
-    try {
-      // Try multiple ways to get the child's student ID
-      let childId = null;
-      
-      if (userInfo?.studentId) {
-        childId = userInfo.studentId;
-      } else if (userInfo?.child?.studentId) {
-        childId = userInfo.child.studentId;
-      } else if (userInfo?.children && userInfo.children.length > 0) {
-        childId = userInfo.children[0].studentId;
-      } else {
-        // Try from session storage
-        const storedUserInfo = sessionStorage.getItem('userInfo');
-        if (storedUserInfo) {
-          const parsed = JSON.parse(storedUserInfo);
-          if (parsed?.studentId) {
-            childId = parsed.studentId;
-          } else if (parsed?.child?.studentId) {
-            childId = parsed.child.studentId;
-          }
-        }
-      }
-      
-      console.log('Parent child ID found:', childId);
-      return childId;
-    } catch (error) {
-      console.error('Error getting parent child ID:', error);
-      return null;
+  // Update the parentChildId extraction in the ParentLogsTab component:
+
+const parentChildId = useMemo(() => {
+  console.log('=== EXTRACTING PARENT CHILD ID ===');
+  console.log('Full userInfo:', userInfo);
+  
+  try {
+    // Method 1: Check if userInfo has studentId directly
+    if (userInfo?.studentId) {
+      console.log('Found studentId in userInfo:', userInfo.studentId);
+      return userInfo.studentId;
     }
-  }, [userInfo]);
+    
+    // Method 2: Check if userInfo has child object
+    if (userInfo?.child?.studentId) {
+      console.log('Found child.studentId in userInfo:', userInfo.child.studentId);
+      return userInfo.child.studentId;
+    }
+    
+    // Method 3: Check if userInfo has children array
+    if (userInfo?.children && Array.isArray(userInfo.children) && userInfo.children.length > 0) {
+      const firstChild = userInfo.children[0];
+      console.log('Found children array, first child:', firstChild);
+      return firstChild.studentId;
+    }
+    
+    // Method 4: Check if parent is viewing data from students array (common in your dashboard data)
+    // Since your dashboard returns students for parents, let's check if there's a student in the data
+    if (students && students.length > 0) {
+      console.log('Found students in data, using first student:', students[0]);
+      return students[0].studentId;
+    }
+    
+    // Method 5: Check session storage for parent's linked student
+    const storedUserInfo = sessionStorage.getItem('userInfo');
+    if (storedUserInfo) {
+      try {
+        const parsed = JSON.parse(storedUserInfo);
+        console.log('Checking session storage:', parsed);
+        
+        if (parsed?.studentId) {
+          console.log('Found studentId in session:', parsed.studentId);
+          return parsed.studentId;
+        }
+        
+        if (parsed?.child?.studentId) {
+          console.log('Found child.studentId in session:', parsed.child.studentId);
+          return parsed.child.studentId;
+        }
+        
+        // Try to extract from any response data
+        if (parsed?.data?.studentId) {
+          console.log('Found data.studentId in session:', parsed.data.studentId);
+          return parsed.data.studentId;
+        }
+      } catch (e) {
+        console.error('Error parsing session storage:', e);
+      }
+    }
+    
+    console.log('No child ID found in any location');
+    return null;
+    
+  } catch (error) {
+    console.error('Error extracting parent child ID:', error);
+    return null;
+  }
+}, [userInfo, students]);
 
   // Get child's info
   const childInfo = useMemo(() => {
