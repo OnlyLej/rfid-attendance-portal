@@ -185,7 +185,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'
           },
         ].map((stat, idx) => (
-          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
+          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
             <div className="flex items-center justify-between mb-4">
               <div className={`bg-gradient-to-br ${stat.color} p-3 rounded-xl`}>
                 <stat.icon size={24} className="text-white" />
@@ -193,7 +193,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             </div>
             <div>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{stat.title}</p>
-              <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{stat.value}</p>
+              <p className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{stat.value}</p>
             </div>
           </div>
         ))}
@@ -202,8 +202,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       {/* Charts Grid - Enhanced with more charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Attendance Trend */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Activity className="text-blue-500" size={20} />
             Weekly Attendance Trend
           </h3>
@@ -260,8 +260,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
         
         {/* Daily Attendance (Last 7 Days) */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Calendar className="text-green-500" size={20} />
             Daily Attendance (Last 7 Days)
           </h3>
@@ -317,8 +317,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
         
         {/* Monthly Attendance Trend */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <TrendingUp className="text-purple-500" size={20} />
             Monthly Attendance Trend
           </h3>
@@ -370,8 +370,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
         
         {/* Attendance by Time of Day */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Clock className="text-orange-500" size={20} />
             Check-ins by Time of Day
           </h3>
@@ -416,8 +416,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
         
         {/* Class Performance Comparison */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Target className="text-indigo-500" size={20} />
             Class Performance (Today)
           </h3>
@@ -481,8 +481,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
 
         {/* Weekly Attendance Rate */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <BarChart3 className="text-red-500" size={20} />
             Weekly Attendance Rate
           </h3>
@@ -532,8 +532,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Today's Summary */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Calendar className="text-blue-500" size={20} />
             Today's Summary
           </h3>
@@ -554,8 +554,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
 
         {/* Week Summary */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <TrendingUp className="text-green-500" size={20} />
             This Week Summary
           </h3>
@@ -594,8 +594,8 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
         </div>
 
         {/* Top Performing Class */}
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
             <Award className="text-yellow-500" size={20} />
             Top Performing Class
           </h3>
@@ -684,7 +684,7 @@ const ClassroomMonitorTab = ({
         return (
           <div
             key={idx}
-            className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
+            className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
           >
             {/* Class Header */}
             <div
@@ -692,7 +692,7 @@ const ClassroomMonitorTab = ({
               className="p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-2xl"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{className}</h3>
+                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{className}</h3>
                 <ChevronRight 
                   size={24} 
                   className={`${isExpanded ? 'rotate-90' : ''} transition-transform ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
@@ -762,7 +762,7 @@ const ClassroomMonitorTab = ({
                             'bg-gray-400 shadow-lg shadow-gray-400/50'
                           }`}></div>
                           <div>
-                            <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                               {student.name}
                             </p>
                             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -871,7 +871,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
           Attendance Logs
         </h2>
         <div className="flex items-center gap-3">
@@ -894,10 +894,10 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
       </div>
 
       {/* Enhanced Filter Controls */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <div className="flex items-center gap-2 mb-4">
           <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
             Filter Logs
           </h3>
           <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
@@ -1068,7 +1068,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
       </div>
 
       {/* Logs Table */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-12 text-center">
@@ -1107,7 +1107,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
                         {new Date(log.timestamp).toLocaleString()}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.studentId}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{log.name}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{log.name}</td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>{log.class}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
@@ -1300,10 +1300,10 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Header */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
               Welcome, {userInfo?.fullName || userInfo?.username || 'Parent'}!
             </h2>
             <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-2`}>
@@ -1331,7 +1331,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
             return (
               <div 
                 key={idx} 
-                className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${
+                className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${
                   activeChild === child.studentId ? 'ring-2 ring-blue-500' : ''
                 }`}
                 onClick={() => setActiveChild(activeChild === child.studentId ? 'all' : child.studentId)}
@@ -1346,7 +1346,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                       <User size={24} />
                     </div>
                     <div>
-                      <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                         {child.name || child.studentId || 'My Child'}
                       </h3>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -1387,10 +1387,10 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
           })}
         </div>
       ) : (
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
           <div className="text-center">
             <User size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-300'}`} />
-            <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
               Welcome to Parent Portal
             </h3>
             <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -1405,10 +1405,10 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
 
       {/* Filter Controls for Parents */}
       {parentChildren && parentChildren.length > 0 && (
-        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
           <div className="flex items-center gap-2 mb-4">
             <Filter size={20} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
               Filter Attendance Records
             </h3>
             <span className={`text-sm px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
@@ -1591,7 +1591,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
       )}
 
       {/* Attendance Records Table */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl rounded-2xl border shadow-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-12 text-center">
@@ -1650,7 +1650,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
                         {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
                       </td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                         {log.name || 'Unknown'}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm ${darkMode ? 'text-gray-300' : 'text-gray-900'}`}>
@@ -2188,7 +2188,7 @@ export default function AttendancePortal() {
           <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
         </div>
 
-        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
+        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
           <button
             onClick={toggleTheme}
             className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
@@ -2297,11 +2297,11 @@ export default function AttendancePortal() {
       </div>
 
       {/* Header */}
-      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} border-b shadow-xl`}>
+      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} border-b shadow-xl`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-3`}>
+              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-3`}>
                 {userType === 'teacher' ? <Users size={32} className="text-blue-500" /> : <User size={32} className="text-indigo-500" />}
                 {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
               </h1>
