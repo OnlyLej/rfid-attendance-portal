@@ -656,138 +656,232 @@ const ClassroomMonitorTab = ({
   selectedClass, 
   setSelectedClass,
   getStudentStatus 
-}) => (
-  <div className="space-y-6 animate-fade-in">
-    {/* Search Bar */}
-    <div className="flex gap-4 flex-wrap">
-      <div className="relative flex-1 min-w-[200px]">
-        <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-        <input
-          type="text"
-          placeholder="Search students..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800/40 border-gray-700 text-white' : 'bg-white/40 border-gray-200 text-gray-900'} border-2 backdrop-blur-xl focus:ring-2 focus:ring-blue-500`}
-        />
+}) => {
+  // Filter classes based on search query
+  const filteredClasses = useMemo(() => {
+    if (!searchQuery) return classes;
+    
+    const query = searchQuery.toLowerCase();
+    return classes.filter(className => {
+      // Check if class name matches
+      if (className.toLowerCase().includes(query)) return true;
+      
+      // Check if any student in this class matches
+      const classStudents = students.filter(s => s.class === className);
+      return classStudents.some(student => 
+        student.name.toLowerCase().includes(query) ||
+        student.studentId.toLowerCase().includes(query)
+      );
+    });
+  }, [classes, students, searchQuery]);
+
+  // Get students for a specific class that match search
+  const getFilteredClassStudents = (className) => {
+    const classStudents = students.filter(s => s.class === className);
+    
+    if (!searchQuery) return classStudents;
+    
+    const query = searchQuery.toLowerCase();
+    return classStudents.filter(student => 
+      student.name.toLowerCase().includes(query) ||
+      student.studentId.toLowerCase().includes(query)
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* Search Bar */}
+      <div className="flex gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+          <input
+            type="text"
+            placeholder="Search by class name, student name, or ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800/40 border-gray-700 text-white' : 'bg-white/90 border-blue-100 text-gray-800'} border-2 backdrop-blur-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all`}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              <X size={18} />
+            </button>
+          )}
+        </div>
+        
+        {/* Search Results Info */}
+        {searchQuery && (
+          <div className={`px-4 py-2 rounded-xl ${darkMode ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+            <span className="text-sm font-medium">
+              Found {filteredClasses.length} of {classes.length} classes
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Class Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredClasses.length === 0 ? (
+          <div className="col-span-3">
+            <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl p-8 rounded-2xl border shadow-xl text-center`}>
+              <Search size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                No matching classes found
+              </h3>
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                No classes or students match "{searchQuery}"
+              </p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className={`mt-4 px-4 py-2 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-blue-50 hover:bg-blue-100 text-blue-600'} transition-colors`}
+              >
+                Clear search
+              </button>
+            </div>
+          </div>
+        ) : (
+          filteredClasses.map((className, idx) => {
+            const classStudents = students.filter(s => s.class === className);
+            const filteredStudents = getFilteredClassStudents(className);
+            const presentCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
+            const absentCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'absent').length;
+            const noLogsCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'no-logs').length;
+            const isExpanded = selectedClass === className;
+            
+            return (
+              <div
+                key={idx}
+                className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
+              >
+                {/* Class Header */}
+                <div
+                  onClick={() => setSelectedClass(isExpanded ? null : className)}
+                  className="p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-2xl"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                        {className}
+                        {searchQuery && filteredStudents.length !== classStudents.length && (
+                          <span className="ml-2 text-sm font-normal px-2 py-1 rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                            {filteredStudents.length}/{classStudents.length}
+                          </span>
+                        )}
+                      </h3>
+                      {searchQuery && (
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} match search
+                        </p>
+                      )}
+                    </div>
+                    <ChevronRight 
+                      size={24} 
+                      className={`${isExpanded ? 'rotate-90' : ''} transition-transform ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
+                    />
+                  </div>
+                  
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className={`${darkMode ? 'bg-green-500/10' : 'bg-green-50 border border-green-100'} rounded-lg p-3`}>
+                      <p className={`text-xs ${darkMode ? 'text-green-400' : 'text-green-600'} mb-1`}>Present</p>
+                      <p className={`text-2xl font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>{presentCount}</p>
+                    </div>
+                    <div className={`${darkMode ? 'bg-red-500/10' : 'bg-red-50 border border-red-100'} rounded-lg p-3`}>
+                      <p className={`text-xs ${darkMode ? 'text-red-400' : 'text-red-600'} mb-1`}>Absent</p>
+                      <p className={`text-2xl font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>{absentCount}</p>
+                    </div>
+                    <div className={`${darkMode ? 'bg-gray-500/10' : 'bg-gray-50 border border-gray-100'} rounded-lg p-3`}>
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1`}>No Logs</p>
+                      <p className={`text-2xl font-bold ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{noLogsCount}</p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
+                        {searchQuery ? 'Filtered:' : 'Total:'} {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''}
+                      </span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {filteredStudents.length > 0 ? Math.round((presentCount / filteredStudents.length) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className={`h-2 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                      <div 
+                        className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                        style={{ width: `${filteredStudents.length > 0 ? (presentCount / filteredStudents.length) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Student List */}
+                {isExpanded && (
+                  <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2 max-h-96 overflow-y-auto">
+                    {filteredStudents.length === 0 ? (
+                      <div className="text-center py-4">
+                        <Search size={24} className={`mx-auto mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          No students match your search in this class
+                        </p>
+                      </div>
+                    ) : (
+                      filteredStudents
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((student, sIdx) => {
+                          const status = getStudentStatus(student.studentId);
+                          return (
+                            <div 
+                              key={sIdx} 
+                              className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                                status === 'present' ? `${darkMode ? 'bg-green-500/10 hover:bg-green-500/20' : 'bg-green-50 hover:bg-green-100 border border-green-100'}` :
+                                status === 'absent' ? `${darkMode ? 'bg-red-500/10 hover:bg-red-500/20' : 'bg-red-50 hover:bg-red-100 border border-red-100'}` :
+                                `${darkMode ? 'bg-gray-500/10 hover:bg-gray-500/20' : 'bg-gray-50 hover:bg-gray-100 border border-gray-100'}`
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  status === 'present' ? 'bg-green-500 shadow-lg shadow-green-500/50' :
+                                  status === 'absent' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
+                                  'bg-gray-400 shadow-lg shadow-gray-400/50'
+                                }`}></div>
+                                <div>
+                                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                                    {student.name}
+                                    {searchQuery && (
+                                      <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                        Match
+                                      </span>
+                                    )}
+                                  </p>
+                                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                    {student.studentId}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                                status === 'present' ? 'bg-green-500 text-white' :
+                                status === 'absent' ? 'bg-red-500 text-white' :
+                                'bg-gray-400 text-white'
+                              }`}>
+                                {status === 'present' ? 'IN' : status === 'absent' ? 'OUT' : 'NO LOGS'}
+                              </span>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
-
-    {/* Class Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {classes.map((className, idx) => {
-        const classStudents = students.filter(s => s.class === className);
-        const presentCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
-        const absentCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'absent').length;
-        const noLogsCount = classStudents.filter(s => getStudentStatus(s.studentId) === 'no-logs').length;
-        const isExpanded = selectedClass === className;
-        
-        return (
-          <div
-            key={idx}
-            className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl rounded-2xl border shadow-xl transition-all duration-300`}
-          >
-            {/* Class Header */}
-            <div
-              onClick={() => setSelectedClass(isExpanded ? null : className)}
-              className="p-6 cursor-pointer hover:bg-white/5 transition-colors rounded-t-2xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{className}</h3>
-                <ChevronRight 
-                  size={24} 
-                  className={`${isExpanded ? 'rotate-90' : ''} transition-transform ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
-                />
-              </div>
-              
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-green-500/10 rounded-lg p-3">
-                  <p className="text-xs text-green-600 dark:text-green-400 mb-1">Present</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{presentCount}</p>
-                </div>
-                <div className="bg-red-500/10 rounded-lg p-3">
-                  <p className="text-xs text-red-600 dark:text-red-400 mb-1">Absent</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{absentCount}</p>
-                </div>
-                <div className="bg-gray-500/10 rounded-lg p-3">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">No Logs</p>
-                  <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">{noLogsCount}</p>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'}>
-                    Total: {classStudents.length} students
-                  </span>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
-                    {classStudents.length > 0 ? Math.round((presentCount / classStudents.length) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                    style={{ width: `${classStudents.length > 0 ? (presentCount / classStudents.length) * 100 : 0}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Expanded Student List */}
-            {isExpanded && (
-              <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2 max-h-96 overflow-y-auto">
-                {classStudents
-                  .filter(s => 
-                    searchQuery === '' || 
-                    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    s.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((student, sIdx) => {
-                    const status = getStudentStatus(student.studentId);
-                    return (
-                      <div 
-                        key={sIdx} 
-                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${
-                          status === 'present' ? 'bg-green-500/10 hover:bg-green-500/20' :
-                          status === 'absent' ? 'bg-red-500/10 hover:bg-red-500/20' :
-                          'bg-gray-500/10 hover:bg-gray-500/20'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            status === 'present' ? 'bg-green-500 shadow-lg shadow-green-500/50' :
-                            status === 'absent' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
-                            'bg-gray-400 shadow-lg shadow-gray-400/50'
-                          }`}></div>
-                          <div>
-                            <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                              {student.name}
-                            </p>
-                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {student.studentId}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          status === 'present' ? 'bg-green-500 text-white' :
-                          status === 'absent' ? 'bg-red-500 text-white' :
-                          'bg-gray-400 text-white'
-                        }`}>
-                          {status === 'present' ? 'IN' : status === 'absent' ? 'OUT' : 'NO LOGS'}
-                        </span>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  </div>
-);
+  );
+};
 
 // Enhanced Logs Tab Component with filters
 const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, classes }) => {
