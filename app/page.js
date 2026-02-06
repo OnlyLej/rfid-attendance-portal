@@ -50,232 +50,359 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
     {/* Charts Grid */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Weekly Attendance Trend */}
+      {/* Weekly Attendance Trend - Fixed */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <Activity className="text-blue-500" size={20} />
           Weekly Attendance Trend
+          <span className="text-sm text-gray-500 ml-2">
+            ({weeklyData.length} weeks)
+          </span>
         </h3>
-        {weeklyData.length > 0 && weeklyData.some(w => w.present > 0 || w.absent > 0) ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart 
+              data={weeklyData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                vertical={false}
+              />
               <XAxis 
                 dataKey="name" 
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                interval={0}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
               />
-              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+              <YAxis 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+              />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
                   border: 'none', 
                   borderRadius: '12px', 
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)' 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
                 }}
                 formatter={(value, name) => {
                   if (name === 'present') return [`${value} students`, 'Present'];
                   if (name === 'absent') return [`${value} students`, 'Absent'];
                   return [value, name];
                 }}
+                labelStyle={{ 
+                  color: darkMode ? '#9ca3af' : '#6b7280',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}
               />
-              <Legend />
+              <Legend 
+                verticalAlign="top"
+                height={36}
+                iconType="circle"
+                iconSize={10}
+                wrapperStyle={{ 
+                  paddingBottom: '20px',
+                  color: darkMode ? '#9ca3af' : '#6b7280'
+                }}
+              />
               <Area 
                 type="monotone" 
                 dataKey="present" 
+                name="Present" 
                 stackId="1"
                 stroke="#10b981" 
                 fill="#10b981" 
                 fillOpacity={0.8}
-                name="Present" 
                 strokeWidth={2}
+                dot={{ 
+                  fill: '#10b981', 
+                  r: 4, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
+                activeDot={{ 
+                  r: 6, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
               />
               <Area 
                 type="monotone" 
                 dataKey="absent" 
+                name="Absent" 
                 stackId="1"
                 stroke="#ef4444" 
                 fill="#ef4444" 
                 fillOpacity={0.8}
-                name="Absent" 
                 strokeWidth={2}
+                dot={{ 
+                  fill: '#ef4444', 
+                  r: 4, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
+                activeDot={{ 
+                  r: 6, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <Calendar size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                No weekly attendance data available
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       
-      {/* Weekly Attendance Rate */}
+      {/* Weekly Attendance Rate - Fixed */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <TrendingUp className="text-purple-500" size={20} />
           Weekly Attendance Rate
+          <span className="text-sm text-gray-500 ml-2">
+            ({weeklyData.length} weeks)
+          </span>
         </h3>
-        {weeklyData.length > 0 && weeklyData.some(w => w.attendanceRate > 0) ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart 
+              data={weeklyData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                vertical={false}
+              />
               <XAxis 
                 dataKey="name" 
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                interval={0}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
               />
               <YAxis 
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
                 domain={[0, 100]}
                 tickFormatter={(value) => `${value}%`}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
                   border: 'none', 
-                  borderRadius: '12px' 
+                  borderRadius: '12px', 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
                 }}
                 formatter={(value) => [`${value}%`, 'Attendance Rate']}
+                labelStyle={{ 
+                  color: darkMode ? '#9ca3af' : '#6b7280',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}
               />
               <Line 
                 type="monotone" 
                 dataKey="attendanceRate" 
+                name="Attendance Rate" 
                 stroke="#8b5cf6" 
                 strokeWidth={3} 
-                dot={{ fill: '#8b5cf6', r: 5 }} 
-                name="Attendance %"
+                dot={{ 
+                  fill: '#8b5cf6', 
+                  r: 5, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
+                activeDot={{ 
+                  r: 8, 
+                  strokeWidth: 2, 
+                  stroke: darkMode ? '#1f2937' : '#ffffff' 
+                }}
               />
             </LineChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <TrendingUp size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                No attendance rate data available
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       
-      {/* Weekly Comparison */}
+      {/* Weekly Comparison - Fixed */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
           <BarChart3 className="text-orange-500" size={20} />
           Weekly Comparison
+          <span className="text-sm text-gray-500 ml-2">
+            ({weeklyData.length} weeks)
+          </span>
         </h3>
-        {weeklyData.length > 0 && weeklyData.some(w => w.present > 0 || w.absent > 0) ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={weeklyData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                vertical={false}
+              />
               <XAxis 
                 dataKey="name" 
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                interval={0}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                  border: 'none', 
-                  borderRadius: '12px' 
-                }}
-              />
-              <Legend />
-              <Bar dataKey="present" fill="#10b981" radius={[4, 4, 0, 0]} name="Present" />
-              <Bar dataKey="absent" fill="#ef4444" radius={[4, 4, 0, 0]} name="Absent" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <BarChart3 size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                No weekly comparison data available
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Class Performance - Updated for weekly */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-          <Target className="text-indigo-500" size={20} />
-          Class Performance (This Week)
-        </h3>
-        {classes && classes.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={classes.map(cls => {
-              const classStudents = students.filter(s => s.class === cls);
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-              const weekStart = new Date(today);
-              weekStart.setDate(today.getDate() + diffToMonday);
-              weekStart.setHours(0, 0, 0, 0);
-              
-              const weekLogs = logs.filter(log => 
-                log.class === cls && 
-                new Date(log.timestamp) >= weekStart &&
-                log.status === 'IN'
-              );
-              const present = new Set(weekLogs.map(log => log.studentId)).size;
-              const rate = classStudents.length > 0 ? Math.round((present / classStudents.length) * 100) : 0;
-              return { 
-                name: cls.length > 10 ? `${cls.substring(0, 8)}...` : cls, 
-                rate, 
-                present, 
-                total: classStudents.length 
-              };
-            })}>
-              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-              <XAxis 
-                dataKey="name" 
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                interval={0}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
               />
               <YAxis 
                 stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                domain={[0, 100]}
-                tickFormatter={(value) => `${value}%`}
+                tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
               />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
                   border: 'none', 
-                  borderRadius: '12px' 
+                  borderRadius: '12px', 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
                 }}
-                formatter={(value, name, props) => {
-                  if (name === 'rate') {
-                    return [`${value}% (${props.payload.present}/${props.payload.total} students)`, 'Attendance'];
-                  }
+                formatter={(value, name) => {
+                  if (name === 'present') return [`${value} students`, 'Present'];
+                  if (name === 'absent') return [`${value} students`, 'Absent'];
                   return [value, name];
                 }}
+                labelStyle={{ 
+                  color: darkMode ? '#9ca3af' : '#6b7280',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}
               />
-              <Bar dataKey="rate" fill="#6366f1" radius={[4, 4, 0, 0]} name="Attendance %" />
+              <Legend 
+                verticalAlign="top"
+                height={36}
+                iconType="circle"
+                iconSize={10}
+                wrapperStyle={{ 
+                  paddingBottom: '20px',
+                  color: darkMode ? '#9ca3af' : '#6b7280'
+                }}
+              />
+              <Bar 
+                dataKey="present" 
+                name="Present" 
+                fill="#10b981" 
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar 
+                dataKey="absent" 
+                name="Absent" 
+                fill="#ef4444" 
+                radius={[4, 4, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <Target size={48} className={`mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+        </div>
+      </div>
+      
+      {/* Class Performance - Fixed */}
+      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
+          <Target className="text-indigo-500" size={20} />
+          Class Performance (Today)
+          <span className="text-sm text-gray-500 ml-2">
+            ({classes.length} classes)
+          </span>
+        </h3>
+        <div className="h-64">
+          {classes && classes.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={classes.map(cls => {
+                  const classStudents = students.filter(s => s.class === cls);
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayLogs = logs.filter(log => 
+                    log.class === cls && 
+                    log.timestamp?.startsWith(today) && 
+                    log.status === 'IN'
+                  );
+                  const presentStudents = new Set(todayLogs.map(log => log.studentId));
+                  const rate = classStudents.length > 0 ? Math.round((presentStudents.size / classStudents.length) * 100) : 0;
+                  return { 
+                    name: cls.length > 10 ? `${cls.substring(0, 8)}...` : cls, 
+                    rate, 
+                    present: presentStudents.size, 
+                    total: classStudents.length 
+                  };
+                }).filter(cls => cls.total > 0)}
+                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+              >
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                  vertical={false}
+                />
+                <XAxis 
+                  dataKey="name" 
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                  axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                  tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                />
+                <YAxis 
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                  tick={{ fontSize: 12, fill: darkMode ? '#9ca3af' : '#6b7280' }}
+                  axisLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                  tickLine={{ stroke: darkMode ? '#4b5563' : '#d1d5db' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                    border: 'none', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    color: darkMode ? '#ffffff' : '#000000'
+                  }}
+                  formatter={(value, name, props) => {
+                    if (name === 'rate') {
+                      return [`${value}% (${props.payload.present}/${props.payload.total} students)`, 'Attendance'];
+                    }
+                    return [value, name];
+                  }}
+                  labelStyle={{ 
+                    color: darkMode ? '#9ca3af' : '#6b7280',
+                    fontWeight: 'bold',
+                    marginBottom: '8px'
+                  }}
+                />
+                <Bar 
+                  dataKey="rate" 
+                  name="Attendance %" 
+                  fill="#6366f1" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center">
+              <Target size={48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
+              <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 No class data available
               </p>
+              <p className={`text-sm mt-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                Classes will appear here once assigned
+              </p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Attendance Rate Line */}
