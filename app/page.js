@@ -2424,16 +2424,85 @@ export default function AttendancePortal() {
       <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-3`}>
-                {userType === 'teacher' ? <Users size={32} className="text-blue-500" /> : <User size={32} className="text-indigo-500" />}
-                {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
-              </h1>
-              <p className={`mt-1 text-lg ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                {getGreeting()}, {userInfo?.fullName || username}! 👋
-              </p>
+            {/* Enhanced Left Side */}
+            <div className="flex items-center gap-4">
+              {/* Logo/Icon with animation */}
+              <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-3 rounded-2xl shadow-lg animate-pulse-slow`}>
+                {userType === 'teacher' ? 
+                  <Users size={28} className="text-white" /> : 
+                  <User size={28} className="text-white" />
+                }
+                {/* Animated ring */}
+                <div className="absolute inset-0 border-2 border-white/30 rounded-2xl animate-ping-slow"></div>
+              </div>
+              
+              {/* Enhanced Title Section */}
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                    {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                      {userType === 'teacher' ? '👨‍🏫' : '👨‍👦'}
+                    </span>
+                  </h1>
+                </div>
+                
+                {/* Enhanced Greeting with time icon */}
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`p-1 rounded ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
+                    <Clock size={14} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
+                  </div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {getGreeting()}, <span className="font-semibold text-blue-500">{userInfo?.fullName || username}</span>! 👋
+                    <span className="ml-2 text-xs opacity-75">
+                      {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </span>
+                  </p>
+                </div>
+                
+                {/* Quick Stats for Teachers */}
+                {userType === 'teacher' && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
+                      📊 {stats.totalStudents || 0} Students
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                      🏫 {classes.length || 0} Classes
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      stats.attendanceRate >= 90 ? 
+                        (darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600') :
+                        stats.attendanceRate >= 70 ?
+                        (darkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                        (darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600')
+                    }`}>
+                      📈 {stats.attendanceRate || 0}% Rate
+                    </span>
+                  </div>
+                )}
+                
+                {/* Quick Stats for Parents */}
+                {userType === 'parent' && childInfo && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                      👤 {childInfo.name}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
+                      🏫 {childInfo.class}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
+                      📋 {childStats.totalLogs || 0} Records
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
             
+            {/* Right Side Controls (unchanged) */}
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleTheme}
@@ -2447,7 +2516,7 @@ export default function AttendancePortal() {
                 disabled={loading}
                 className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
               >
-                <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
               </button>
               
               <button
