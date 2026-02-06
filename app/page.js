@@ -185,7 +185,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             bg: darkMode ? 'bg-indigo-500/10' : 'bg-indigo-50'
           },
         ].map((stat, idx) => (
-          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
+          <div key={idx} className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} shadow-lg border border-blue-100/50 backdrop-blur-xl p-6 rounded-2xl border shadow-xl transform hover:scale-105 transition-all duration-300 ${stat.bg}`}>
             <div className="flex items-center justify-between mb-4">
               <div className={`bg-gradient-to-br ${stat.color} p-3 rounded-xl`}>
                 <stat.icon size={24} className="text-white" />
@@ -2297,7 +2297,7 @@ export default function AttendancePortal() {
       </div>
 
       {/* Header */}
-      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} border-b shadow-xl`}>
+      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
@@ -2313,7 +2313,7 @@ export default function AttendancePortal() {
             <div className="flex items-center gap-3">
               <button
                 onClick={toggleTheme}
-                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-white/50 text-gray-700 hover:bg-white/80'} transition-all transform hover:scale-110 shadow-lg`}
+                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
@@ -2321,14 +2321,14 @@ export default function AttendancePortal() {
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-white/50 hover:bg-white/80'} transition-all transform hover:scale-110 shadow-lg ${loading ? 'opacity-70' : ''}`}
+                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
               >
                 <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} ${loading ? 'animate-spin' : ''}`} />
               </button>
               
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md"
               >
                 <LogOut size={20} />
                 <span className="hidden sm:inline">Logout</span>
@@ -2346,7 +2346,7 @@ export default function AttendancePortal() {
                   className={`px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 ${
                     activeTab === idx
                       ? `${darkMode ? 'bg-blue-600 text-white' : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'} shadow-lg`
-                      : `${darkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-white/50 text-gray-700 hover:bg-white/80'}`
+                      : `${darkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-white/50 text-gray-700 hover:bg-white/80'} shadow-md hover:shadow-lg`
                   }`}
                 >
                   {tab}
