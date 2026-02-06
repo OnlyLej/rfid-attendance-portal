@@ -1225,7 +1225,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV, students, clas
 };
 
 // Parent Logs Tab Component - Fixed to show logs properly
-const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV }) => {
+const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV, childInfo, childStats }) => {
   // Filter states for parent view
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -1830,6 +1830,15 @@ export default function AttendancePortal() {
     attendanceRate: 0
   });
   const [weeklyData, setWeeklyData] = useState([]);
+  
+  // Add parent-specific states
+  const [parentChildId, setParentChildId] = useState(null);
+  const [childInfo, setChildInfo] = useState(null);
+  const [childStats, setChildStats] = useState({
+    totalLogs: 0,
+    todayLogs: 0,
+    attendanceRate: 0
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -1850,6 +1859,98 @@ export default function AttendancePortal() {
       }
     }
   }, []);
+
+  // Calculate child info when userInfo or students change
+  useEffect(() => {
+    if (userType === 'parent' && userInfo && students.length > 0) {
+      console.log('Calculating parent child info...', { userInfo, studentsCount: students.length });
+      
+      // Extract child ID from userInfo
+      let childId = null;
+      
+      if (userInfo?.studentId) {
+        childId = userInfo.studentId;
+        console.log('Found studentId in userInfo:', childId);
+      } else if (userInfo?.child?.studentId) {
+        childId = userInfo.child.studentId;
+        console.log('Found child.studentId in userInfo:', childId);
+      } else if (userInfo?.children && userInfo.children.length > 0) {
+        childId = userInfo.children[0].studentId;
+        console.log('Found children array, using first child:', childId);
+      } else if (students.length === 1) {
+        // If parent has only one student in their view, use that
+        childId = students[0].studentId;
+        console.log('Using only student in students list:', childId);
+      } else if (students.length > 0) {
+        // Try to match with logs
+        const logStudentIds = [...new Set(logs.map(log => log.studentId))];
+        if (logStudentIds.length === 1) {
+          childId = logStudentIds[0];
+          console.log('Using student ID from logs:', childId);
+        }
+      }
+      
+      console.log('Setting parentChildId:', childId);
+      setParentChildId(childId);
+      
+      if (childId) {
+        // Find child info from students list
+        const childStudent = students.find(s => s.studentId === childId);
+        if (childStudent) {
+          console.log('Found child in students list:', childStudent);
+          setChildInfo({
+            studentId: childStudent.studentId,
+            name: childStudent.name,
+            class: childStudent.class
+          });
+        } else {
+          // Fallback to userInfo
+          console.log('Using fallback child info from userInfo');
+          setChildInfo({
+            studentId: childId,
+            name: userInfo?.child?.name || userInfo?.fullName || 'My Child',
+            class: userInfo?.child?.class || userInfo?.class || 'Unknown'
+          });
+        }
+      }
+    } else if (userType === 'parent') {
+      console.log('Cannot calculate child info:', { userType, hasUserInfo: !!userInfo, studentsCount: students.length });
+      setChildInfo(null);
+      setParentChildId(null);
+    }
+  }, [userType, userInfo, students, logs]);
+
+  // Calculate child logs and stats
+  useEffect(() => {
+    if (userType === 'parent' && parentChildId) {
+      const childLogs = logs.filter(log => log.studentId === parentChildId);
+      console.log('Calculating child stats:', { parentChildId, childLogsCount: childLogs.length });
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
+      
+      // Calculate attendance rate (percentage of days with IN logs)
+      const uniqueDays = new Set(childLogs.map(log => log.timestamp?.split('T')[0]));
+      const daysWithIN = new Set(
+        childLogs.filter(log => log.status === 'IN').map(log => log.timestamp?.split('T')[0])
+      );
+      const attendanceRate = uniqueDays.size > 0 
+        ? Math.round((daysWithIN.size / uniqueDays.size) * 100) 
+        : 0;
+      
+      setChildStats({
+        totalLogs: childLogs.length,
+        todayLogs: todayLogs.length,
+        attendanceRate: attendanceRate
+      });
+    } else if (userType === 'parent') {
+      setChildStats({
+        totalLogs: 0,
+        todayLogs: 0,
+        attendanceRate: 0
+      });
+    }
+  }, [userType, parentChildId, logs]);
 
   // Session timeout monitoring
   useEffect(() => {
@@ -1903,7 +2004,7 @@ export default function AttendancePortal() {
   
     const queryParams = new URLSearchParams({ 
       action, 
-      sessionToken, // Add sessionToken to query params
+      sessionToken,
       ...params 
     }).toString();
     
@@ -1911,7 +2012,6 @@ export default function AttendancePortal() {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Keep header too for compatibility
         'X-Session-Token': sessionToken,
       },
     });
@@ -1971,132 +2071,92 @@ export default function AttendancePortal() {
     setPassword('');
     setUserInfo(null);
     setLogs([]);
+    setChildInfo(null);
+    setParentChildId(null);
+    setChildStats({
+      totalLogs: 0,
+      todayLogs: 0,
+      attendanceRate: 0
+    });
   };
 
   const fetchData = async () => {
-  setLoading(true);
-  try {
-    // Get data for the last 60 days to calculate 8 weeks of data
-    const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const endDate = new Date().toISOString().split('T')[0];
+    setLoading(true);
+    try {
+      // Get data for the last 60 days to calculate 8 weeks of data
+      const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
 
-    console.log('Fetching dashboard data...', { startDate, endDate });
+      console.log('Fetching dashboard data...', { startDate, endDate });
 
-    const dashboardData = await secureApiCall('getDashboardStats', {
-      startDate,
-      endDate
-    });
-
-    console.log('Dashboard response:', dashboardData);
-
-    if (dashboardData.success) {
-      const fetchedStudents = dashboardData.students || [];
-      const fetchedLogs = dashboardData.logs || [];
-      const fetchedStats = dashboardData.stats || {
-        totalStudents: 0,
-        presentToday: 0,
-        absentToday: 0,
-        attendanceRate: 0
-      };
-
-      console.log('Data received:', {
-        students: fetchedStudents.length,
-        logs: fetchedLogs.length,
-        stats: fetchedStats
+      const dashboardData = await secureApiCall('getDashboardStats', {
+        startDate,
+        endDate
       });
 
-      // Sort logs by newest first initially
-      const sortedLogs = fetchedLogs.sort((a, b) => 
-        new Date(b.timestamp) - new Date(a.timestamp)
-      );
+      console.log('Dashboard response:', dashboardData);
 
-      setStudents(fetchedStudents);
-      setLogs(sortedLogs);
-      setStats(fetchedStats);
-      
-      // Calculate weekly data and set it
-      const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
-      console.log('Setting weekly data:', calculatedWeeklyData);
-      setWeeklyData(calculatedWeeklyData);
-      
-      // Get classes for teachers only
-      if (userType === 'teacher') {
-        try {
-          const classesData = await secureApiCall('getClasses');
-          if (classesData.success) {
-            setClasses(classesData.classes || []);
+      if (dashboardData.success) {
+        const fetchedStudents = dashboardData.students || [];
+        const fetchedLogs = dashboardData.logs || [];
+        const fetchedStats = dashboardData.stats || {
+          totalStudents: 0,
+          presentToday: 0,
+          absentToday: 0,
+          attendanceRate: 0
+        };
+
+        console.log('Data received:', {
+          students: fetchedStudents.length,
+          logs: fetchedLogs.length,
+          stats: fetchedStats
+        });
+
+        // Sort logs by newest first initially
+        const sortedLogs = fetchedLogs.sort((a, b) => 
+          new Date(b.timestamp) - new Date(a.timestamp)
+        );
+
+        setStudents(fetchedStudents);
+        setLogs(sortedLogs);
+        setStats(fetchedStats);
+        
+        // Calculate weekly data and set it
+        const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
+        console.log('Setting weekly data:', calculatedWeeklyData);
+        setWeeklyData(calculatedWeeklyData);
+        
+        // Get classes for teachers only
+        if (userType === 'teacher') {
+          try {
+            const classesData = await secureApiCall('getClasses');
+            if (classesData.success) {
+              setClasses(classesData.classes || []);
+            }
+          } catch (classError) {
+            console.error('Error fetching classes:', classError);
+            setClasses([]);
           }
-        } catch (classError) {
-          console.error('Error fetching classes:', classError);
+        } else {
           setClasses([]);
         }
       }
-    }
 
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    // Set default empty state
-    setStudents([]);
-    setLogs([]);
-    setClasses([]);
-    setStats({
-      totalStudents: 0,
-      presentToday: 0,
-      absentToday: 0,
-      attendanceRate: 0
-    });
-    setWeeklyData([]); // Also reset weeklyData on error
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Helper function to fetch dashboard data
-  const fetchDashboardData = async (startDate, endDate) => {
-    const dashboardData = await secureApiCall('getDashboardStats', {
-      startDate,
-      endDate
-    });
-
-    console.log('Dashboard response:', dashboardData);
-
-    if (dashboardData.success) {
-      const fetchedStudents = dashboardData.students || [];
-      const fetchedLogs = dashboardData.logs || [];
-      const fetchedStats = dashboardData.stats || {
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Set default empty state
+      setStudents([]);
+      setLogs([]);
+      setClasses([]);
+      setStats({
         totalStudents: 0,
         presentToday: 0,
         absentToday: 0,
         attendanceRate: 0
-      };
-
-      console.log('Data received:', {
-        students: fetchedStudents.length,
-        logs: fetchedLogs.length,
-        stats: fetchedStats
       });
-
-      // Sort logs by newest first initially
-      const sortedLogs = fetchedLogs.sort((a, b) => 
-        new Date(b.timestamp) - new Date(a.timestamp)
-      );
-
-      setStudents(fetchedStudents);
-      setLogs(sortedLogs);
-      setStats(fetchedStats);
-      calculateWeeklyData(fetchedLogs);
-    }
-
-    // Get classes separately
-    try {
-      const classesData = await secureApiCall('getClasses');
-      console.log('Classes response:', classesData);
-      if (classesData.success) {
-        setClasses(classesData.classes || []);
-      }
-    } catch (classError) {
-      console.error('Error fetching classes:', classError);
-      setClasses([]);
+      setWeeklyData([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2306,13 +2366,13 @@ export default function AttendancePortal() {
 
   if (!authenticated) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100'} flex items-center justify-center p-4 transition-all duration-500`}>
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500`}>
         <div className="absolute inset-0 overflow-hidden">
           <div className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full ${darkMode ? 'bg-blue-500/5' : 'bg-blue-400/20'} blur-3xl animate-pulse`}></div>
           <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
         </div>
 
-        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/90 border-blue-100/50'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
+        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-3xl shadow-2xl p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300`}>
           <button
             onClick={toggleTheme}
             className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
@@ -2420,126 +2480,139 @@ export default function AttendancePortal() {
         <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
       </div>
 
-      {/* Header */}
-      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gradient-to-r from-gray-800/90 to-gray-900/90 border-gray-700' : 'bg-gradient-to-r from-white/95 to-blue-50/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
+      {/* Header - Enhanced */}
+      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'} border-b shadow-xl`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Top Row */}
-          <div className="flex justify-between items-center py-4">
-            {/* Left: Branding */}
-            <div className="flex items-center gap-3">
-              <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-500/20 to-purple-500/20' : 'bg-gradient-to-br from-blue-100 to-purple-100'} p-2.5 rounded-xl border ${darkMode ? 'border-blue-500/30' : 'border-blue-200'}`}>
-                <div className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  {userType === 'teacher' ? <Users size={24} /> : <User size={24} />}
-                </div>
+          <div className="flex justify-between items-center py-6">
+            {/* Enhanced Left Side */}
+            <div className="flex items-center gap-4">
+              {/* Logo/Icon with animation */}
+              <div className={`relative ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} p-3 rounded-2xl shadow-lg`}>
+                {userType === 'teacher' ? 
+                  <Users size={28} className="text-white" /> : 
+                  <User size={28} className="text-white" />
+                }
               </div>
+              
+              {/* Enhanced Title Section */}
               <div>
-                <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                  {userType === 'teacher' ? 'Teacher Dashboard' : 'Parent Dashboard'}
-                </h1>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className={`w-2 h-2 rounded-full ${darkMode ? 'bg-green-500' : 'bg-green-400'}`}></div>
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    {userInfo?.fullName || username}
+                <div className="flex items-center gap-2">
+                  <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                    {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/30 text-blue-300' : 'bg-blue-100 text-blue-600'}`}>
+                      {userType === 'teacher' ? '👨‍🏫' : '👨‍👦'}
+                    </span>
+                  </h1>
+                </div>
+                
+                {/* Enhanced Greeting with time icon */}
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`p-1 rounded ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
+                    <Clock size={14} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
+                  </div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {getGreeting()}, <span className="font-semibold text-blue-500">{userInfo?.fullName || username}</span>! 👋
+                    <span className="ml-2 text-xs opacity-75">
+                      {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </span>
                   </p>
                 </div>
+                
+                {/* Quick Stats for Teachers */}
+                {userType === 'teacher' && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
+                      📊 {stats.totalStudents || 0} Students
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                      🏫 {classes.length || 0} Classes
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      stats.attendanceRate >= 90 ? 
+                        (darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600') :
+                        stats.attendanceRate >= 70 ?
+                        (darkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                        (darkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600')
+                    }`}>
+                      📈 {stats.attendanceRate || 0}% Rate
+                    </span>
+                  </div>
+                )}
+                
+                {/* Quick Stats for Parents - SAFE CHECK */}
+                {userType === 'parent' && childInfo && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                      👤 {childInfo.name}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
+                      🏫 {childInfo.class}
+                    </span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${darkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-600'}`}>
+                      📋 {childStats.totalLogs || 0} Records
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             
-            {/* Right: Controls */}
-            <div className="flex items-center gap-2">
-              <div className={`px-3 py-1.5 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-blue-600'}`}>
-                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
+            {/* Right Side Controls */}
+            <div className="flex items-center gap-3">
               <button
                 onClick={toggleTheme}
-                className={`p-2.5 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' : 'bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-200'}`}
+                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200'} transition-all transform hover:scale-110 shadow-md`}
               >
-                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
+              
               <button
                 onClick={fetchData}
                 disabled={loading}
-                className={`p-2.5 rounded-lg ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-100 hover:bg-blue-200 border border-blue-200'} ${loading ? 'opacity-70' : ''}`}
+                className={`p-3 rounded-xl ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-50/80 hover:bg-blue-100 border border-blue-200'} transition-all transform hover:scale-110 shadow-md ${loading ? 'opacity-70' : ''}`}
               >
-                <RefreshCw size={18} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw size={20} className={`${darkMode ? 'text-gray-300' : 'text-blue-600'} ${loading ? 'animate-spin' : ''}`} />
               </button>
+              
               <button
                 onClick={handleLogout}
-                className="p-2.5 rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all transform hover:scale-105 shadow-md"
               >
-                <LogOut size={18} />
+                <LogOut size={20} />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
-          
-          {/* Bottom Row: Navigation and Stats */}
-          <div className="flex items-center justify-between py-3 border-t border-gray-200 dark:border-gray-700/50">
-            {/* Breadcrumbs */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab(0)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 0 ? 
-                  `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}` : 
-                  `${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-blue-600'}`
-                }`}
-              >
-                Dashboard
-              </button>
-              {userType === 'teacher' && (
-                <>
-                  <div className={`text-sm ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>/</div>
-                  <button
-                    onClick={() => setActiveTab(1)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 1 ? 
-                      `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}` : 
-                      `${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-blue-600'}`
-                    }`}
-                  >
-                    Classroom
-                  </button>
-                  <div className={`text-sm ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>/</div>
-                  <button
-                    onClick={() => setActiveTab(2)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${activeTab === 2 ? 
-                      `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'}` : 
-                      `${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-blue-600'}`
-                    }`}
-                  >
-                    Logs
-                  </button>
-                </>
-              )}
+
+          {/* Tabs for Teachers */}
+          {userType === 'teacher' && (
+            <div className="flex gap-2 pb-4">
+              {[
+                { name: 'Dashboard', icon: BarChart3 },
+                { name: 'Classroom', icon: Users },
+                { name: 'Logs', icon: Calendar }
+              ].map((tab, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveTab(idx)}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 ${
+                    activeTab === idx
+                      ? `${darkMode ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg'}`
+                      : `${darkMode ? 'bg-gray-700/50 text-gray-300 hover:bg-gray-700' : 'bg-white/80 text-gray-700 hover:bg-white border border-blue-100'}`
+                  }`}
+                >
+                  <tab.icon size={18} />
+                  {tab.name}
+                  {activeTab === idx && (
+                    <div className="ml-1 w-2 h-2 rounded-full bg-white/50"></div>
+                  )}
+                </button>
+              ))}
             </div>
-            
-            {/* Stats Summary */}
-            <div className="flex items-center gap-3">
-              {userType === 'teacher' ? (
-                <>
-                  <div className={`text-center px-3 py-1.5 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                    <div className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                      {stats.presentToday || 0}
-                    </div>
-                    <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Present</div>
-                  </div>
-                  <div className={`text-center px-3 py-1.5 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                    <div className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-                      {stats.attendanceRate || 0}%
-                    </div>
-                    <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Rate</div>
-                  </div>
-                </>
-              ) : (
-                childInfo && (
-                  <div className={`px-3 py-1.5 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-blue-50/70'}`}>
-                    <div className="text-sm font-medium">{childInfo.name}</div>
-                    <div className="text-xs opacity-75">{childInfo.class}</div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -2588,6 +2661,9 @@ export default function AttendancePortal() {
             userInfo={userInfo}
             students={students}
             exportToCSV={exportToCSV}
+            childInfo={childInfo}  // Pass childInfo
+            childStats={childStats} // Pass childStats
+            parentChildId={parentChildId} // Pass parentChildId
           />
         )}
       </div>
@@ -2602,4 +2678,4 @@ export default function AttendancePortal() {
       `}</style>
     </div>
   );
-      }
+}
