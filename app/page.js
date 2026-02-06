@@ -20,7 +20,7 @@ const SESSION_TIMEOUT = 30 * 60 * 1000;
 const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) => (
   <div className="space-y-6 animate-fade-in">
     {/* Stats Cards */}
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {[
         { title: 'Total Students', value: stats.totalStudents, icon: Users, color: 'from-blue-500 to-blue-600', bg: darkMode ? 'bg-blue-500/10' : 'bg-blue-50' },
         { title: 'Present Today', value: stats.presentToday, icon: UserCheck, color: 'from-green-500 to-green-600', bg: darkMode ? 'bg-green-500/10' : 'bg-green-50' },
@@ -48,7 +48,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       ))}
     </div>
 
-    {/* Charts Grid */}
+    {/* Charts Grid - ONLY THE FIXED CHARTS */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Weekly Attendance Trend - Fixed */}
       <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
@@ -403,78 +403,6 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
             </div>
           )}
         </div>
-      </div>
-
-      {/* Attendance Rate Line */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-          <TrendingUp className="text-purple-500" size={20} />
-          Attendance Rate Trend
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={weeklyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip contentStyle={{ 
-              backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-              border: 'none', 
-              borderRadius: '12px' 
-            }} />
-            <Line type="monotone" dataKey="present" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', r: 5 }} name="Present Students" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Daily Comparison Bar Chart */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-          <BarChart3 className="text-orange-500" size={20} />
-          Daily Present vs Absent
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={weeklyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip contentStyle={{ 
-              backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-              border: 'none', 
-              borderRadius: '12px' 
-            }} />
-            <Legend />
-            <Bar dataKey="present" fill="#10b981" radius={[8, 8, 0, 0]} name="Present" />
-            <Bar dataKey="absent" fill="#ef4444" radius={[8, 8, 0, 0]} name="Absent" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Class Performance */}
-      <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'} flex items-center gap-2`}>
-          <Target className="text-indigo-500" size={20} />
-          Class-wise Attendance
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={classes.map(cls => {
-            const classStudents = students.filter(s => s.class === cls);
-            const today = new Date().toISOString().split('T')[0];
-            const todayLogs = logs.filter(log => log.class === cls && log.timestamp.startsWith(today) && log.status === 'IN');
-            const present = new Set(todayLogs.map(log => log.studentId)).size;
-            const rate = classStudents.length > 0 ? Math.round((present / classStudents.length) * 100) : 0;
-            return { name: cls, rate, present, total: classStudents.length };
-          })}>
-            <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-            <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-            <Tooltip contentStyle={{ 
-              backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-              border: 'none', 
-              borderRadius: '12px' 
-            }} />
-            <Bar dataKey="rate" fill="#6366f1" radius={[8, 8, 0, 0]} name="Attendance %" />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
     </div>
   </div>
