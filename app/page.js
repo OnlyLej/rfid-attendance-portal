@@ -1,14 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, Users, Clock, TrendingUp, Download, Lock, Eye, EyeOff, LogOut,
   BarChart3, Activity, UserCheck, UserX, AlertCircle, Sun, Moon,
   ChevronRight, Search, RefreshCw, Award, Target, Shield, Bell,
-  Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon, 
-  Radio, Database, Wifi, Smartphone, Zap, CheckCircle,
-  ArrowRight, Star, Sparkles, Cpu, Server, Globe, ShieldCheck,
-  ExternalLink, Code, Key
+  Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
@@ -1989,1167 +1986,7 @@ const ParentLogsTab = ({
       </AnimatedCard>
     </div>
   );
-};            
-                          
-const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) => {
-  const [scrollY, setScrollY] = useState(0);
-  const [activeFeature, setActiveFeature] = useState(0);
-  const [activeSection, setActiveSection] = useState('overview');
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [odometerValues, setOdometerValues] = useState({
-    totalStudents: [0, 0, 0], // Array for each digit: [hundreds, tens, ones]
-    totalCheckins: [0, 0, 0],
-    activeDevices: [0],
-    apiRequests: [0, 0, 0]
-  });
-  const [displayValues, setDisplayValues] = useState({
-    totalStudents: 0,
-    totalCheckins: 0,
-    activeDevices: 0,
-    apiRequests: 0
-  });
-
-  const isMobile = useIsMobile();
-
-  // Generate random target values
-  const generateRandomTargets = () => {
-    return {
-      totalStudents: Math.floor(Math.random() * 91) + 10, // 10-100
-      totalCheckins: Math.floor(Math.random() * 91) + 10, // 10-100
-      activeDevices: Math.floor(Math.random() * 6) + 1, // 1-6
-      apiRequests: Math.floor(Math.random() * 91) + 10 // 10-100
-    };
-  };
-
-  const [targetValues, setTargetValues] = useState(generateRandomTargets());
-
-  // Initialize on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const newTargets = generateRandomTargets();
-      setTargetValues(newTargets);
-      setDisplayValues(newTargets);
-      setLoadingStats(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-// Replace the odometer animation useEffect with this:
-useEffect(() => {
-  if (loadingStats) return;
-
-  // Function to generate random number within a range
-  const getRandomValue = (key) => {
-    switch(key) {
-      case 'totalStudents':
-        return Math.floor(Math.random() * 91) + 10; // 10-100
-      case 'totalCheckins':
-        return Math.floor(Math.random() * 91) + 10; // 10-100
-      case 'activeDevices':
-        return Math.floor(Math.random() * 6) + 1; // 1-6
-      case 'apiRequests':
-        return Math.floor(Math.random() * 91) + 10; // 10-100
-      default:
-        return 0;
-    }
-  };
-
-  // Initialize with random values immediately
-  const initialValues = {};
-  const initialDigitValues = {};
-  
-  Object.keys(odometerValues).forEach(key => {
-    const value = getRandomValue(key);
-    initialValues[key] = value;
-    
-    if (key === 'activeDevices') {
-      initialDigitValues[key] = [value]; // Single digit for devices
-    } else {
-      // Convert to array of digits (e.g., 45 -> [4, 5])
-      const digits = value.toString().split('').map(Number);
-      if (digits.length === 2) {
-        initialDigitValues[key] = [0, ...digits]; // Add leading zero for 2-digit numbers
-      } else {
-        initialDigitValues[key] = digits;
-      }
-    }
-  });
-  
-  setOdometerValues(initialDigitValues);
-  setDisplayValues(initialValues);
-
-  // Set new random target values every 1.5 seconds
-  const interval = setInterval(() => {
-    setDisplayValues(prev => {
-      const newValues = {};
-      Object.keys(prev).forEach(key => {
-        newValues[key] = getRandomValue(key);
-      });
-      return newValues;
-    });
-  }, 1500); // Change target every 1.5 seconds
-
-  return () => clearInterval(interval);
-}, [loadingStats]);
-
-// Separate effect to animate digits towards the target values
-useEffect(() => {
-  if (loadingStats) return;
-
-  const animateTowardsTarget = () => {
-    setOdometerValues(prev => {
-      const newDigits = { ...prev };
-      
-      Object.keys(displayValues).forEach(key => {
-        const target = displayValues[key];
-        const currentDigits = prev[key];
-        
-        // Convert target to digits array
-        let targetDigits;
-        if (key === 'activeDevices') {
-          targetDigits = [target];
-        } else {
-          const digits = target.toString().split('').map(Number);
-          targetDigits = digits.length === 2 ? [0, ...digits] : digits;
-        }
-        
-        // Animate each digit towards target
-        const animatedDigits = [...currentDigits];
-        for (let i = 0; i < animatedDigits.length; i++) {
-          const targetDigit = targetDigits[i] || 0;
-          const currentDigit = animatedDigits[i] || 0;
-          
-          if (currentDigit !== targetDigit) {
-            // Roll up or down by 1 with smooth transition
-            if (currentDigit < targetDigit) {
-              animatedDigits[i] = (currentDigit + 1) % 10;
-            } else if (currentDigit > targetDigit) {
-              animatedDigits[i] = (currentDigit + 9) % 10; // Roll down
-            }
-          }
-        }
-        
-        newDigits[key] = animatedDigits;
-      });
-      
-      return newDigits;
-    });
-  };
-
-  // Animate digits every 100ms for smooth rolling
-  const animationInterval = setInterval(animateTowardsTarget, 100);
-
-  return () => clearInterval(animationInterval);
-}, [displayValues, loadingStats]);
-  
-  const features = [
-    {
-      icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "ESP8266 Hardware Integration",
-      description: "NodeMCU with MFRC522 RFID reader for instant card detection",
-      color: "from-blue-500 to-cyan-500",
-      details: "13.56MHz frequency • <100ms response • OLED display • Audio feedback",
-      animation: "animate-pulse",
-      highlight: true
-    },
-    {
-      icon: <ShieldCheck className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Multi-Layer Security",
-      description: "Device API keys + Session tokens + Role-based access",
-      color: "from-purple-500 to-pink-500",
-      details: "Separate authentication • SHA-256 hashing • HTTPS • 30-min timeout",
-      animation: "animate-pulse",
-      highlight: true
-    },
-    {
-      icon: <Database className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Google Sheets Backend",
-      description: "Google Apps Script API with real-time data sync",
-      color: "from-green-500 to-emerald-500",
-      details: "Automatic logging • Real-time updates • CSV export • Audit trail",
-      animation: "animate-pulse"
-    },
-    {
-      icon: <BarChart3 className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Real-time Analytics",
-      description: "Interactive charts and live attendance monitoring",
-      color: "from-red-500 to-orange-500",
-      details: "Weekly trends • Class performance • Attendance patterns • Real-time",
-      animation: "animate-pulse"
-    },
-    {
-      icon: <Users className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Dual-Role Access",
-      description: "Separate interfaces for Teachers and Parents",
-      color: "from-indigo-500 to-blue-500",
-      details: "Teacher dashboard • Parent-only view • Role-based filtering",
-      animation: "animate-pulse"
-    },
-    {
-      icon: <Clock className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Automated IN/OUT Logic",
-      description: "Smart toggle system for attendance tracking",
-      color: "from-amber-500 to-yellow-500",
-      details: "First scan = IN • Second scan = OUT • Auto calculation",
-      animation: "animate-pulse"
-    },
-    {
-      icon: <Download className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Advanced Data Export",
-      description: "Filtered CSV reports with comprehensive data",
-      color: "from-violet-500 to-purple-500",
-      details: "Date filters • Status filters • Class filters • Search",
-      animation: "animate-pulse"
-    },
-    {
-      icon: <Smartphone className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Fully Responsive",
-      description: "Mobile-first interface for all devices",
-      color: "from-rose-500 to-pink-500",
-      details: "Mobile optimized • Tablet support • Desktop • Touch-friendly",
-      animation: "animate-pulse"
-    }
-  ];
-
-  const architectureLayers = [
-    {
-      title: "Hardware Layer (ESP8266)",
-      icon: <Cpu className="w-8 h-8" />,
-      description: "Physical RFID hardware and microcontroller",
-      components: [
-        "ESP8266 NodeMCU Microcontroller",
-        "MFRC522 RFID Reader (13.56MHz)",
-        "128x64 OLED Display (I2C)",
-        "Active Buzzer for Audio Feedback",
-        "RFID Cards/Tags per student"
-      ],
-      color: "border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-cyan-500/10"
-    },
-    {
-      title: "Backend Layer (Google Apps Script)",
-      icon: <Server className="w-8 h-8" />,
-      description: "API server and data processing",
-      components: [
-        "Google Apps Script API Server",
-        "Google Sheets Database",
-        "SHA-256 Authentication",
-        "Session Token Management",
-        "Role-Based Access Control"
-      ],
-      color: "border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10"
-    },
-    {
-      title: "Frontend Layer (Next.js)",
-      icon: <Globe className="w-8 h-8" />,
-      description: "Web interface and user interaction",
-      components: [
-        "Next.js 14 Web Application",
-        "Vercel Edge Network",
-        "Recharts for Analytics",
-        "Real-time Updates",
-        "Mobile Design"
-      ],
-      color: "border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/10"
-    }
-  ];
-
-  const technicalSpecs = [
-    {
-      category: "Hardware",
-      specs: [
-        { label: "RFID Frequency", value: "13.56 MHz" },
-        { label: "Reading Range", value: "5-10cm" },
-        { label: "Response Time", value: "< 100ms" },
-        { label: "Power Supply", value: "5V USB" }
-      ]
-    },
-    {
-      category: "Software",
-      specs: [
-        { label: "Frontend", value: "Next.js 14" },
-        { label: "Backend", value: "Google Apps Script" },
-        { label: "Database", value: "Google Sheets" },
-        { label: "Hosting", value: "Vercel" }
-      ]
-    },
-    {
-      category: "Security",
-      specs: [
-        { label: "Authentication", value: "Session Tokens" },
-        { label: "Encryption", value: "HTTPS/TLS" },
-        { label: "Password Hashing", value: "SHA-256" },
-        { label: "Session Timeout", value: "30 minutes" }
-      ]
-    }
-  ];
-
-  const workflowSteps = [
-    {
-      step: 1,
-      title: "Student Taps RFID Card",
-      description: "Card is scanned at entrance",
-      icon: "📱",
-      details: "ESP8266 detects card and sends to server"
-    },
-    {
-      step: 2,
-      title: "Server Processing",
-      description: "Backend determines IN/OUT status",
-      icon: "⚡",
-      details: "Checks last status, logs to Google Sheets"
-    },
-    {
-      step: 3,
-      title: "Real-time Update",
-      description: "Dashboards update instantly",
-      icon: "🔄",
-      details: "Teachers and parents see live changes"
-    },
-    {
-      step: 4,
-      title: "Data Analytics",
-      description: "Automatic reporting and insights",
-      icon: "📊",
-      details: "Charts update, stats recalculate"
-    }
-  ];
-
-  const systemCapabilities = {
-    whatItDoes: [
-      "Real-time RFID attendance tracking",
-      "Automatic IN/OUT toggle logic",
-      "Multi-classroom support",
-      "Teacher/Parent role-based access",
-      "Interactive analytics dashboard",
-      "Filtered CSV data export",
-      "Advanced search and filtering",
-      "Mobile responsive web interface",
-      "Session-based authentication",
-      "Live status updates"
-    ],
-    whatItDoesnt: [
-      "Facial recognition",
-      "GPS location tracking",
-      "Biometric authentication",
-      "SMS/email notifications",
-      "Native mobile applications",
-      "Offline web access",
-      "Multi-school management",
-      "Video surveillance",
-      "Biometric data collection"
-    ]
-  };
-
-const LoginForm = ({ darkMode, onLogin, loggingIn, loginError }) => {
-  const [localUsername, setLocalUsername] = useState('');
-  const [localPassword, setLocalPassword] = useState('');
-  const [localShowPassword, setLocalShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    if (onLogin) {
-      await onLogin(localUsername, localPassword);
-    }
-    setIsSubmitting(false);
-  };
-
-  return (
-    <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transition-all duration-300 animate-fade-in-up`}>
-      <div className="flex justify-center mb-6">
-        <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
-          <Key className={`w-10 h-10 ${darkMode ? 'text-blue-400' : 'text-white'}`} strokeWidth={1.5} />
-        </div>
-      </div>
-      
-      <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        System Login
-      </h1>
-      <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-        Sign in to access your dashboard
-      </p>
-
-      <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
-        <div className="space-y-2">
-          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Username
-          </label>
-          <div className="relative">
-            <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-            <input
-              type="text"
-              value={localUsername}
-              onChange={(e) => setLocalUsername(e.target.value)}
-              className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
-                border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
-                disabled:opacity-50 disabled:cursor-not-allowed
-                cursor-text`}
-              placeholder="Enter username"
-              required
-              disabled={isSubmitting || loggingIn}
-              autoComplete="username"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Password
-          </label>
-          <div className="relative">
-            <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-            <input
-              type={localShowPassword ? "text" : "password"}
-              value={localPassword}
-              onChange={(e) => setLocalPassword(e.target.value)}
-              className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
-                border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
-                disabled:opacity-50 disabled:cursor-not-allowed
-                cursor-text`}
-              placeholder="Enter password"
-              required
-              disabled={isSubmitting || loggingIn}
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setLocalShowPassword(!localShowPassword)}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} 
-                transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                p-1 rounded-md`}
-              disabled={isSubmitting || loggingIn}
-            >
-              {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {loginError && (
-          <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
-            <div className="flex items-center gap-2">
-              {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-              <span className="text-sm">{loginError}</span>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isSubmitting || loggingIn}
-          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 
-            ${(isSubmitting || loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} 
-            shadow-lg hover:shadow-xl relative overflow-hidden
-            select-none`}
-        >
-          {isSubmitting || loggingIn ? (
-            <span className="flex items-center justify-center gap-2">
-              <RefreshCw size={20} className="animate-spin" />
-              Signing In...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <Shield size={20} />
-              Sign In
-            </span>
-          )}
-          {(isSubmitting || loggingIn) && (
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
-          )}
-        </button>
-      </form>
-
-      <div className="mt-6 text-center">
-        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-          🔒 Secure session-based authentication
-        </p>
-      </div>
-    </div>
-  );
 };
-
-  return (
-    <div className="min-h-screen overflow-x-hidden">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute -top-40 -left-40 w-80 h-80 ${darkMode ? 'bg-blue-500/10' : 'bg-blue-400/20'} rounded-full blur-3xl animate-pulse`}></div>
-        <div className={`absolute -bottom-40 -right-40 w-80 h-80 ${darkMode ? 'bg-purple-500/10' : 'bg-purple-400/20'} rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
-        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 ${darkMode ? 'bg-green-500/5' : 'bg-green-400/10'} rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '4s' }}></div>
-        
-        {/* Grid Pattern */}
-        <div className={`absolute inset-0 opacity-5 ${darkMode ? 'bg-grid-white' : 'bg-grid-gray-900'}`} style={{ backgroundSize: '50px 50px' }}></div>
-        
-        {/* Animated Lines */}
-        <div className={`absolute top-0 left-0 right-0 h-px ${darkMode ? 'bg-gradient-to-r from-transparent via-blue-500 to-transparent' : 'bg-gradient-to-r from-transparent via-blue-400 to-transparent'} animate-shimmer`}></div>
-        <div className={`absolute bottom-0 left-0 right-0 h-px ${darkMode ? 'bg-gradient-to-r from-transparent via-purple-500 to-transparent' : 'bg-gradient-to-r from-transparent via-purple-400 to-transparent'} animate-shimmer`} style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl ${darkMode ? 'bg-gray-900/90 border-gray-800' : 'bg-white/95 border-gray-200'} border-b transition-all duration-300 ${scrollY > 50 ? 'py-3 shadow-2xl' : 'py-5'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                <Radio className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
-                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-0.5`}>
-                  Smart Attendance System
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-8">
-              <a 
-                href="#overview" 
-                className={`font-medium transition-colors ${activeSection === 'overview' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('overview');
-                  document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Overview
-              </a>
-              <a 
-                href="#features" 
-                className={`font-medium transition-colors ${activeSection === 'features' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('features');
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Features
-              </a>
-              <a 
-                href="#architecture" 
-                className={`font-medium transition-colors ${activeSection === 'architecture' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('architecture');
-                  document.getElementById('architecture')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Architecture
-              </a>
-              <a 
-                href="#login-section" 
-                className={`font-medium transition-colors ${activeSection === 'login' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('login');
-                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Login
-              </a>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={toggleTheme}
-                className={`p-2.5 rounded-xl ${darkMode ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} transition-all duration-300 hover:scale-110`}
-                aria-label="Toggle theme"
-              >
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <a
-                href="#login-section"
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('login');
-                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Sign In
-              </a>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8" id="overview">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8 animate-pulse border border-blue-500/20">
-              <Sparkles className="w-4 h-4 text-blue-500" />
-              <span className={`text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Complete Attendance System</span>
-            </div>
-            
-            <h1 className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'} leading-tight`}>
-              RFID Attendance
-              <span className="block bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent animate-gradient">
-                Made Simple & Secure
-              </span>
-            </h1>
-            
-            <p className={`text-lg sm:text-xl md:text-2xl ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-4xl mx-auto mb-8 leading-relaxed`}>
-              A complete hardware-to-software solution combining ESP8266 RFID readers, 
-              Google Apps Script backend, and modern web interface for real-time attendance tracking.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <a
-                href="#login-section"
-                className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl flex items-center justify-center space-x-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('login');
-                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </a>
-              <a
-                href="#architecture"
-                className="group px-8 py-4 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActiveSection('architecture');
-                  document.getElementById('architecture')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                <span>View Architecture</span>
-                <Code className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              </a>
-            </div>
-          </div>
-
-          {/* System Stats - Odometer Display */}
-          <div className="mt-16">
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl overflow-hidden animate-fade-in-up`}>
-              <div className={`p-4 sm:p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className={`text-xl sm:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Live System Metrics
-                    </h2>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                      Real-time demo data (sign in for live statistics)
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full bg-green-500 animate-pulse`}></div>
-                    <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                      Live Odometer Active
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-4 sm:p-6 lg:p-8">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                  {[
-                    { 
-                      key: 'totalStudents', 
-                      label: 'Total Students', 
-                      icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      description: 'Live demo count'
-                    },
-                    { 
-                      key: 'totalCheckins', 
-                      label: "Today's Check-ins", 
-                      icon: <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      description: 'Live demo count'
-                    },
-                    { 
-                      key: 'activeDevices', 
-                      label: 'Active Readers', 
-                      icon: <Wifi className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      description: 'Live demo count'
-                    },
-                    { 
-                      key: 'apiRequests', 
-                      label: 'API Requests', 
-                      icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      description: 'Live demo count'
-                    }
-                  ].map((stat, index) => (
-                    <div 
-                      key={stat.key}
-                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 hover:bg-gray-700/50' : 'bg-gray-50/50 hover:bg-gray-50/70'} rounded-xl p-4 sm:p-5 transition-all duration-300 transform hover:scale-105 animate-fade-in-up`}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`p-2 rounded-lg ${darkMode ? 'bg-gray-600/50' : 'bg-gray-100'}`}>
-                          {stat.icon}
-                        </div>
-                        {loadingStats && (
-                          <div className={`w-10 h-4 rounded ${darkMode ? 'bg-gray-600 animate-pulse' : 'bg-gray-200 animate-pulse'}`}></div>
-                        )}
-                      </div>
-                      <div className={`text-2xl sm:text-3xl font-bold mb-1 ${darkMode ? 'text-white digital-glow' : 'text-gray-900'} tabular-nums`}>
-                        {loadingStats ? (
-                          <div className={`h-8 ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded animate-pulse w-20`}></div>
-                        ) : (
-                          <div className="odometer-container">
-                            {odometerValues[stat.key].map((digit, idx) => (
-                              <span 
-                                key={`${stat.key}-${idx}`} 
-                                className="odometer-digit inline-block mx-0.5 min-w-[0.6em] text-center"
-                              >
-                                {digit}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <div className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {stat.label}
-                      </div>
-                      {stat.description && (
-                        <div className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          {stat.description}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Technical Specifications */}
-                <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {technicalSpecs.map((spec, index) => (
-                    <div 
-                      key={spec.category}
-                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50/50 border-gray-200'} rounded-xl border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg animate-fade-in-up`}
-                      style={{ animationDelay: `${index * 150}ms` }}
-                    >
-                      <h3 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {spec.category}
-                      </h3>
-                      <div className="space-y-3">
-                        {spec.specs.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
-                            <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {item.label}
-                            </span>
-                            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} text-sm`}>
-                              {item.value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Login Section */}
-      <section id="login-section" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto">
-          <LoginForm 
-            darkMode={darkMode}
-            onLogin={onLogin}
-            loggingIn={loggingIn}
-            loginError={loginError}
-          />
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Complete
-              <span className="block bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                Feature Set
-              </span>
-            </h2>
-            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              Everything you need for modern, secure attendance tracking
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className={`group relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700 hover:border-gray-600' : 'bg-white/40 border-gray-200 hover:border-blue-300'} border-2 rounded-2xl p-5 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl cursor-pointer ${activeFeature === index ? 'ring-2 ring-blue-500' : ''}`}
-                onMouseEnter={() => setActiveFeature(index)}
-                onClick={() => setActiveFeature(index)}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {feature.highlight && (
-                  <div className="absolute -top-2 -right-2">
-                    <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-full">
-                      Core Feature
-                    </span>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 bg-gradient-to-r ${feature.color} rounded-xl ${feature.animation}`}>
-                    {feature.icon}
-                  </div>
-                  <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'} group-hover:translate-x-1 transition-transform`} />
-                </div>
-                
-                <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {feature.title}
-                </h3>
-                <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {feature.description}
-                </p>
-                
-                <div className={`p-3 rounded-lg ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'} transition-all duration-300 ${activeFeature === index ? 'opacity-100 max-h-40' : 'opacity-0 max-h-0'} overflow-hidden`}>
-                  <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} dangerouslySetInnerHTML={{ __html: feature.details }} />
-                </div>
-                
-                <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} rounded-b-2xl transition-all duration-300 ${activeFeature === index ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Architecture Section */}
-      <section id="architecture" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Three-Layer
-              <span className="block bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Architecture
-              </span>
-            </h2>
-            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              Hardware, backend, and frontend working seamlessly together
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-            {architectureLayers.map((layer, index) => (
-              <div
-                key={index}
-                className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} ${layer.color} border-2 rounded-2xl p-6 sm:p-8 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl`}
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                <div className="flex items-center space-x-4 mb-6">
-                  <div className="p-3 bg-gradient-to-br from-white/20 to-transparent rounded-xl">
-                    {layer.icon}
-                  </div>
-                  <div>
-                    <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {layer.title}
-                    </h3>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {layer.description}
-                    </p>
-                  </div>
-                </div>
-                
-                <ul className="space-y-3">
-                  {layer.components.map((item, idx) => (
-                    <li 
-                      key={idx} 
-                      className="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-transparent to-white/5"
-                      style={{ animationDelay: `${idx * 50}ms` }}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${
-                        index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                        index === 1 ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                        'bg-gradient-to-r from-green-500 to-emerald-500'
-                      }`}></div>
-                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="absolute bottom-4 right-4 text-5xl sm:text-6xl font-bold opacity-10">
-                  {index + 1}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Workflow Visualization */}
-          <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 p-6 sm:p-8`}>
-            <h3 className={`text-2xl font-bold mb-8 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Real-time Data Flow
-            </h3>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {workflowSteps.map((step, index) => (
-                <div key={step.step} className="relative">
-                  <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50/50'} rounded-2xl p-5 sm:p-6 text-center transition-all duration-300 hover:scale-105`}>
-                    <div className="text-4xl mb-4">{step.icon}</div>
-                    <div className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full text-sm font-bold mb-3">
-                      {step.step}
-                    </div>
-                    <h4 className={`font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      {step.title}
-                    </h4>
-                    <p className={`text-sm mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {step.description}
-                    </p>
-                    <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      {step.details}
-                    </p>
-                  </div>
-                  
-                  {index < workflowSteps.length - 1 && (
-                    <div className="hidden lg:block absolute top-1/2 right-0 w-full h-0.5 bg-gradient-to-r from-blue-500/50 to-transparent transform translate-x-1/2 -translate-y-1/2"></div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* System Capabilities Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* What It Does */}
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20' : 'bg-gradient-to-br from-green-50/50 to-emerald-50/50 border-green-200'} rounded-2xl border-2 p-6 sm:p-8`}>
-              <div className="flex items-center space-x-3 mb-6">
-                <CheckCircle className="w-6 h-6 text-green-500" />
-                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  System Capabilities
-                </h3>
-              </div>
-              <ul className="space-y-3">
-                {systemCapabilities.whatItDoes.map((item, index) => (
-                  <li 
-                    key={index} 
-                    className="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-transparent to-white/5"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* What It Doesn't Do */}
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/20' : 'bg-gradient-to-br from-red-50/50 to-orange-50/50 border-red-200'} rounded-2xl border-2 p-6 sm:p-8`}>
-              <div className="flex items-center space-x-3 mb-6">
-                <X className="w-6 h-6 text-red-500" />
-                <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Not Included
-                </h3>
-              </div>
-              <ul className="space-y-3">
-                {systemCapabilities.whatItDoesnt.map((item, index) => (
-                  <li 
-                    key={index} 
-                    className="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-transparent to-white/5"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <X className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA - Simplified */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 p-8 md:p-12 relative overflow-hidden`}>
-            <div className="relative z-10">
-              <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Start Tracking Attendance
-              </h2>
-              
-              <p className={`text-lg sm:text-xl mb-8 max-w-2xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Sign in to access the complete RFID attendance system with real-time tracking, 
-                detailed analytics, and secure role-based access.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="#login-section"
-                  className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl flex items-center justify-center space-x-2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveSection('login');
-                    document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <span>Sign In Now</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer - Simplified */}
-      <footer className={`py-8 px-4 sm:px-6 lg:px-8 ${darkMode ? 'bg-gray-900/80 border-t border-gray-800' : 'bg-white/80 border-t border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-6 md:mb-0">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                <Radio className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
-                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Complete Attendance Solution
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-6">
-              <a href="#overview" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-                Overview
-              </a>
-              <a href="#features" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-                Features
-              </a>
-              <a href="#architecture" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-                Architecture
-              </a>
-            </div>
-            
-            <div className="mt-6 md:mt-0">
-              <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                © {new Date().getFullYear()} RFID Attendance
-              </div>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      <style jsx global>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
-        }
-        
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        
-        @keyframes odometer-flip {
-          0% {
-            transform: translateY(0);
-            opacity: 1;
-          }
-          50% {
-            transform: translateY(-100%);
-            opacity: 0;
-          }
-          51% {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          100% {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-        
-        .animate-shimmer {
-          animation: shimmer 2s infinite;
-        }
-        
-        .odometer-digit {
-          font-variant-numeric: tabular-nums;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          transition: all 0.1s ease;
-        }
-        
-        .odometer-digit.changing {
-          animation: odometer-flip 0.3s ease-in-out;
-        }
-        
-        .digital-glow {
-          text-shadow: 
-            0 0 5px rgba(59, 130, 246, 0.5),
-            0 0 10px rgba(59, 130, 246, 0.3),
-            0 0 15px rgba(59, 130, 246, 0.1);
-        }
-        
-        .dark .digital-glow {
-          text-shadow: 
-            0 0 5px rgba(96, 165, 250, 0.7),
-            0 0 10px rgba(96, 165, 250, 0.5),
-            0 0 15px rgba(96, 165, 250, 0.3);
-        }
-        
-        .bg-grid-white {
-          background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-                            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-        }
-        
-        .bg-grid-gray-900 {
-          background-image: linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-                            linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-        }
-        
-        html {
-          scroll-behavior: smooth;
-        }
-        
-        /* Fix for mobile input issues */
-        input, textarea {
-          -webkit-user-select: text;
-          user-select: text;
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        input:focus {
-          outline: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* Improve touch targets on mobile */
-        @media (max-width: 768px) {
-          input, button, select, textarea {
-            font-size: 16px !important;
-          }
-          
-          button, [role="button"] {
-            min-height: 44px;
-            min-width: 44px;
-          }
-        }
-      `}</style>
-    </div>
-  );
-};
-
 // Main component with mobile menu - UPDATED HEADER
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
@@ -3190,39 +2027,184 @@ export default function AttendancePortal() {
 
   const isMobile = useIsMobile();
 
-  // Add this function inside the AttendancePortal component, before the return statement:
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-  // Wrap functions with useCallback to prevent re-renders
-  const toggleTheme = useCallback(() => {
-    const newDarkMode = !darkMode;
-    setDarkMode(newDarkMode);
-    if (newDarkMode) {
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+
+    // Check existing session
+    const sessionToken = sessionStorage.getItem('sessionToken');
+    const loginTime = sessionStorage.getItem('loginTime');
+    
+    if (sessionToken && loginTime) {
+      const timeSinceLogin = Date.now() - parseInt(loginTime);
+      if (timeSinceLogin > SESSION_TIMEOUT) {
+        sessionStorage.clear();
+      }
+    }
+  }, []);
+
+  // Calculate child info when userInfo or students change
+  useEffect(() => {
+    if (userType === 'parent' && userInfo && students.length > 0) {
+      let childId = null;
+      
+      if (userInfo?.studentId) {
+        childId = userInfo.studentId;
+      } else if (userInfo?.child?.studentId) {
+        childId = userInfo.child.studentId;
+      } else if (userInfo?.children && userInfo.children.length > 0) {
+        childId = userInfo.children[0].studentId;
+      } else if (students.length === 1) {
+        childId = students[0].studentId;
+      } else if (students.length > 0) {
+        const logStudentIds = [...new Set(logs.map(log => log.studentId))];
+        if (logStudentIds.length === 1) {
+          childId = logStudentIds[0];
+        }
+      }
+      
+      setParentChildId(childId);
+      
+      if (childId) {
+        const childStudent = students.find(s => s.studentId === childId);
+        if (childStudent) {
+          setChildInfo({
+            studentId: childStudent.studentId,
+            name: childStudent.name,
+            class: childStudent.class
+          });
+        } else {
+          setChildInfo({
+            studentId: childId,
+            name: userInfo?.child?.name || userInfo?.fullName || 'My Child',
+            class: userInfo?.child?.class || userInfo?.class || 'Unknown'
+          });
+        }
+      }
+    } else if (userType === 'parent') {
+      setChildInfo(null);
+      setParentChildId(null);
+    }
+  }, [userType, userInfo, students, logs]);
+
+  // Calculate child logs and stats
+  useEffect(() => {
+    if (userType === 'parent' && parentChildId) {
+      const childLogs = logs.filter(log => log.studentId === parentChildId);
+      const today = new Date().toISOString().split('T')[0];
+      const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
+      
+      const uniqueDays = new Set(childLogs.map(log => log.timestamp?.split('T')[0]));
+      const daysWithIN = new Set(
+        childLogs.filter(log => log.status === 'IN').map(log => log.timestamp?.split('T')[0])
+      );
+      const attendanceRate = uniqueDays.size > 0 
+        ? Math.round((daysWithIN.size / uniqueDays.size) * 100) 
+        : 0;
+      
+      setChildStats({
+        totalLogs: childLogs.length,
+        todayLogs: todayLogs.length,
+        attendanceRate: attendanceRate
+      });
+    } else if (userType === 'parent') {
+      setChildStats({
+        totalLogs: 0,
+        todayLogs: 0,
+        attendanceRate: 0
+      });
+    }
+  }, [userType, parentChildId, logs]);
+
+  // Session timeout monitoring
+  useEffect(() => {
+    if (!authenticated) return;
+
+    const checkSession = setInterval(() => {
+      const timeSinceActivity = Date.now() - lastActivity;
+      if (timeSinceActivity > SESSION_TIMEOUT) {
+        alert('Session expired due to inactivity');
+        handleLogout();
+      }
+    }, 60000);
+
+    return () => clearInterval(checkSession);
+  }, [authenticated, lastActivity]);
+
+  // Activity tracker
+  useEffect(() => {
+    if (!authenticated) return;
+
+    const updateActivity = () => setLastActivity(Date.now());
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    
+    events.forEach(event => document.addEventListener(event, updateActivity));
+    return () => {
+      events.forEach(event => document.removeEventListener(event, updateActivity));
+    };
+  }, [authenticated]);
+
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    if (!darkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-  }, [darkMode]);
+  };
 
-  // Stabilize the handleLogin function
-  const handleLogin = useCallback(async (enteredUsername, enteredPassword) => {
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const secureApiCall = async (action, params = {}) => {
+    const sessionToken = sessionStorage.getItem('sessionToken');
+    if (!sessionToken) throw new Error('Not authenticated');
+  
+    const queryParams = new URLSearchParams({ 
+      action, 
+      sessionToken,
+      ...params 
+    }).toString();
+    
+    const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-Token': sessionToken,
+      },
+    });
+  
+    if (!response.ok) {
+      if (response.status === 401) {
+        handleLogout();
+        throw new Error('Session expired');
+      }
+      throw new Error('API request failed');
+    }
+  
+    return response.json();
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setLoginError('');
     setLoggingIn(true);
 
     try {
-      const response = await fetch('/api/auth', {
+      const response = await fetch(AUTH_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username: enteredUsername, 
-          password: enteredPassword 
-        }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
@@ -3238,95 +2220,44 @@ export default function AttendancePortal() {
         setUserType(data.userType);
         setUserInfo(data);
         setLastActivity(Date.now());
-        
-        // Clear the form fields
-        setUsername('');
-        setPassword('');
-        setShowPassword(false);
       } else {
         setLoginError(data.message || 'Invalid credentials');
       }
     } catch (error) {
-      console.error('Login error:', error);
       setLoginError('Login failed. Please try again.');
     } finally {
       setLoggingIn(false);
     }
-  }, []);
+  };
 
-  // Separate function for the form submission event
-  const handleFormSubmit = useCallback((e) => {
-    e.preventDefault();
-    if (username && password) {
-      handleLogin(username, password);
-    }
-  }, [username, password, handleLogin]);
+  const handleLogout = () => {
+    sessionStorage.clear();
+    setAuthenticated(false);
+    setUserType(null);
+    setUsername('');
+    setPassword('');
+    setUserInfo(null);
+    setLogs([]);
+    setChildInfo(null);
+    setParentChildId(null);
+    setChildStats({
+      totalLogs: 0,
+      todayLogs: 0,
+      attendanceRate: 0
+    });
+    setMobileMenuOpen(false);
+  };
 
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-
-    // Check existing session
-    const sessionToken = sessionStorage.getItem('sessionToken');
-    const loginTime = sessionStorage.getItem('loginTime');
-    
-    if (sessionToken && loginTime) {
-      const timeSinceLogin = Date.now() - parseInt(loginTime);
-      if (timeSinceLogin < SESSION_TIMEOUT) {
-        const savedUserType = sessionStorage.getItem('userType');
-        const savedUserInfo = sessionStorage.getItem('userInfo');
-        
-        setAuthenticated(true);
-        setUserType(savedUserType);
-        setUserInfo(savedUserInfo ? JSON.parse(savedUserInfo) : null);
-        setLastActivity(Date.now());
-      } else {
-        // Session expired
-        sessionStorage.clear();
-      }
-    }
-  }, []);
-
-
-
-  // Stabilize the fetchData function
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const sessionToken = sessionStorage.getItem('sessionToken');
-      if (!sessionToken) throw new Error('Not authenticated');
-
       const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
 
-      const queryParams = new URLSearchParams({ 
-        action: 'getDashboardStats',
-        sessionToken,
+      const dashboardData = await secureApiCall('getDashboardStats', {
         startDate,
         endDate
-      }).toString();
-      
-      const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-Token': sessionToken,
-        },
       });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          handleLogout();
-          throw new Error('Session expired');
-        }
-        throw new Error('API request failed');
-      }
-
-      const dashboardData = await response.json();
 
       if (dashboardData.success) {
         const fetchedStudents = dashboardData.students || [];
@@ -3351,17 +2282,9 @@ export default function AttendancePortal() {
         
         if (userType === 'teacher') {
           try {
-            const classesResponse = await fetch(`${API_ENDPOINT}?action=getClasses&sessionToken=${sessionToken}`, {
-              headers: {
-                'X-Session-Token': sessionToken,
-              },
-            });
-            
-            if (classesResponse.ok) {
-              const classesData = await classesResponse.json();
-              if (classesData.success) {
-                setClasses(classesData.classes || []);
-              }
+            const classesData = await secureApiCall('getClasses');
+            if (classesData.success) {
+              setClasses(classesData.classes || []);
             }
           } catch (classError) {
             console.error('Error fetching classes:', classError);
@@ -3387,10 +2310,9 @@ export default function AttendancePortal() {
     } finally {
       setLoading(false);
     }
-  }, [userType]);
+  };
 
-  const calculateWeeklyData = useCallback((logData, studentsList) => {
-    // ... keep your existing calculateWeeklyData implementation ...
+  const calculateWeeklyData = (logData, studentsList) => {
     if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
       const weeks = [];
       const today = new Date();
@@ -3504,9 +2426,9 @@ export default function AttendancePortal() {
     }
     
     return sortedWeeks;
-  }, []);
+  };
 
-  const getStudentStatus = useCallback((studentId) => {
+  const getStudentStatus = (studentId) => {
     const today = new Date().toISOString().split('T')[0];
     const studentLogs = logs.filter(log => 
       log.studentId === studentId && log.timestamp?.startsWith(today)
@@ -3515,9 +2437,9 @@ export default function AttendancePortal() {
     if (studentLogs.length === 0) return 'no-logs';
     const lastLog = studentLogs[studentLogs.length - 1];
     return lastLog.status === 'IN' ? 'present' : 'absent';
-  }, [logs]);
+  };
 
-  const exportToCSV = useCallback((logsToExport = logs) => {
+  const exportToCSV = (logsToExport = logs) => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
     const csvContent = [
       headers.join(','),
@@ -3532,33 +2454,8 @@ export default function AttendancePortal() {
     a.href = url;
     a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-  }, [logs]);
+  };
 
-  const handleLogout = useCallback(() => {
-    sessionStorage.clear();
-    setAuthenticated(false);
-    setUserType(null);
-    setUsername('');
-    setPassword('');
-    setUserInfo(null);
-    setLogs([]);
-    setChildInfo(null);
-    setParentChildId(null);
-    setChildStats({
-      totalLogs: 0,
-      todayLogs: 0,
-      attendanceRate: 0
-    });
-    setMobileMenuOpen(false);
-  }, []);
-
-  useEffect(() => {
-    if (authenticated) {
-      fetchData();
-    }
-  }, [authenticated, fetchData]);
-
-  // Memoize filteredStudents to prevent re-renders
   const filteredStudents = useMemo(() => {
     let filtered = students;
 
@@ -3572,25 +2469,134 @@ export default function AttendancePortal() {
     return filtered;
   }, [students, searchQuery]);
 
-  if (!mounted) return null;
+  useEffect(() => {
+    const sessionToken = sessionStorage.getItem('sessionToken');
+    const savedUserType = sessionStorage.getItem('userType');
+    const savedUserInfo = sessionStorage.getItem('userInfo');
 
-  const landingPageProps = useMemo(() => ({
-    darkMode,
-    toggleTheme,
-    onLogin: handleLogin,
-    loggingIn,
-    loginError,
-    // Remove the extra props that LandingPage doesn't accept
-  }), [darkMode, toggleTheme, handleLogin, loggingIn, loginError]);
+    if (sessionToken && savedUserType) {
+      setAuthenticated(true);
+      setUserType(savedUserType);
+      setUserInfo(savedUserInfo ? JSON.parse(savedUserInfo) : null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authenticated) {
+      fetchData();
+    }
+  }, [authenticated]);
+
+  if (!mounted) return null;
 
   if (!authenticated) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
-        <LandingPage {...landingPageProps} />
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500 overflow-x-hidden`}>
+        <div className="absolute inset-0 overflow-hidden">
+          <div className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full ${darkMode ? 'bg-blue-500/5' : 'bg-blue-400/20'} blur-3xl animate-pulse`}></div>
+          <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
+        </div>
+
+        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300 mx-4`}>
+          <button
+            onClick={toggleTheme}
+            className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
+          >
+            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          <div className="flex justify-center mb-6">
+            <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-bounce`}>
+              <Lock size={40} className={darkMode ? 'text-blue-400' : 'text-white'} />
+            </div>
+          </div>
+          
+          <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+            Welcome Back
+          </h1>
+          <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
+            RFID Attendance Portal
+          </p>
+
+          <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
+                placeholder="Enter username"
+                required
+                disabled={loggingIn}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm pr-12`}
+                  placeholder="Enter password"
+                  required
+                  disabled={loggingIn}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
+                  disabled={loggingIn}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="bg-red-500/10 border-2 border-red-500/50 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm backdrop-blur-sm animate-shake">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={18} />
+                  {loginError}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
+            >
+              {loggingIn ? (
+                <span className="flex items-center justify-center gap-2">
+                  <RefreshCw size={20} className="animate-spin" />
+                  Signing In...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <Shield size={20} />
+                  Secure Sign In
+                </span>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+              🔒 Protected by session-based authentication
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
-                    
+
   // Main Dashboard View
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500 overflow-x-hidden`}>
