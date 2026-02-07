@@ -2099,7 +2099,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
           
           return prev;
         });
-      }, 100); // Adjust speed - lower = faster
+      }, 2000); // Adjust speed - lower = faster
     });
 
     return () => {
