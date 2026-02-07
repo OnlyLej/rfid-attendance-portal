@@ -3028,6 +3028,49 @@ const LoginForm = () => {
             min-width: 44px;
           }
         }
+
+        .tabular-nums {
+          font-variant-numeric: tabular-nums;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          letter-spacing: 0.05em;
+        }
+        
+        /* Odometer flip animation */
+        @keyframes odometer-flip {
+          0% {
+            transform: rotateX(0deg);
+            opacity: 1;
+          }
+          50% {
+            transform: rotateX(90deg);
+            opacity: 0;
+          }
+          100% {
+            transform: rotateX(0deg);
+            opacity: 1;
+          }
+        }
+        
+        .odometer-flip {
+          animation: odometer-flip 0.3s ease-in-out;
+          display: inline-block;
+          transform-style: preserve-3d;
+        }
+        
+        /* Digital glow effect */
+        .digital-glow {
+          text-shadow: 
+            0 0 5px rgba(59, 130, 246, 0.5),
+            0 0 10px rgba(59, 130, 246, 0.3),
+            0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        
+        .dark .digital-glow {
+          text-shadow: 
+            0 0 5px rgba(96, 165, 250, 0.7),
+            0 0 10px rgba(96, 165, 250, 0.5),
+            0 0 15px rgba(96, 165, 250, 0.3);
+        }
       `}</style>
     </div>
   );
