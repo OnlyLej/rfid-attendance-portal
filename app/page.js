@@ -158,43 +158,52 @@ const AnimatedCard = ({ children, delay = 0, className = '' }) => {
 const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) => {
   const isMobile = useIsMobile();
   
-  // Calculate daily data for the last 7 days
-  const dailyData = useMemo(() => {
-    const days = [];
-    const today = new Date();
+  // Calculate daily data for the last 7 days - FIXED VERSION
+const dailyData = useMemo(() => {
+  const days = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    date.setHours(0, 0, 0, 0);
     
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateString = date.toISOString().split('T')[0];
-      const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
-      
-      // Get logs for this day
-      const dayLogs = logs.filter(log => log.timestamp?.startsWith(dateString));
-      
-      // Count unique students who checked IN
-      const presentStudents = new Set();
-      dayLogs.forEach(log => {
-        if (log.status === 'IN') {
-          presentStudents.add(log.studentId);
-        }
-      });
-      
-      const present = presentStudents.size;
-      const absent = students.length - present;
-      
-      days.push({
-        name: dayName,
-        fullDate: dateString,
-        present,
-        absent,
-        attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
-      });
-    }
+    const nextDay = new Date(date);
+    nextDay.setDate(date.getDate() + 1);
     
-    return days;
-  }, [logs, students, isMobile]);
-
+    const dateString = date.toISOString().split('T')[0];
+    const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
+    
+    // Get logs for this specific day
+    const dayLogs = logs.filter(log => {
+      if (!log.timestamp) return false;
+      const logDate = new Date(log.timestamp);
+      return logDate >= date && logDate < nextDay;
+    });
+    
+    // Count unique students who checked IN
+    const presentStudents = new Set();
+    dayLogs.forEach(log => {
+      if (log.status === 'IN' && log.studentId) {
+        presentStudents.add(log.studentId);
+      }
+    });
+    
+    const present = presentStudents.size;
+    const absent = Math.max(0, students.length - present);
+    
+    days.push({
+      name: dayName,
+      fullDate: dateString,
+      present,
+      absent,
+      attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
+    });
+  }
+  
+  console.log('📊 Daily Data calculated:', days);
+  return days;
+}, [logs, students, isMobile]);
   // Calculate attendance by time of day
   const hourlyData = useMemo(() => {
     const hours = Array.from({ length: 12 }, (_, i) => {
@@ -2275,153 +2284,157 @@ export default function AttendancePortal() {
     setMobileMenuOpen(false);
   };
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const endDate = new Date().toISOString().split('T')[0];
-  
-      console.log('📊 Fetching data with dates:', { startDate, endDate });
-      
-      const dashboardData = await secureApiCall('getDashboardStats', {
-        startDate,
-        endDate
-      });
-  
-      console.log('📊 Raw API Response:', dashboardData);
-      
-      if (dashboardData.success) {
-        const fetchedStudents = dashboardData.students || [];
-        const fetchedLogs = dashboardData.logs || [];
-        const fetchedStats = dashboardData.stats || {
-          totalStudents: 0,
-          presentToday: 0,
-          absentToday: 0,
-          attendanceRate: 0
-        };
-  
-        console.log('📊 Fetched Data:', {
-          studentsCount: fetchedStudents.length,
-          logsCount: fetchedLogs.length,
-          stats: fetchedStats,
-          sampleLog: fetchedLogs[0]
-        });
-  
-        // Sort logs by timestamp
-        const sortedLogs = fetchedLogs.sort((a, b) => 
-          new Date(b.timestamp) - new Date(a.timestamp)
-        );
-  
-        setStudents(fetchedStudents);
-        setLogs(sortedLogs);
-        setStats(fetchedStats);
-        
-        // Calculate weekly data
-        const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
-        console.log('📊 Calculated Weekly Data:', calculatedWeeklyData);
-        
-        setWeeklyData(calculatedWeeklyData);
-        
-        if (userType === 'teacher') {
-          try {
-            const classesData = await secureApiCall('getClasses');
-            if (classesData.success) {
-              setClasses(classesData.classes || []);
-            }
-          } catch (classError) {
-            console.error('Error fetching classes:', classError);
-            setClasses([]);
-          }
-        } else {
-          setClasses([]);
-        }
-      }
+const fetchData = async () => {
+  setLoading(true);
+  try {
+    // Get data for the last 30 days to have enough data for weekly charts
+    const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const endDate = new Date().toISOString().split('T')[0];
 
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setStudents([]);
-      setLogs([]);
-      setClasses([]);
-      setStats({
+    console.log('📊 Fetching data with dates:', { startDate, endDate });
+    
+    const dashboardData = await secureApiCall('getDashboardStats', {
+      startDate,
+      endDate
+    });
+
+    console.log('📊 Raw API Response:', {
+      success: dashboardData.success,
+      studentsCount: dashboardData.students?.length,
+      logsCount: dashboardData.logs?.length,
+      stats: dashboardData.stats,
+      firstLog: dashboardData.logs?.[0]
+    });
+    
+    if (dashboardData.success) {
+      const fetchedStudents = dashboardData.students || [];
+      const fetchedLogs = dashboardData.logs || [];
+      const fetchedStats = dashboardData.stats || {
         totalStudents: 0,
         presentToday: 0,
         absentToday: 0,
         attendanceRate: 0
-      });
-      setWeeklyData([]);
-    } finally {
-      setLoading(false);
+      };
+
+      // Sort logs by timestamp (newest first)
+      const sortedLogs = fetchedLogs.sort((a, b) => 
+        new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
+      setStudents(fetchedStudents);
+      setLogs(sortedLogs);
+      setStats(fetchedStats);
+      
+      // Calculate weekly data - FIXED VERSION
+      const calculatedWeeklyData = calculateWeeklyData(sortedLogs, fetchedStudents);
+      console.log('📊 Calculated Weekly Data:', calculatedWeeklyData);
+      
+      setWeeklyData(calculatedWeeklyData);
+      
+      if (userType === 'teacher') {
+        try {
+          const classesData = await secureApiCall('getClasses');
+          if (classesData.success) {
+            setClasses(classesData.classes || []);
+          }
+        } catch (classError) {
+          console.error('Error fetching classes:', classError);
+          // Extract unique classes from students as fallback
+          const uniqueClasses = [...new Set(fetchedStudents.map(s => s.class))].filter(Boolean);
+          setClasses(uniqueClasses);
+        }
+      } else {
+        // For parents, get classes from their child
+        const uniqueClasses = [...new Set(fetchedStudents.map(s => s.class))].filter(Boolean);
+        setClasses(uniqueClasses);
+      }
+    } else {
+      console.error('API returned unsuccessful:', dashboardData);
     }
-  };
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    // Don't reset data on error, keep existing data
+  } finally {
+    setLoading(false);
+  }
+};
 
  const calculateWeeklyData = (logData, studentsList) => {
-    console.log('📊 Calculating weekly data:', {
-      logCount: logData?.length,
-      studentCount: studentsList?.length
-    });
-  
-    // If no data, return empty array (not weeks of zeros)
-    if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
-      console.log('📊 No data, returning empty array');
-      return [];
+  console.log('📊 Starting weekly data calculation:', {
+    totalLogs: logData?.length,
+    totalStudents: studentsList?.length,
+    firstLogTimestamp: logData?.[0]?.timestamp,
+    lastLogTimestamp: logData?.[logData.length - 1]?.timestamp
+  });
+
+  // If no data, return empty array
+  if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
+    console.log('📊 No data available for weekly calculation');
+    return [];
+  }
+
+  try {
+    // Create array for last 7 days
+    const last7Days = [];
+    const today = new Date();
+    
+    // Get data for each of the last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0); // Start of day
+      
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1); // Start of next day
+      
+      const dateString = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      // Filter logs for this specific date (whole day)
+      const dayLogs = logData.filter(log => {
+        if (!log.timestamp) return false;
+        
+        try {
+          const logDate = new Date(log.timestamp);
+          return logDate >= date && logDate < nextDay;
+        } catch (e) {
+          console.error('Error parsing log date:', log.timestamp, e);
+          return false;
+        }
+      });
+
+      // Count unique students who checked IN today
+      const presentStudents = new Set();
+      dayLogs.forEach(log => {
+        if (log.status === 'IN' && log.studentId) {
+          presentStudents.add(log.studentId);
+        }
+      });
+
+      const presentCount = presentStudents.size;
+      const totalStudents = studentsList.length;
+      const absentCount = Math.max(0, totalStudents - presentCount);
+      const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+      
+      last7Days.push({
+        name: dayName,
+        present: presentCount,
+        absent: absentCount,
+        attendanceRate: attendanceRate,
+        date: dateString,
+        totalStudents: totalStudents
+      });
     }
-  
-    try {
-      // Create array for last 7 days (not weeks)
-      const last7Days = [];
-      const today = new Date();
-      
-      // Get data for each of the last 7 days
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        date.setHours(0, 0, 0, 0);
-        
-        const dateString = date.toISOString().split('T')[0];
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        
-        // Filter logs for this specific date
-        const dayLogs = logData.filter(log => {
-          if (!log.timestamp) return false;
-          
-          try {
-            const logDate = new Date(log.timestamp);
-            const logDateString = logDate.toISOString().split('T')[0];
-            return logDateString === dateString;
-          } catch (e) {
-            return false;
-          }
-        });
-        
-        // Count unique students who were present (IN) on this day
-        const presentStudents = new Set();
-        dayLogs.forEach(log => {
-          if (log.status === 'IN' && log.studentId) {
-            presentStudents.add(log.studentId);
-          }
-        });
-        
-        const presentCount = presentStudents.size;
-        const totalStudents = studentsList.length;
-        const absentCount = Math.max(0, totalStudents - presentCount);
-        
-        last7Days.push({
-          name: dayName,
-          present: presentCount,
-          absent: absentCount,
-          attendanceRate: totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0,
-          date: dateString
-        });
-      }
-      
-      console.log('📊 Calculated last 7 days data:', last7Days);
-      return last7Days;
-      
-    } catch (error) {
-      console.error('❌ Error calculating weekly data:', error);
-      return [];
-    }
-  };
+    
+    console.log('📊 Calculated weekly data:', last7Days);
+    return last7Days;
+    
+  } catch (error) {
+    console.error('❌ Error calculating weekly data:', error);
+    return [];
+  }
+};
 
   const getStudentStatus = (studentId) => {
     const today = new Date().toISOString().split('T')[0];
