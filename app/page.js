@@ -2104,7 +2104,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     },
     {
       icon: <Users className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Dual-Role Portal",
+      title: "Dual-Role Access",
       description: "Separate interfaces for Teachers and Parents",
       color: "from-indigo-500 to-blue-500",
       details: "Teacher dashboard • Parent-only view • Role-based filtering",
@@ -2248,7 +2248,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       "Interactive analytics dashboard",
       "Filtered CSV data export",
       "Advanced search and filtering",
-      "Mobile responsive web portal",
+      "Mobile responsive web interface",
       "Session-based authentication",
       "Live status updates"
     ],
@@ -2270,6 +2270,14 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     setLocalLoginState(prev => ({ ...prev, isSubmitting: true }));
     await onLogin(localLoginState.username, localLoginState.password);
     setLocalLoginState(prev => ({ ...prev, isSubmitting: false }));
+  };
+
+  const handleInputFocus = (e) => {
+    // Fix for mobile input issues - ensure the input stays focused
+    const input = e.target;
+    setTimeout(() => {
+      input.focus();
+    }, 10);
   };
 
   const LoginForm = () => (
@@ -2298,10 +2306,12 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
               type="text"
               value={localLoginState.username}
               onChange={(e) => setLocalLoginState(prev => ({ ...prev, username: e.target.value }))}
+              onFocus={handleInputFocus}
               className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
               placeholder="Enter username"
               required
               disabled={loggingIn || localLoginState.isSubmitting}
+              autoComplete="username"
             />
           </div>
         </div>
@@ -2316,10 +2326,12 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
               type={localLoginState.showPassword ? "text" : "password"}
               value={localLoginState.password}
               onChange={(e) => setLocalLoginState(prev => ({ ...prev, password: e.target.value }))}
+              onFocus={handleInputFocus}
               className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
               placeholder="Enter password"
               required
               disabled={loggingIn || localLoginState.isSubmitting}
+              autoComplete="current-password"
             />
             <button
               type="button"
@@ -2364,30 +2376,9 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       </form>
 
       <div className="mt-6 text-center">
-        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mb-2`}>
+        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
           🔒 Secure session-based authentication
         </p>
-      </div>
-
-      {/* Role Information */}
-      <div className="mt-6 pt-6 border-t border-gray-700/50 dark:border-gray-600/50">
-        <h3 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Access Types:</h3>
-        <div className="grid grid-cols-2 gap-2">
-          <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
-            <div className="flex items-center gap-2">
-              <Users size={14} className="text-blue-500" />
-              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Teacher</span>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Full dashboard</p>
-          </div>
-          <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-200'}`}>
-            <div className="flex items-center gap-2">
-              <User size={14} className="text-purple-500" />
-              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Parent</span>
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Child-only view</p>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -2514,7 +2505,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             
             <p className={`text-lg sm:text-xl md:text-2xl ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-4xl mx-auto mb-8 leading-relaxed`}>
               A complete hardware-to-software solution combining ESP8266 RFID readers, 
-              Google Apps Script backend, and modern web portal for real-time attendance tracking.
+              Google Apps Script backend, and modern web interface for real-time attendance tracking.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -2915,9 +2906,9 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                 <Radio className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Complete Attendance System
+                  Complete Attendance Solution
                 </div>
               </div>
             </div>
@@ -2936,7 +2927,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             
             <div className="mt-6 md:mt-0">
               <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                © {new Date().getFullYear()} RFID Attendance System
+                © {new Date().getFullYear()} RFID Attendance
               </div>
             </div>
           </div>
@@ -2985,10 +2976,35 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
         html {
           scroll-behavior: smooth;
         }
+        
+        /* Fix for mobile input issues */
+        input, textarea {
+          -webkit-user-select: text;
+          user-select: text;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        input:focus {
+          outline: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Improve touch targets on mobile */
+        @media (max-width: 768px) {
+          input, button, select, textarea {
+            font-size: 16px !important;
+          }
+          
+          button, [role="button"] {
+            min-height: 44px;
+            min-width: 44px;
+          }
+        }
       `}</style>
     </div>
   );
 };
+
 // Main component with mobile menu - UPDATED HEADER
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
