@@ -374,7 +374,7 @@ const dailyData = useMemo(() => {
               </div>
               <div>
                 <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1 truncate`}>
-                  {isMobile && stat.title.length > 10 ? stat.title.substring(0, 9) + '..' : stat.title}
+                  {isMobile && stat.title.length > 6 ? stat.title.substring(0, 5) + '..' : stat.title}
                 </p>
                 <p className={`text-xl md:text-2xl lg:text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                   {stat.value}
@@ -383,12 +383,12 @@ const dailyData = useMemo(() => {
             </div>
           </AnimatedCard>
         ))}
-       </div>
-        {/* Charts Grid - No Animations */}
+      </div>
+                      
+      {/* Charts Grid */}
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-  
   {/* Weekly Attendance Trend */}
-  <div>
+  <AnimatedCard delay={100}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
       <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
@@ -448,10 +448,10 @@ const dailyData = useMemo(() => {
         </ResponsiveContainer>
       </div>
     </div>
-  </div>
+  </AnimatedCard>
   
   {/* Daily Attendance */}
-  <div>
+  <AnimatedCard delay={200}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
       <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
@@ -505,11 +505,11 @@ const dailyData = useMemo(() => {
         </ResponsiveContainer>
       </div>
     </div>
-  </div>
+  </AnimatedCard>
   
   {/* Monthly Trend - Only on larger screens */}
   {!isMobile && (
-    <div>
+    <AnimatedCard delay={300}>
       <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
         backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
@@ -557,12 +557,12 @@ const dailyData = useMemo(() => {
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   )}
 
   {/* Attendance by Time - Only on larger screens */}
   {!isMobile && (
-    <div>
+    <AnimatedCard delay={400}>
       <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
         backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
         <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
@@ -607,11 +607,11 @@ const dailyData = useMemo(() => {
           </ResponsiveContainer>
         </div>
       </div>
-    </div>
+    </AnimatedCard>
   )}
 
   {/* Class Performance - Always show */}
-  <div>
+  <AnimatedCard delay={isMobile ? 300 : 500}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
       <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
@@ -669,9 +669,131 @@ const dailyData = useMemo(() => {
         </ResponsiveContainer>
       </div>
     </div>
-  </div>
+  </AnimatedCard>
 </div>
+      {/* Summary Cards - Responsive */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        {[
+          { 
+            title: "Today's Summary", 
+            icon: Calendar, 
+            iconColor: "text-blue-500",
+            content: (
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Total Check-ins:</span>
+                  <span className="font-bold">{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Attendance Rate:</span>
+                  <span className="font-bold text-green-500">{dailyData.length > 0 ? `${dailyData[dailyData.length - 1].attendanceRate}%` : '0%'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Absent:</span>
+                  <span className="font-bold text-red-500">{dailyData.length > 0 ? dailyData[dailyData.length - 1].absent : 0}</span>
+                </div>
+              </div>
+            ),
+            delay: 600
+          },
+          { 
+            title: "Week Summary", 
+            icon: TrendingUp, 
+            iconColor: "text-green-500",
+            content: (
+              <div className="space-y-2 md:space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Avg Daily:</span>
+                  <span className="font-bold">
+                    {dailyData.length > 0 
+                      ? Math.round(dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length)
+                      : 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Best Day:</span>
+                  <span className="font-bold text-green-500">
+                    {dailyData.length > 0 
+                      ? dailyData.reduce((max, day) => day.present > max.present ? day : max, dailyData[0]).name
+                      : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
+                  <span className={`font-bold ${
+                    weeklyData.length > 1 && weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                      ? 'text-green-500' 
+                      : 'text-red-500'
+                  }`}>
+                    {weeklyData.length > 1 
+                      ? weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                        ? '↗' 
+                        : '↘'
+                      : '→'}
+                  </span>
+                </div>
+              </div>
+            ),
+            delay: 700
+          },
+          { 
+            title: "Top Class", 
+            icon: Award, 
+            iconColor: "text-yellow-500",
+            content: classComparisonData.length > 0 ? (
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-lg md:text-xl font-bold truncate">{classComparisonData[0].name}</p>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
+                      {classComparisonData[0].present}/{classComparisonData[0].total} present
+                    </p>
+                  </div>
+                  <div className={`text-2xl md:text-3xl font-bold ${
+                    classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : 
+                    classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
+                  }`}>
+                    {classComparisonData[0].attendanceRate}%
+                  </div>
+                </div>
+                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                    style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
+                    Rank: 1/{classComparisonData.length}
+                  </span>
+                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
+                    {classComparisonData.length > 1 
+                      ? `Next: ${classComparisonData[1].attendanceRate}%`
+                      : 'Only class'}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>No class data</p>
+              </div>
+            ),
+            delay: 800
+          }
+        ].map((card, idx) => (
+          <AnimatedCard key={idx} delay={card.delay}>
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+              backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
+              <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                <card.icon className={card.iconColor} size={isMobile ? 16 : 20} />
+                <span className="truncate">{card.title}</span>
+              </h3>
+              {card.content}
+            </div>
+          </AnimatedCard>
+        ))}
       </div>
+    </div>
   );
 };
 
@@ -2829,4 +2951,4 @@ const fetchData = async () => {
       `}</style>
     </div>
   );
-              }
+                    }
