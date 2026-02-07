@@ -2041,71 +2041,114 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // True odometer effect with digit-by-digit rolling
-  useEffect(() => {
-    if (loadingStats) return;
+ // Replace the odometer animation useEffect with this:
 
-    const animateDigit = (currentDigits, targetDigits, key) => {
-      const newDigits = [...currentDigits];
-      const targetStr = targetDigits.toString().padStart(currentDigits.length, '0');
+useEffect(() => {
+  if (loadingStats) return;
+
+  // Function to generate random number within a range
+  const getRandomValue = (key) => {
+    switch(key) {
+      case 'totalStudents':
+        return Math.floor(Math.random() * 91) + 10; // 10-100
+      case 'totalCheckins':
+        return Math.floor(Math.random() * 91) + 10; // 10-100
+      case 'activeDevices':
+        return Math.floor(Math.random() * 6) + 1; // 1-6
+      case 'apiRequests':
+        return Math.floor(Math.random() * 91) + 10; // 10-100
+      default:
+        return 0;
+    }
+  };
+
+  // Initialize with random values immediately
+  const initialValues = {};
+  Object.keys(odometerValues).forEach(key => {
+    initialValues[key] = getRandomValue(key);
+  });
+  
+  // Convert to digit arrays
+  const initialDigitValues = {};
+  Object.keys(initialValues).forEach(key => {
+    const value = initialValues[key];
+    if (key === 'activeDevices') {
+      initialDigitValues[key] = [value]; // Single digit for devices
+    } else {
+      // Convert to array of digits (e.g., 45 -> [4, 5])
+      const digits = value.toString().split('').map(Number);
+      if (digits.length === 2) {
+        initialDigitValues[key] = [0, ...digits]; // Add leading zero for 2-digit numbers
+      } else {
+        initialDigitValues[key] = digits;
+      }
+    }
+  });
+  
+  setOdometerValues(initialDigitValues);
+  setDisplayValues(initialValues);
+
+  // Set new random target values every 1 second
+  const interval = setInterval(() => {
+    setDisplayValues(prev => {
+      const newValues = {};
+      Object.keys(prev).forEach(key => {
+        newValues[key] = getRandomValue(key);
+      });
+      return newValues;
+    });
+  }, 1000); // Change target every 1 second
+
+  return () => clearInterval(interval);
+}, [loadingStats]);
+
+// Separate effect to animate digits towards the target values
+useEffect(() => {
+  if (loadingStats) return;
+
+  const animateTowardsTarget = () => {
+    setOdometerValues(prev => {
+      const newDigits = { ...prev };
       
-      for (let i = 0; i < currentDigits.length; i++) {
-        const targetDigit = parseInt(targetStr[targetStr.length - currentDigits.length + i]);
-        if (newDigits[i] !== targetDigit) {
-          if (newDigits[i] < targetDigit) {
-            newDigits[i] = (newDigits[i] + 1) % 10;
-          } else {
-            newDigits[i] = (newDigits[i] + 9) % 10; // Roll down
+      Object.keys(displayValues).forEach(key => {
+        const target = displayValues[key];
+        const currentDigits = prev[key];
+        
+        // Convert target to digits array
+        let targetDigits;
+        if (key === 'activeDevices') {
+          targetDigits = [target];
+        } else {
+          const digits = target.toString().split('').map(Number);
+          targetDigits = digits.length === 2 ? [0, ...digits] : digits;
+        }
+        
+        // Animate each digit towards target
+        const animatedDigits = [...currentDigits];
+        for (let i = 0; i < animatedDigits.length; i++) {
+          const targetDigit = targetDigits[i];
+          if (animatedDigits[i] !== targetDigit) {
+            // Roll up or down by 1
+            if (animatedDigits[i] < targetDigit) {
+              animatedDigits[i] = (animatedDigits[i] + 1) % 10;
+            } else {
+              animatedDigits[i] = (animatedDigits[i] + 9) % 10; // Roll down
+            }
           }
         }
-      }
-      
-      setOdometerValues(prev => ({
-        ...prev,
-        [key]: newDigits
-      }));
-      
-      // Calculate current display value
-      const currentValue = parseInt(newDigits.join(''));
-      setDisplayValues(prev => ({
-        ...prev,
-        [key]: currentValue
-      }));
+        
+        newDigits[key] = animatedDigits;
+      });
       
       return newDigits;
-    };
-
-    const intervals = {};
-    
-    // Animate each odometer separately
-    Object.keys(targetValues).forEach(key => {
-      const target = targetValues[key];
-      const currentDigits = odometerValues[key];
-      
-      intervals[key] = setInterval(() => {
-        setOdometerValues(prev => {
-          const newDigits = animateDigit(prev[key], target, key);
-          
-          // Check if we've reached target
-          const currentValue = parseInt(newDigits.join(''));
-          if (currentValue === target) {
-            // Generate new random target
-            const newTarget = generateRandomTargets()[key];
-            setTargetValues(prevTargets => ({
-              ...prevTargets,
-              [key]: newTarget
-            }));
-          }
-          
-          return prev;
-        });
-      }, 2000); // Adjust speed - lower = faster
     });
+  };
 
-    return () => {
-      Object.values(intervals).forEach(interval => clearInterval(interval));
-    };
-  }, [targetValues, loadingStats]);
+  // Animate digits every 100ms for smooth rolling
+  const animationInterval = setInterval(animateTowardsTarget, 100);
+
+  return () => clearInterval(animationInterval);
+}, [displayValues, loadingStats]);
 
   // Rest of the component remains the same...
   const features = [
