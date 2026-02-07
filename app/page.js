@@ -672,7 +672,6 @@ const dailyData = useMemo(() => {
   </div>
 </div>
       </div>
-    </div>
   );
 };
 
