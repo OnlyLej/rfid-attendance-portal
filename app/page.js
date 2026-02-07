@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Calendar, Users, Clock, TrendingUp, Download, Lock, Eye, EyeOff, LogOut,
   BarChart3, Activity, UserCheck, UserX, AlertCircle, Sun, Moon,
@@ -3190,184 +3190,32 @@ export default function AttendancePortal() {
 
   const isMobile = useIsMobile();
 
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-    }
-
-    // Check existing session
-    const sessionToken = sessionStorage.getItem('sessionToken');
-    const loginTime = sessionStorage.getItem('loginTime');
-    
-    if (sessionToken && loginTime) {
-      const timeSinceLogin = Date.now() - parseInt(loginTime);
-      if (timeSinceLogin > SESSION_TIMEOUT) {
-        sessionStorage.clear();
-      }
-    }
-  }, []);
-
-  // Calculate child info when userInfo or students change
-  useEffect(() => {
-    if (userType === 'parent' && userInfo && students.length > 0) {
-      let childId = null;
-      
-      if (userInfo?.studentId) {
-        childId = userInfo.studentId;
-      } else if (userInfo?.child?.studentId) {
-        childId = userInfo.child.studentId;
-      } else if (userInfo?.children && userInfo.children.length > 0) {
-        childId = userInfo.children[0].studentId;
-      } else if (students.length === 1) {
-        childId = students[0].studentId;
-      } else if (students.length > 0) {
-        const logStudentIds = [...new Set(logs.map(log => log.studentId))];
-        if (logStudentIds.length === 1) {
-          childId = logStudentIds[0];
-        }
-      }
-      
-      setParentChildId(childId);
-      
-      if (childId) {
-        const childStudent = students.find(s => s.studentId === childId);
-        if (childStudent) {
-          setChildInfo({
-            studentId: childStudent.studentId,
-            name: childStudent.name,
-            class: childStudent.class
-          });
-        } else {
-          setChildInfo({
-            studentId: childId,
-            name: userInfo?.child?.name || userInfo?.fullName || 'My Child',
-            class: userInfo?.child?.class || userInfo?.class || 'Unknown'
-          });
-        }
-      }
-    } else if (userType === 'parent') {
-      setChildInfo(null);
-      setParentChildId(null);
-    }
-  }, [userType, userInfo, students, logs]);
-
-  // Calculate child logs and stats
-  useEffect(() => {
-    if (userType === 'parent' && parentChildId) {
-      const childLogs = logs.filter(log => log.studentId === parentChildId);
-      const today = new Date().toISOString().split('T')[0];
-      const todayLogs = childLogs.filter(log => log.timestamp?.startsWith(today));
-      
-      const uniqueDays = new Set(childLogs.map(log => log.timestamp?.split('T')[0]));
-      const daysWithIN = new Set(
-        childLogs.filter(log => log.status === 'IN').map(log => log.timestamp?.split('T')[0])
-      );
-      const attendanceRate = uniqueDays.size > 0 
-        ? Math.round((daysWithIN.size / uniqueDays.size) * 100) 
-        : 0;
-      
-      setChildStats({
-        totalLogs: childLogs.length,
-        todayLogs: todayLogs.length,
-        attendanceRate: attendanceRate
-      });
-    } else if (userType === 'parent') {
-      setChildStats({
-        totalLogs: 0,
-        todayLogs: 0,
-        attendanceRate: 0
-      });
-    }
-  }, [userType, parentChildId, logs]);
-
-  // Session timeout monitoring
-  useEffect(() => {
-    if (!authenticated) return;
-
-    const checkSession = setInterval(() => {
-      const timeSinceActivity = Date.now() - lastActivity;
-      if (timeSinceActivity > SESSION_TIMEOUT) {
-        alert('Session expired due to inactivity');
-        handleLogout();
-      }
-    }, 60000);
-
-    return () => clearInterval(checkSession);
-  }, [authenticated, lastActivity]);
-
-  // Activity tracker
-  useEffect(() => {
-    if (!authenticated) return;
-
-    const updateActivity = () => setLastActivity(Date.now());
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    
-    events.forEach(event => document.addEventListener(event, updateActivity));
-    return () => {
-      events.forEach(event => document.removeEventListener(event, updateActivity));
-    };
-  }, [authenticated]);
-
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
+  // Wrap functions with useCallback to prevent re-renders
+  const toggleTheme = useCallback(() => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    if (newDarkMode) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
     }
-  };
+  }, [darkMode]);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
-  const secureApiCall = async (action, params = {}) => {
-    const sessionToken = sessionStorage.getItem('sessionToken');
-    if (!sessionToken) throw new Error('Not authenticated');
-  
-    const queryParams = new URLSearchParams({ 
-      action, 
-      sessionToken,
-      ...params 
-    }).toString();
-    
-    const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Session-Token': sessionToken,
-      },
-    });
-  
-    if (!response.ok) {
-      if (response.status === 401) {
-        handleLogout();
-        throw new Error('Session expired');
-      }
-      throw new Error('API request failed');
-    }
-  
-    return response.json();
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  // Stabilize the handleLogin function
+  const handleLogin = useCallback(async (enteredUsername, enteredPassword) => {
     setLoginError('');
     setLoggingIn(true);
 
     try {
-      const response = await fetch(AUTH_ENDPOINT, {
+      const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ 
+          username: enteredUsername, 
+          password: enteredPassword 
+        }),
       });
 
       const data = await response.json();
@@ -3383,44 +3231,95 @@ export default function AttendancePortal() {
         setUserType(data.userType);
         setUserInfo(data);
         setLastActivity(Date.now());
+        
+        // Clear the form fields
+        setUsername('');
+        setPassword('');
+        setShowPassword(false);
       } else {
         setLoginError(data.message || 'Invalid credentials');
       }
     } catch (error) {
+      console.error('Login error:', error);
       setLoginError('Login failed. Please try again.');
     } finally {
       setLoggingIn(false);
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
-    sessionStorage.clear();
-    setAuthenticated(false);
-    setUserType(null);
-    setUsername('');
-    setPassword('');
-    setUserInfo(null);
-    setLogs([]);
-    setChildInfo(null);
-    setParentChildId(null);
-    setChildStats({
-      totalLogs: 0,
-      todayLogs: 0,
-      attendanceRate: 0
-    });
-    setMobileMenuOpen(false);
-  };
+  // Separate function for the form submission event
+  const handleFormSubmit = useCallback((e) => {
+    e.preventDefault();
+    if (username && password) {
+      handleLogin(username, password);
+    }
+  }, [username, password, handleLogin]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+
+    // Check existing session
+    const sessionToken = sessionStorage.getItem('sessionToken');
+    const loginTime = sessionStorage.getItem('loginTime');
+    
+    if (sessionToken && loginTime) {
+      const timeSinceLogin = Date.now() - parseInt(loginTime);
+      if (timeSinceLogin < SESSION_TIMEOUT) {
+        const savedUserType = sessionStorage.getItem('userType');
+        const savedUserInfo = sessionStorage.getItem('userInfo');
+        
+        setAuthenticated(true);
+        setUserType(savedUserType);
+        setUserInfo(savedUserInfo ? JSON.parse(savedUserInfo) : null);
+        setLastActivity(Date.now());
+      } else {
+        // Session expired
+        sessionStorage.clear();
+      }
+    }
+  }, []);
+
+  // Rest of the useEffect hooks remain the same...
+
+  // Stabilize the fetchData function
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const sessionToken = sessionStorage.getItem('sessionToken');
+      if (!sessionToken) throw new Error('Not authenticated');
+
       const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
 
-      const dashboardData = await secureApiCall('getDashboardStats', {
+      const queryParams = new URLSearchParams({ 
+        action: 'getDashboardStats',
+        sessionToken,
         startDate,
         endDate
+      }).toString();
+      
+      const response = await fetch(`${API_ENDPOINT}?${queryParams}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': sessionToken,
+        },
       });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          throw new Error('Session expired');
+        }
+        throw new Error('API request failed');
+      }
+
+      const dashboardData = await response.json();
 
       if (dashboardData.success) {
         const fetchedStudents = dashboardData.students || [];
@@ -3445,9 +3344,17 @@ export default function AttendancePortal() {
         
         if (userType === 'teacher') {
           try {
-            const classesData = await secureApiCall('getClasses');
-            if (classesData.success) {
-              setClasses(classesData.classes || []);
+            const classesResponse = await fetch(`${API_ENDPOINT}?action=getClasses&sessionToken=${sessionToken}`, {
+              headers: {
+                'X-Session-Token': sessionToken,
+              },
+            });
+            
+            if (classesResponse.ok) {
+              const classesData = await classesResponse.json();
+              if (classesData.success) {
+                setClasses(classesData.classes || []);
+              }
             }
           } catch (classError) {
             console.error('Error fetching classes:', classError);
@@ -3473,9 +3380,10 @@ export default function AttendancePortal() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userType]);
 
-  const calculateWeeklyData = (logData, studentsList) => {
+  const calculateWeeklyData = useCallback((logData, studentsList) => {
+    // ... keep your existing calculateWeeklyData implementation ...
     if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
       const weeks = [];
       const today = new Date();
@@ -3589,9 +3497,9 @@ export default function AttendancePortal() {
     }
     
     return sortedWeeks;
-  };
+  }, []);
 
-  const getStudentStatus = (studentId) => {
+  const getStudentStatus = useCallback((studentId) => {
     const today = new Date().toISOString().split('T')[0];
     const studentLogs = logs.filter(log => 
       log.studentId === studentId && log.timestamp?.startsWith(today)
@@ -3600,9 +3508,9 @@ export default function AttendancePortal() {
     if (studentLogs.length === 0) return 'no-logs';
     const lastLog = studentLogs[studentLogs.length - 1];
     return lastLog.status === 'IN' ? 'present' : 'absent';
-  };
+  }, [logs]);
 
-  const exportToCSV = (logsToExport = logs) => {
+  const exportToCSV = useCallback((logsToExport = logs) => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
     const csvContent = [
       headers.join(','),
@@ -3617,8 +3525,33 @@ export default function AttendancePortal() {
     a.href = url;
     a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
-  };
+  }, [logs]);
 
+  const handleLogout = useCallback(() => {
+    sessionStorage.clear();
+    setAuthenticated(false);
+    setUserType(null);
+    setUsername('');
+    setPassword('');
+    setUserInfo(null);
+    setLogs([]);
+    setChildInfo(null);
+    setParentChildId(null);
+    setChildStats({
+      totalLogs: 0,
+      todayLogs: 0,
+      attendanceRate: 0
+    });
+    setMobileMenuOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (authenticated) {
+      fetchData();
+    }
+  }, [authenticated, fetchData]);
+
+  // Memoize filteredStudents to prevent re-renders
   const filteredStudents = useMemo(() => {
     let filtered = students;
 
@@ -3632,39 +3565,34 @@ export default function AttendancePortal() {
     return filtered;
   }, [students, searchQuery]);
 
-  useEffect(() => {
-    const sessionToken = sessionStorage.getItem('sessionToken');
-    const savedUserType = sessionStorage.getItem('userType');
-    const savedUserInfo = sessionStorage.getItem('userInfo');
-
-    if (sessionToken && savedUserType) {
-      setAuthenticated(true);
-      setUserType(savedUserType);
-      setUserInfo(savedUserInfo ? JSON.parse(savedUserInfo) : null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (authenticated) {
-      fetchData();
-    }
-  }, [authenticated]);
-
   if (!mounted) return null;
 
-if (!authenticated) {
-  return (
-    <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
-      <LandingPage 
-        darkMode={darkMode} 
-        toggleTheme={toggleTheme}
-        onLogin={handleLogin}
-        loggingIn={loggingIn}
-        loginError={loginError}
-      />
-    </div>
-  );
-}
+  // Memoize the LandingPage to prevent re-renders
+  const landingPageProps = useMemo(() => ({
+    darkMode,
+    toggleTheme,
+    onLogin: handleLogin,
+    loggingIn,
+    loginError
+  }), [darkMode, toggleTheme, handleLogin, loggingIn, loginError]);
+
+  if (!authenticated) {
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
+        {/* Pass the form submit handler separately */}
+        <LandingPage 
+          {...landingPageProps}
+          handleFormSubmit={handleFormSubmit}
+          username={username}
+          setUsername={setUsername}
+          password={password}
+          setPassword={setPassword}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+        />
+      </div>
+    );
+  }
                     
   // Main Dashboard View
   return (
