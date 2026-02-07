@@ -390,69 +390,62 @@ const dailyData = useMemo(() => {
   
   {/* Weekly Attendance Trend - FIXED with initialDimension */}
   <AnimatedCard delay={100}>
-    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
-      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-        <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
-        <span className="truncate">Weekly Trend</span>
-      </h3>
-      <div style={{ height: '250px', width: '100%' }}>
-        <ResponsiveContainer 
-          width="100%" 
-          height="100%"
-          initialDimension={{ width: 320, height: 200 }}
-        >
-          <AreaChart 
-            data={weeklyData}
-            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={darkMode ? '#374151' : '#e5e7eb'} 
-              vertical={false}
-            />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-            />
-            <YAxis 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px', 
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                color: darkMode ? '#ffffff' : '#000000',
-                fontSize: isMobile ? 12 : 14
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-            <Area 
-              type="monotone" 
-              dataKey="present" 
-              name="Present" 
-              stroke="#10b981" 
-              fill="#10b981" 
-              fillOpacity={0.6}
-              strokeWidth={2}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="absent" 
-              name="Absent" 
-              stroke="#ef4444" 
-              fill="#ef4444" 
-              fillOpacity={0.6}
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+    <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
+          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+            <Activity className="text-blue-500" size={20} />
+            Weekly Attendance Trend
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart 
+                data={weeklyData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+              >
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                  vertical={false}
+                />
+                <XAxis 
+                  dataKey="name" 
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis 
+                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                    border: 'none', 
+                    borderRadius: '12px', 
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    color: darkMode ? '#ffffff' : '#000000'
+                  }}
+                />
+                <Legend />
+                <Area 
+                  type="monotone" 
+                  dataKey="present" 
+                  name="Present" 
+                  stroke="#10b981" 
+                  fill="#10b981" 
+                  fillOpacity={0.6}
+                  strokeWidth={2}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="absent" 
+                  name="Absent" 
+                  stroke="#ef4444" 
+                  fill="#ef4444" 
+                  fillOpacity={0.6}
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
   </AnimatedCard>
   
   {/* Daily Attendance - FIXED with initialDimension */}
