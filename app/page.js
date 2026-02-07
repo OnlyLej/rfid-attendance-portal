@@ -159,10 +159,18 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
   const isMobile = useIsMobile();
   
   // Calculate daily data for the last 7 days - FIXED VERSION
+// Calculate daily data for the last 7 days - FIXED VERSION
 const dailyData = useMemo(() => {
   const days = [];
   const today = new Date();
   
+  // Log debug info
+  console.log('📊 Raw logs for daily calculation:', {
+    totalLogs: logs?.length,
+    sampleLogs: logs?.slice(0, 3),
+    totalStudents: students?.length
+  });
+
   for (let i = 6; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
@@ -174,12 +182,35 @@ const dailyData = useMemo(() => {
     const dateString = date.toISOString().split('T')[0];
     const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
     
+    console.log(`📊 Processing ${dateString} (${dayName})`);
+    
     // Get logs for this specific day
     const dayLogs = logs.filter(log => {
-      if (!log.timestamp) return false;
-      const logDate = new Date(log.timestamp);
-      return logDate >= date && logDate < nextDay;
+      if (!log.timestamp) {
+        console.log('⚠️ Log missing timestamp:', log);
+        return false;
+      }
+      
+      try {
+        const logDate = new Date(log.timestamp);
+        const isSameDay = logDate >= date && logDate < nextDay;
+        
+        if (isSameDay) {
+          console.log(`✅ Found log for ${dateString}:`, {
+            studentId: log.studentId,
+            status: log.status,
+            timestamp: log.timestamp
+          });
+        }
+        
+        return isSameDay;
+      } catch (e) {
+        console.error('❌ Error parsing log date:', log.timestamp, e);
+        return false;
+      }
     });
+    
+    console.log(`📊 ${dayName}: found ${dayLogs.length} logs`);
     
     // Count unique students who checked IN
     const presentStudents = new Set();
@@ -192,6 +223,13 @@ const dailyData = useMemo(() => {
     const present = presentStudents.size;
     const absent = Math.max(0, students.length - present);
     
+    console.log(`📊 ${dayName} results:`, {
+      present,
+      absent,
+      totalStudents: students.length,
+      presentStudents: Array.from(presentStudents)
+    });
+    
     days.push({
       name: dayName,
       fullDate: dateString,
@@ -200,6 +238,10 @@ const dailyData = useMemo(() => {
       attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
     });
   }
+  
+  console.log('📊 Final Daily Data:', days);
+  return days;
+}, [logs, students, isMobile]);
   
   console.log('📊 Daily Data calculated:', days);
   return days;
