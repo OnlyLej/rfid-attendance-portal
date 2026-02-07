@@ -2280,7 +2280,22 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     }, 10);
   };
 
-  const LoginForm = () => (
+  // Update the LandingPage component's LoginForm section:
+
+const LoginForm = () => {
+  // Add state for form inputs
+  const [localUsername, setLocalUsername] = useState('');
+  const [localPassword, setLocalPassword] = useState('');
+  const [localShowPassword, setLocalShowPassword] = useState(false);
+  
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    if (onLogin) {
+      await onLogin(localUsername, localPassword);
+    }
+  };
+
+  return (
     <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
       <div className="flex justify-center mb-6">
         <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
@@ -2304,14 +2319,14 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
             <input
               type="text"
-              value={localLoginState.username}
-              onChange={(e) => setLocalLoginState(prev => ({ ...prev, username: e.target.value }))}
-              onFocus={handleInputFocus}
+              value={localUsername}
+              onChange={(e) => setLocalUsername(e.target.value)}
               className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
               placeholder="Enter username"
               required
-              disabled={loggingIn || localLoginState.isSubmitting}
+              disabled={loggingIn}
               autoComplete="username"
+              // Remove the problematic onFocus handler
             />
           </div>
         </div>
@@ -2323,23 +2338,23 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
           <div className="relative">
             <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
             <input
-              type={localLoginState.showPassword ? "text" : "password"}
-              value={localLoginState.password}
-              onChange={(e) => setLocalLoginState(prev => ({ ...prev, password: e.target.value }))}
-              onFocus={handleInputFocus}
+              type={localShowPassword ? "text" : "password"}
+              value={localPassword}
+              onChange={(e) => setLocalPassword(e.target.value)}
               className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
               placeholder="Enter password"
               required
-              disabled={loggingIn || localLoginState.isSubmitting}
+              disabled={loggingIn}
               autoComplete="current-password"
+              // Remove the problematic onFocus handler
             />
             <button
               type="button"
-              onClick={() => setLocalLoginState(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+              onClick={() => setLocalShowPassword(!localShowPassword)}
               className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
-              disabled={loggingIn || localLoginState.isSubmitting}
+              disabled={loggingIn}
             >
-              {localLoginState.showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
         </div>
@@ -2355,10 +2370,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
         <button
           type="submit"
-          disabled={loggingIn || localLoginState.isSubmitting}
-          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn || localLoginState.isSubmitting) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
+          disabled={loggingIn}
+          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
         >
-          {(loggingIn || localLoginState.isSubmitting) ? (
+          {loggingIn ? (
             <span className="flex items-center justify-center gap-2">
               <RefreshCw size={20} className="animate-spin" />
               Signing In...
@@ -2369,7 +2384,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
               Sign In
             </span>
           )}
-          {(loggingIn || localLoginState.isSubmitting) && (
+          {loggingIn && (
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
           )}
         </button>
@@ -2382,6 +2397,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       </div>
     </div>
   );
+};
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -3510,112 +3526,17 @@ export default function AttendancePortal() {
 if (!authenticated) {
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
-      <LandingPage darkMode={darkMode} toggleTheme={toggleTheme} />
-      
-      {/* Login Form Section at the end of landing page */}
-      <section id="login-form" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto">
-          <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300`}>
-            <button
-              onClick={toggleTheme}
-              className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
-            >
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-
-            <div className="flex justify-center mb-6">
-              <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-bounce`}>
-                <Lock size={40} className={darkMode ? 'text-blue-400' : 'text-white'} />
-              </div>
-            </div>
-            
-            <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              Portal Login
-            </h1>
-            <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-              Secure access to your dashboard
-            </p>
-
-            <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                  placeholder="Enter username"
-                  required
-                  disabled={loggingIn}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm pr-12`}
-                    placeholder="Enter password"
-                    required
-                    disabled={loggingIn}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
-                    disabled={loggingIn}
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              {loginError && (
-                <div className="bg-red-500/10 border-2 border-red-500/50 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm backdrop-blur-sm animate-shake">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle size={18} />
-                    {loginError}
-                  </div>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loggingIn}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
-              >
-                {loggingIn ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <RefreshCw size={20} className="animate-spin" />
-                    Signing In...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Shield size={20} />
-                    Secure Sign In
-                  </span>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                🔒 Protected by session-based authentication
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <LandingPage 
+        darkMode={darkMode} 
+        toggleTheme={toggleTheme}
+        onLogin={handleLogin}
+        loggingIn={loggingIn}
+        loginError={loginError}
+      />
     </div>
   );
-                      }
+}
+                    
   // Main Dashboard View
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500 overflow-x-hidden`}>
