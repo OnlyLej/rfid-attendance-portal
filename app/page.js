@@ -1996,10 +1996,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
   const [activeFeature, setActiveFeature] = useState(0);
   const [activeSection, setActiveSection] = useState('overview');
   const [systemStats, setSystemStats] = useState({
-    totalStudents: 0,
-    totalCheckins: 0,
-    activeDevices: 0,
-    apiRequests: 0
+    totalStudents: 10,
+    totalCheckins: 10,
+    activeDevices: 1,
+    apiRequests: 10
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [odometerValues, setOdometerValues] = useState({
@@ -2008,16 +2008,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     devices: 0,
     requests: 0
   });
-  const [localLoginState, setLocalLoginState] = useState({
-    username: '',
-    password: '',
-    showPassword: false,
-    isSubmitting: false
-  });
 
   const isMobile = useIsMobile();
 
-  // Generate random data in the 10-100 range for demo purposes
+  // Generate random data for demo purposes with proper animation
   useEffect(() => {
     // Simulate loading delay
     const timer = setTimeout(() => {
@@ -2041,31 +2035,44 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Animate odometer values - FIXED VERSION
   useEffect(() => {
-    // Animate odometer values
-    const intervals = [];
+    if (loadingStats) return; // Don't animate until stats are loaded
     
-    Object.keys(systemStats).forEach((key, index) => {
+    const intervals = [];
+    const duration = 2000; // 2 seconds animation
+    const steps = 60; // 60 frames for smooth animation
+    const stepDuration = duration / steps;
+    
+    Object.keys(systemStats).forEach((key) => {
       const target = systemStats[key];
+      const start = 0;
+      let currentStep = 0;
+      
       const interval = setInterval(() => {
-        setOdometerValues(prev => {
-          const current = prev[key] || 0;
-          if (current < target) {
-            const increment = Math.ceil((target - current) / 10);
-            return {
-              ...prev,
-              [key]: current + increment > target ? target : current + increment
-            };
-          }
-          return prev;
-        });
-      }, 50 + (index * 20));
+        currentStep++;
+        
+        // Easing function for smooth animation
+        const t = currentStep / steps;
+        const easedT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        
+        const currentValue = Math.round(start + (target - start) * easedT);
+        
+        setOdometerValues(prev => ({
+          ...prev,
+          [key]: currentValue > target ? target : currentValue
+        }));
+        
+        if (currentStep >= steps) {
+          clearInterval(interval);
+        }
+      }, stepDuration);
       
       intervals.push(interval);
     });
 
     return () => intervals.forEach(interval => clearInterval(interval));
-  }, [systemStats]);
+  }, [systemStats, loadingStats]);
 
   const features = [
     {
