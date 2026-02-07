@@ -400,7 +400,7 @@ const dailyData = useMemo(() => {
         <ResponsiveContainer 
           width="100%" 
           height="100%"
-          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+          initialDimension={{ width: 320, height: 200 }}
         >
           <AreaChart 
             data={weeklyData.length > 0 ? weeklyData : dailyData}
@@ -467,7 +467,7 @@ const dailyData = useMemo(() => {
         <ResponsiveContainer 
           width="100%" 
           height="100%"
-          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+          initialDimension={{ width: 320, height: 200 }}
         >
           <BarChart 
             data={dailyData}
@@ -529,7 +529,7 @@ const dailyData = useMemo(() => {
           <ResponsiveContainer 
             width="100%" 
             height="100%"
-            initialDimension={{ width: 400, height: 200 }} {/* FIX: Added initialDimension */}
+            initialDimension={{ width: 400, height: 200 }}
           >
             <LineChart 
               data={monthlyData}
@@ -586,7 +586,7 @@ const dailyData = useMemo(() => {
           <ResponsiveContainer 
             width="100%" 
             height="100%"
-            initialDimension={{ width: 400, height: 200 }} {/* FIX: Added initialDimension */}
+            initialDimension={{ width: 400, height: 200 }} 
           >
             <BarChart 
               data={hourlyData}
@@ -639,7 +639,7 @@ const dailyData = useMemo(() => {
         <ResponsiveContainer 
           width="100%" 
           height="100%"
-          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+          initialDimension={{ width: 320, height: 200 }}
         >
           <BarChart 
             data={classComparisonData}
