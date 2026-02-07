@@ -2953,23 +2953,6 @@ const fetchData = async () => {
             font-size: 16px;
           }
         }
-        
-        /* Fix for charts overflow */
-        .recharts-wrapper {
-          max-width: 100% !important;
-        }
-        
-        /* Ensure tables don't overflow */
-        table {
-          width: 100% !important;
-          table-layout: fixed;
-        }
-        
-        td, th {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
       `}</style>
     </div>
   );
