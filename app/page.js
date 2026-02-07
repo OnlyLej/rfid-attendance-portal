@@ -384,336 +384,293 @@ const dailyData = useMemo(() => {
           </AnimatedCard>
         ))}
       </div>
-
-      {/* Charts Grid - Responsive layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Weekly Attendance Trend */}
-        <AnimatedCard delay={100}>
-          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
-            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-              <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Weekly Trend</span>
-            </h3>
-            <div style={{ height: chartHeight, width: '100%' }}>
-              {weeklyData && weeklyData.length > 0 && weeklyData.some(day => day.present > 0 || day.absent > 0) ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart 
-                    data={weeklyData}
-                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: tickFontSize }}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: tickFontSize }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000',
-                        fontSize: isMobile ? 12 : 14
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="present" 
-                      name="Present" 
-                      stroke="#10b981" 
-                      fill="#10b981" 
-                      fillOpacity={0.6}
-                      strokeWidth={2}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="absent" 
-                      name="Absent" 
-                      stroke="#ef4444" 
-                      fill="#ef4444" 
-                      fillOpacity={0.6}
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center">
-                  <Activity size={isMobile ? 32 : 48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                  <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
-                    No weekly data available
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </AnimatedCard>
-        
-        {/* Daily Attendance */}
-        <AnimatedCard delay={200}>
-          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
-            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-              <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Daily Attendance</span>
-            </h3>
-            <div style={{ height: chartHeight, width: '100%' }}>
-              {dailyData && dailyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={dailyData}
-                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: tickFontSize }}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: tickFontSize }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000',
-                        fontSize: isMobile ? 12 : 14
-                      }}
-                      formatter={(value, name) => {
-                        if (name === 'present') return [`${value} students`, 'Present'];
-                        if (name === 'absent') return [`${value} students`, 'Absent'];
-                        return [value, name];
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-                    <Bar 
-                      dataKey="present" 
-                      name="Present" 
-                      fill="#10b981" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar 
-                      dataKey="absent" 
-                      name="Absent" 
-                      fill="#ef4444" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-               ) : (
-                <div className="h-full flex flex-col items-center justify-center">
-                  <Calendar size={isMobile ? 32 : 48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                  <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
-                    No daily data available
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </AnimatedCard>
-        
-        {/* Monthly Trend - Only on larger screens */}
-        {!isMobile && (
-          <>
-            <AnimatedCard delay={300}>
-              <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
-                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-                  <TrendingUp className="text-purple-500" size={20} />
-                  Monthly Trend
-                </h3>
-                <div className="h-64">
-                  {classComparisonData && classComparisonData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart 
-                        data={monthlyData}
-                        margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                      >
-                        <CartesianGrid 
-                          strokeDasharray="3 3" 
-                          stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                          vertical={false}
-                        />
-                        <XAxis 
-                          dataKey="name" 
-                          stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis 
-                          stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                          label={{ value: 'Avg Daily', angle: -90, position: 'insideLeft' }}
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                            border: 'none', 
-                            borderRadius: '12px', 
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                            color: darkMode ? '#ffffff' : '#000000'
-                          }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="attendance" 
-                          name="Avg Daily" 
-                          stroke="#8b5cf6" 
-                          strokeWidth={3} 
-                          dot={{ fill: '#8b5cf6', r: 5 }}
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center">
-                      <Target size={isMobile ? 32 : 48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                      <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
-                        No class data available
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </AnimatedCard>
-
-            {/* Attendance by Time */}
-            <AnimatedCard delay={400}>
-              <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-                backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
-                <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-                  <Clock className="text-orange-500" size={20} />
-                  Check-ins by Time
-                </h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={hourlyData}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                    >
-                      <CartesianGrid 
-                        strokeDasharray="3 3" 
-                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                        vertical={false}
-                      />
-                      <XAxis 
-                        dataKey="name" 
-                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                          border: 'none', 
-                          borderRadius: '12px', 
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                          color: darkMode ? '#ffffff' : '#000000'
-                        }}
-                      />
-                      <Bar 
-                        dataKey="count" 
-                        name="Check-ins" 
-                        fill="#f59e0b" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </AnimatedCard>
-          </>
-        )}
-
-        {/* Class Performance - Always show */}
-        <AnimatedCard delay={isMobile ? 300 : 500}>
-          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
-            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-              <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Class Performance</span>
-            </h3>
-            <div style={{ height: chartHeight, width: '100%' }}>
-              {classComparisonData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={classComparisonData}
-                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: tickFontSize }}
-                      angle={isMobile ? -45 : 0}
-                      textAnchor={isMobile ? "end" : "middle"}
-                      height={isMobile ? 50 : undefined}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      domain={[0, 100]}
-                      tickFormatter={(value) => `${value}%`}
-                      tick={{ fontSize: tickFontSize }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000',
-                        fontSize: isMobile ? 12 : 14
-                      }}
-                      formatter={(value, name, props) => {
-                        if (name === 'attendance') {
-                          return [`${value}% (${props.payload.present}/${props.payload.total})`, 'Attendance'];
-                        }
-                        return [value, name];
-                      }}
-                    />
-                    <Bar 
-                      dataKey="attendance" 
-                      name="Attendance %" 
-                      fill="#6366f1" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center">
-                  <Target size={isMobile ? 32 : 48} className={`mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} />
-                  <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
-                    No class data available
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </AnimatedCard>
+                      
+      {/* Charts Grid */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+  {/* Weekly Attendance Trend */}
+  <AnimatedCard delay={100}>
+    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+        <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
+        <span className="truncate">Weekly Trend</span>
+      </h3>
+      <div style={{ height: 250, width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart 
+            data={weeklyData.length > 0 ? weeklyData : dailyData}
+            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke={darkMode ? '#374151' : '#e5e7eb'} 
+              vertical={false}
+            />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+            />
+            <YAxis 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                color: darkMode ? '#ffffff' : '#000000',
+                fontSize: isMobile ? 12 : 14
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+            <Area 
+              type="monotone" 
+              dataKey="present" 
+              name="Present" 
+              stroke="#10b981" 
+              fill="#10b981" 
+              fillOpacity={0.6}
+              strokeWidth={2}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="absent" 
+              name="Absent" 
+              stroke="#ef4444" 
+              fill="#ef4444" 
+              fillOpacity={0.6}
+              strokeWidth={2}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
+    </div>
+  </AnimatedCard>
+  
+  {/* Daily Attendance */}
+  <AnimatedCard delay={200}>
+    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+        <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
+        <span className="truncate">Daily Attendance</span>
+      </h3>
+      <div style={{ height: 250, width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart 
+            data={dailyData}
+            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke={darkMode ? '#374151' : '#e5e7eb'} 
+              vertical={false}
+            />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+            />
+            <YAxis 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                color: darkMode ? '#ffffff' : '#000000',
+                fontSize: isMobile ? 12 : 14
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+            <Bar 
+              dataKey="present" 
+              name="Present" 
+              fill="#10b981" 
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar 
+              dataKey="absent" 
+              name="Absent" 
+              fill="#ef4444" 
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </AnimatedCard>
+  
+  {/* Monthly Trend - Only on larger screens */}
+  {!isMobile && (
+    <AnimatedCard delay={300}>
+      <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+        backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+          <TrendingUp className="text-purple-500" size={20} />
+          Monthly Trend
+        </h3>
+        <div style={{ height: 250 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart 
+              data={monthlyData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                vertical={false}
+              />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="attendance" 
+                name="Avg Daily" 
+                stroke="#8b5cf6" 
+                strokeWidth={3} 
+                dot={{ fill: '#8b5cf6', r: 5 }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </AnimatedCard>
+  )}
 
+  {/* Attendance by Time - Only on larger screens */}
+  {!isMobile && (
+    <AnimatedCard delay={400}>
+      <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+        backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+          <Clock className="text-orange-500" size={20} />
+          Check-ins by Time
+        </h3>
+        <div style={{ height: 250 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={hourlyData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+            >
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                vertical={false}
+              />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                tick={{ fontSize: 12 }}
+              />
+              <YAxis 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                  border: 'none', 
+                  borderRadius: '12px', 
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
+                }}
+              />
+              <Bar 
+                dataKey="count" 
+                name="Check-ins" 
+                fill="#f59e0b" 
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </AnimatedCard>
+  )}
+
+  {/* Class Performance - Always show */}
+  <AnimatedCard delay={isMobile ? 300 : 500}>
+    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+        <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
+        <span className="truncate">Class Performance</span>
+      </h3>
+      <div style={{ height: 250, width: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart 
+            data={classComparisonData}
+            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+          >
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              stroke={darkMode ? '#374151' : '#e5e7eb'} 
+              vertical={false}
+            />
+            <XAxis 
+              dataKey="name" 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+              angle={isMobile ? -45 : 0}
+              textAnchor={isMobile ? "end" : "middle"}
+              height={isMobile ? 50 : undefined}
+            />
+            <YAxis 
+              stroke={darkMode ? '#9ca3af' : '#6b7280'}
+              domain={[0, 100]}
+              tickFormatter={(value) => `${value}%`}
+              tick={{ fontSize: isMobile ? 10 : 12 }}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                border: 'none', 
+                borderRadius: '12px', 
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                color: darkMode ? '#ffffff' : '#000000',
+                fontSize: isMobile ? 12 : 14
+              }}
+              formatter={(value, name, props) => {
+                if (name === 'attendanceRate') {
+                  return [`${value}% (${props.payload.present || 0}/${props.payload.total || 0})`, 'Attendance'];
+                }
+                return [value, name];
+              }}
+            />
+            <Bar 
+              dataKey="attendanceRate" 
+              name="Attendance %" 
+              fill="#6366f1" 
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  </AnimatedCard>
+</div>
       {/* Summary Cards - Responsive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {[
