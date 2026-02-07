@@ -42,3 +42,75 @@ body {
 .animate-ping-slow {
   animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
+
+.odometer-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.odometer-digit {
+  display: inline-block;
+  min-width: 0.6em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  transition: transform 0.3s ease;
+  position: relative;
+}
+
+.odometer-digit.rolling-up {
+  animation: roll-up 0.3s ease-out;
+}
+
+.odometer-digit.rolling-down {
+  animation: roll-down 0.3s ease-out;
+}
+
+@keyframes roll-up {
+  0% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateX(-90deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes roll-down {
+  0% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateX(90deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+/* In the global styles */
+@media (max-width: 768px) {
+  .login-form {
+    margin: 0 16px;
+    padding: 20px;
+  }
+  
+  .login-form input {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    height: 48px;
+  }
+  
+  .login-form button {
+    height: 48px;
+    font-size: 16px;
+  }
+}
