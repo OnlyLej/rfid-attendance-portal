@@ -2349,15 +2349,15 @@ useEffect(() => {
     ]
   };
 
+// Add useRef to the imports at the top
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+// Then here's the fixed LoginForm component:
 const LoginForm = () => {
   const [localUsername, setLocalUsername] = useState('');
   const [localPassword, setLocalPassword] = useState('');
   const [localShowPassword, setLocalShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Refs for inputs
-  const usernameRef = useRef(null);
-  const passwordRef = useRef(null);
   
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -2366,12 +2366,6 @@ const LoginForm = () => {
       await onLogin(localUsername, localPassword);
     }
     setIsSubmitting(false);
-  };
-
-  // Handle manual focus if needed
-  const handleInputClick = (e) => {
-    // Allow the natural focus to happen
-    e.stopPropagation();
   };
 
   return (
@@ -2391,50 +2385,41 @@ const LoginForm = () => {
 
       <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
         <div className="space-y-2">
-          <label htmlFor="username-input" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Username
           </label>
           <div className="relative">
             <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
             <input
-              id="username-input"
-              ref={usernameRef}
               type="text"
               value={localUsername}
               onChange={(e) => setLocalUsername(e.target.value)}
-              onClick={handleInputClick}
-              onTouchStart={handleInputClick}
               className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
                 border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
                 disabled:opacity-50 disabled:cursor-not-allowed
-                cursor-text select-text`}
+                cursor-text`}
               placeholder="Enter username"
               required
               disabled={isSubmitting || loggingIn}
               autoComplete="username"
-              autoFocus={false}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="password-input" className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             Password
           </label>
           <div className="relative">
             <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
             <input
-              id="password-input"
-              ref={passwordRef}
               type={localShowPassword ? "text" : "password"}
               value={localPassword}
               onChange={(e) => setLocalPassword(e.target.value)}
-              onClick={handleInputClick}
-              onTouchStart={handleInputClick}
               className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
                 border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
                 disabled:opacity-50 disabled:cursor-not-allowed
-                cursor-text select-text`}
+                cursor-text`}
               placeholder="Enter password"
               required
               disabled={isSubmitting || loggingIn}
@@ -2443,10 +2428,9 @@ const LoginForm = () => {
             <button
               type="button"
               onClick={() => setLocalShowPassword(!localShowPassword)}
-              onTouchStart={(e) => e.stopPropagation()}
               className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} 
                 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                p-1 rounded-md active:bg-gray-200 dark:active:bg-gray-700`}
+                p-1 rounded-md`}
               disabled={isSubmitting || loggingIn}
             >
               {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -2466,11 +2450,10 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={isSubmitting || loggingIn}
-          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 
-            ${(isSubmitting || loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:from-blue-700 hover:to-indigo-700 hover:scale-105 hover:shadow-xl active:scale-95'} 
-            shadow-lg relative overflow-hidden
-            select-none touch-manipulation`}
-          onTouchStart={(e) => e.stopPropagation()}
+          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 
+            ${(isSubmitting || loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} 
+            shadow-lg hover:shadow-xl relative overflow-hidden
+            select-none`}
         >
           {isSubmitting || loggingIn ? (
             <span className="flex items-center justify-center gap-2">
