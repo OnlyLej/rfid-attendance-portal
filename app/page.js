@@ -1995,14 +1995,14 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
   const [scrollY, setScrollY] = useState(0);
   const [activeFeature, setActiveFeature] = useState(0);
   const [activeSection, setActiveSection] = useState('overview');
-  const [systemStats, setSystemStats] = useState({
-    totalStudents: 10,
-    totalCheckins: 10,
-    activeDevices: 1,
-    apiRequests: 10
-  });
   const [loadingStats, setLoadingStats] = useState(true);
   const [odometerValues, setOdometerValues] = useState({
+    totalStudents: [0, 0, 0], // Array for each digit: [hundreds, tens, ones]
+    totalCheckins: [0, 0, 0],
+    activeDevices: [0],
+    apiRequests: [0, 0, 0]
+  });
+  const [displayValues, setDisplayValues] = useState({
     totalStudents: 0,
     totalCheckins: 0,
     activeDevices: 0,
@@ -2011,17 +2011,24 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
   const isMobile = useIsMobile();
 
+  // Generate random target values
+  const generateRandomTargets = () => {
+    return {
+      totalStudents: Math.floor(Math.random() * 91) + 10, // 10-100
+      totalCheckins: Math.floor(Math.random() * 91) + 10, // 10-100
+      activeDevices: Math.floor(Math.random() * 6) + 1, // 1-6
+      apiRequests: Math.floor(Math.random() * 91) + 10 // 10-100
+    };
+  };
+
+  const [targetValues, setTargetValues] = useState(generateRandomTargets());
+
+  // Initialize on mount
   useEffect(() => {
-    // Simulate loading delay
     const timer = setTimeout(() => {
-      const randomStats = {
-        totalStudents: Math.floor(Math.random() * 91) + 10, // 10-100
-        totalCheckins: Math.floor(Math.random() * 91) + 10, // 10-100
-        activeDevices: Math.floor(Math.random() * 6) + 1, // 1-6
-        apiRequests: Math.floor(Math.random() * 91) + 10 // 10-100
-      };
-      
-      setSystemStats(randomStats);
+      const newTargets = generateRandomTargets();
+      setTargetValues(newTargets);
+      setDisplayValues(newTargets);
       setLoadingStats(false);
     }, 800);
 
@@ -2034,51 +2041,73 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Odometer effect - changes values every second
+  // True odometer effect with digit-by-digit rolling
   useEffect(() => {
     if (loadingStats) return;
 
-    // Function to generate random number within a range
-    const getRandomValue = (key) => {
-      switch(key) {
-        case 'totalStudents':
-          return Math.floor(Math.random() * 91) + 10; // 10-100
-        case 'totalCheckins':
-          return Math.floor(Math.random() * 91) + 10; // 10-100
-        case 'activeDevices':
-          return Math.floor(Math.random() * 6) + 1; // 1-6
-        case 'apiRequests':
-          return Math.floor(Math.random() * 91) + 10; // 10-100
-        default:
-          return 0;
+    const animateDigit = (currentDigits, targetDigits, key) => {
+      const newDigits = [...currentDigits];
+      const targetStr = targetDigits.toString().padStart(currentDigits.length, '0');
+      
+      for (let i = 0; i < currentDigits.length; i++) {
+        const targetDigit = parseInt(targetStr[targetStr.length - currentDigits.length + i]);
+        if (newDigits[i] !== targetDigit) {
+          if (newDigits[i] < targetDigit) {
+            newDigits[i] = (newDigits[i] + 1) % 10;
+          } else {
+            newDigits[i] = (newDigits[i] + 9) % 10; // Roll down
+          }
+        }
       }
+      
+      setOdometerValues(prev => ({
+        ...prev,
+        [key]: newDigits
+      }));
+      
+      // Calculate current display value
+      const currentValue = parseInt(newDigits.join(''));
+      setDisplayValues(prev => ({
+        ...prev,
+        [key]: currentValue
+      }));
+      
+      return newDigits;
     };
 
-    // Initialize with random values immediately
-    const initialValues = {};
-    Object.keys(systemStats).forEach(key => {
-      initialValues[key] = getRandomValue(key);
-    });
-    setOdometerValues(initialValues);
-
-    // Update values every second
-    const interval = setInterval(() => {
-      setOdometerValues(prev => {
-        const newValues = {};
-        Object.keys(prev).forEach(key => {
-          // 70% chance to change, 30% chance to stay the same
-          if (Math.random() < 0.7) {
-            newValues[key] = getRandomValue(key);
-          } else {
-            newValues[key] = prev[key];
+    const intervals = {};
+    
+    // Animate each odometer separately
+    Object.keys(targetValues).forEach(key => {
+      const target = targetValues[key];
+      const currentDigits = odometerValues[key];
+      
+      intervals[key] = setInterval(() => {
+        setOdometerValues(prev => {
+          const newDigits = animateDigit(prev[key], target, key);
+          
+          // Check if we've reached target
+          const currentValue = parseInt(newDigits.join(''));
+          if (currentValue === target) {
+            // Generate new random target
+            const newTarget = generateRandomTargets()[key];
+            setTargetValues(prevTargets => ({
+              ...prevTargets,
+              [key]: newTarget
+            }));
           }
+          
+          return prev;
         });
-        return newValues;
-      });
-    }, 1000); // Update every 1 second
+      }, 100); // Adjust speed - lower = faster
+    });
 
-    return () => clearInterval(interval);
-  }, [systemStats, loadingStats]);
+    return () => {
+      Object.values(intervals).forEach(interval => clearInterval(interval));
+    };
+  }, [targetValues, loadingStats]);
+
+  // Rest of the component remains the same...
   const features = [
     {
       icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
@@ -2277,139 +2306,119 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     ]
   };
 
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    setLocalLoginState(prev => ({ ...prev, isSubmitting: true }));
-    await onLogin(localLoginState.username, localLoginState.password);
-    setLocalLoginState(prev => ({ ...prev, isSubmitting: false }));
-  };
+  const LoginForm = () => {
+    const [localUsername, setLocalUsername] = useState('');
+    const [localPassword, setLocalPassword] = useState('');
+    const [localShowPassword, setLocalShowPassword] = useState(false);
+    
+    const handleLoginSubmit = async (e) => {
+      e.preventDefault();
+      if (onLogin) {
+        await onLogin(localUsername, localPassword);
+      }
+    };
 
-  const handleInputFocus = (e) => {
-    // Fix for mobile input issues - ensure the input stays focused
-    const input = e.target;
-    setTimeout(() => {
-      input.focus();
-    }, 10);
-  };
-
-  // Update the LandingPage component's LoginForm section:
-
-const LoginForm = () => {
-  // Add state for form inputs
-  const [localUsername, setLocalUsername] = useState('');
-  const [localPassword, setLocalPassword] = useState('');
-  const [localShowPassword, setLocalShowPassword] = useState(false);
-  
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    if (onLogin) {
-      await onLogin(localUsername, localPassword);
-    }
-  };
-
-  return (
-    <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
-      <div className="flex justify-center mb-6">
-        <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
-          <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
-        </div>
-      </div>
-      
-      <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        System Login
-      </h1>
-      <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-        Sign in to access your dashboard
-      </p>
-
-      <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
-        <div className="space-y-2">
-          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Username
-          </label>
-          <div className="relative">
-            <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-            <input
-              type="text"
-              value={localUsername}
-              onChange={(e) => setLocalUsername(e.target.value)}
-              className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-              placeholder="Enter username"
-              required
-              disabled={loggingIn}
-              autoComplete="username"
-              // Remove the problematic onFocus handler
-            />
+    return (
+      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
+        <div className="flex justify-center mb-6">
+          <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
+            <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
           </div>
         </div>
+        
+        <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+          System Login
+        </h1>
+        <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
+          Sign in to access your dashboard
+        </p>
 
-        <div className="space-y-2">
-          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Password
-          </label>
-          <div className="relative">
-            <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-            <input
-              type={localShowPassword ? "text" : "password"}
-              value={localPassword}
-              onChange={(e) => setLocalPassword(e.target.value)}
-              className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-              placeholder="Enter password"
-              required
-              disabled={loggingIn}
-              autoComplete="current-password"
-              // Remove the problematic onFocus handler
-            />
-            <button
-              type="button"
-              onClick={() => setLocalShowPassword(!localShowPassword)}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
-              disabled={loggingIn}
-            >
-              {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-        </div>
-
-        {loginError && (
-          <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
-            <div className="flex items-center gap-2">
-              {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-              <span className="text-sm">{loginError}</span>
+        <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Username
+            </label>
+            <div className="relative">
+              <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+              <input
+                type="text"
+                value={localUsername}
+                onChange={(e) => setLocalUsername(e.target.value)}
+                className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
+                placeholder="Enter username"
+                required
+                disabled={loggingIn}
+                autoComplete="username"
+              />
             </div>
           </div>
-        )}
 
-        <button
-          type="submit"
-          disabled={loggingIn}
-          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
-        >
-          {loggingIn ? (
-            <span className="flex items-center justify-center gap-2">
-              <RefreshCw size={20} className="animate-spin" />
-              Signing In...
-            </span>
-          ) : (
-            <span className="flex items-center justify-center gap-2">
-              <Shield size={20} />
-              Sign In
-            </span>
-          )}
-          {loggingIn && (
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
-          )}
-        </button>
-      </form>
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Password
+            </label>
+            <div className="relative">
+              <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+              <input
+                type={localShowPassword ? "text" : "password"}
+                value={localPassword}
+                onChange={(e) => setLocalPassword(e.target.value)}
+                className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
+                placeholder="Enter password"
+                required
+                disabled={loggingIn}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setLocalShowPassword(!localShowPassword)}
+                className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
+                disabled={loggingIn}
+              >
+                {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
 
-      <div className="mt-6 text-center">
-        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-          🔒 Secure session-based authentication
-        </p>
+          {loginError && (
+            <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
+              <div className="flex items-center gap-2">
+                {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                <span className="text-sm">{loginError}</span>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loggingIn}
+            className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
+          >
+            {loggingIn ? (
+              <span className="flex items-center justify-center gap-2">
+                <RefreshCw size={20} className="animate-spin" />
+                Signing In...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <Shield size={20} />
+                Sign In
+              </span>
+            )}
+            {loggingIn && (
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
+            )}
+          </button>
+        </form>
+
+        <div className="mt-6 text-center">
+          <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+            🔒 Secure session-based authentication
+          </p>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -2564,23 +2573,23 @@ const LoginForm = () => {
             </div>
           </div>
 
-          {/* System Stats - Random Data Display */}
+          {/* System Stats - Odometer Display */}
           <div className="mt-16">
             <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl overflow-hidden animate-fade-in-up`}>
               <div className={`p-4 sm:p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className={`text-xl sm:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      System Overview
+                      Live System Metrics
                     </h2>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                      Demo data (sign in for live statistics)
+                      Real-time demo data (sign in for live statistics)
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${systemStats.apiRequests > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                    <span className={`text-sm ${systemStats.apiRequests > 0 ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-gray-400' : 'text-gray-500')}`}>
-                      {systemStats.apiRequests > 0 ? 'Demo Active' : 'Loading...'}
+                    <div className={`w-2 h-2 rounded-full bg-green-500 animate-pulse`}></div>
+                    <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
+                      Live Odometer Active
                     </span>
                   </div>
                 </div>
@@ -2593,29 +2602,25 @@ const LoginForm = () => {
                       key: 'totalStudents', 
                       label: 'Total Students', 
                       icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: '',
-                      description: 'Demo data'
+                      description: 'Live demo count'
                     },
                     { 
                       key: 'totalCheckins', 
                       label: "Today's Check-ins", 
                       icon: <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: '',
-                      description: 'Demo data'
+                      description: 'Live demo count'
                     },
                     { 
                       key: 'activeDevices', 
                       label: 'Active Readers', 
                       icon: <Wifi className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: '',
-                      description: 'Demo data'
+                      description: 'Live demo count'
                     },
                     { 
                       key: 'apiRequests', 
                       label: 'API Requests', 
                       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: '',
-                      description: 'Demo data'
+                      description: 'Live demo count'
                     }
                   ].map((stat, index) => (
                     <div 
@@ -2631,11 +2636,20 @@ const LoginForm = () => {
                           <div className={`w-10 h-4 rounded ${darkMode ? 'bg-gray-600 animate-pulse' : 'bg-gray-200 animate-pulse'}`}></div>
                         )}
                       </div>
-                      <div className={`text-2xl sm:text-3xl font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'} tabular-nums`}>
+                      <div className={`text-2xl sm:text-3xl font-bold mb-1 ${darkMode ? 'text-white digital-glow' : 'text-gray-900'} tabular-nums`}>
                         {loadingStats ? (
                           <div className={`h-8 ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded animate-pulse w-20`}></div>
                         ) : (
-                          odometerValues[stat.key].toLocaleString() + stat.suffix
+                          <div className="odometer-container">
+                            {odometerValues[stat.key].map((digit, idx) => (
+                              <span 
+                                key={`${stat.key}-${idx}`} 
+                                className="odometer-digit inline-block mx-0.5 min-w-[0.6em] text-center"
+                              >
+                                {digit}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <div className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -2978,6 +2992,25 @@ const LoginForm = () => {
           100% { transform: translateX(100%); }
         }
         
+        @keyframes odometer-flip {
+          0% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-100%);
+            opacity: 0;
+          }
+          51% {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          100% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        
         .animate-float {
           animation: float 6s ease-in-out infinite;
         }
@@ -2989,6 +3022,30 @@ const LoginForm = () => {
         
         .animate-shimmer {
           animation: shimmer 2s infinite;
+        }
+        
+        .odometer-digit {
+          font-variant-numeric: tabular-nums;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          transition: all 0.1s ease;
+        }
+        
+        .odometer-digit.changing {
+          animation: odometer-flip 0.3s ease-in-out;
+        }
+        
+        .digital-glow {
+          text-shadow: 
+            0 0 5px rgba(59, 130, 246, 0.5),
+            0 0 10px rgba(59, 130, 246, 0.3),
+            0 0 15px rgba(59, 130, 246, 0.1);
+        }
+        
+        .dark .digital-glow {
+          text-shadow: 
+            0 0 5px rgba(96, 165, 250, 0.7),
+            0 0 10px rgba(96, 165, 250, 0.5),
+            0 0 15px rgba(96, 165, 250, 0.3);
         }
         
         .bg-grid-white {
@@ -3027,49 +3084,6 @@ const LoginForm = () => {
             min-height: 44px;
             min-width: 44px;
           }
-        }
-
-        .tabular-nums {
-          font-variant-numeric: tabular-nums;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          letter-spacing: 0.05em;
-        }
-        
-        /* Odometer flip animation */
-        @keyframes odometer-flip {
-          0% {
-            transform: rotateX(0deg);
-            opacity: 1;
-          }
-          50% {
-            transform: rotateX(90deg);
-            opacity: 0;
-          }
-          100% {
-            transform: rotateX(0deg);
-            opacity: 1;
-          }
-        }
-        
-        .odometer-flip {
-          animation: odometer-flip 0.3s ease-in-out;
-          display: inline-block;
-          transform-style: preserve-3d;
-        }
-        
-        /* Digital glow effect */
-        .digital-glow {
-          text-shadow: 
-            0 0 5px rgba(59, 130, 246, 0.5),
-            0 0 10px rgba(59, 130, 246, 0.3),
-            0 0 15px rgba(59, 130, 246, 0.1);
-        }
-        
-        .dark .digital-glow {
-          text-shadow: 
-            0 0 5px rgba(96, 165, 250, 0.7),
-            0 0 10px rgba(96, 165, 250, 0.5),
-            0 0 15px rgba(96, 165, 250, 0.3);
         }
       `}</style>
     </div>
