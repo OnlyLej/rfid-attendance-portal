@@ -3190,6 +3190,13 @@ export default function AttendancePortal() {
 
   const isMobile = useIsMobile();
 
+  // Add this function inside the AttendancePortal component, before the return statement:
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
   // Wrap functions with useCallback to prevent re-renders
   const toggleTheme = useCallback(() => {
     const newDarkMode = !darkMode;
@@ -3284,7 +3291,7 @@ export default function AttendancePortal() {
     }
   }, []);
 
-  // Rest of the useEffect hooks remain the same...
+
 
   // Stabilize the fetchData function
   const fetchData = useCallback(async () => {
@@ -3567,29 +3574,19 @@ export default function AttendancePortal() {
 
   if (!mounted) return null;
 
-  // Memoize the LandingPage to prevent re-renders
   const landingPageProps = useMemo(() => ({
     darkMode,
     toggleTheme,
     onLogin: handleLogin,
     loggingIn,
-    loginError
+    loginError,
+    // Remove the extra props that LandingPage doesn't accept
   }), [darkMode, toggleTheme, handleLogin, loggingIn, loginError]);
 
   if (!authenticated) {
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50/90 to-purple-50/90'} transition-all duration-500`}>
-        {/* Pass the form submit handler separately */}
-        <LandingPage 
-          {...landingPageProps}
-          handleFormSubmit={handleFormSubmit}
-          username={username}
-          setUsername={setUsername}
-          password={password}
-          setPassword={setPassword}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-        />
+        <LandingPage {...landingPageProps} />
       </div>
     );
   }
