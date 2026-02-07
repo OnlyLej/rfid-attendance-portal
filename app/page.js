@@ -1991,8 +1991,7 @@ const ParentLogsTab = ({
   );
 };            
                           
-// Landing Page Component
-const LandingPage = ({ darkMode, toggleTheme }) => {
+const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) => {
   const [scrollY, setScrollY] = useState(0);
   const [activeFeature, setActiveFeature] = useState(0);
   const [activeSection, setActiveSection] = useState('overview');
@@ -2009,14 +2008,64 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
     devices: 0,
     requests: 0
   });
+  const [localLoginState, setLocalLoginState] = useState({
+    username: '',
+    password: '',
+    showPassword: false,
+    isSubmitting: false
+  });
+
   const isMobile = useIsMobile();
+
+  // Fetch real system stats from your API
+  const fetchRealStats = async () => {
+    try {
+      setLoadingStats(true);
+      // First try to get from your backend API
+      const response = await fetch('/api/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setSystemStats({
+          totalStudents: data.totalStudents || 0,
+          totalCheckins: data.totalCheckins || 0,
+          activeDevices: data.activeDevices || 0,
+          apiRequests: data.apiRequests || 0
+        });
+      } else {
+        // If API fails, fetch directly from Google Sheets (via your proxy)
+        const sheetsResponse = await fetch('/api/proxy?action=getDashboardStats');
+        if (sheetsResponse.ok) {
+          const sheetsData = await sheetsResponse.json();
+          if (sheetsData.success && sheetsData.stats) {
+            setSystemStats({
+              totalStudents: sheetsData.stats.totalStudents || 0,
+              totalCheckins: sheetsData.stats.totalCheckins || 0,
+              activeDevices: sheetsData.activeDevices || 0,
+              apiRequests: sheetsData.apiRequests || 0
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Don't show dummy data - show zeros
+      setSystemStats({
+        totalStudents: 0,
+        totalCheckins: 0,
+        activeDevices: 0,
+        apiRequests: 0
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     
-    // Fetch real system stats
-    fetchSystemStats();
+    // Fetch real stats
+    fetchRealStats();
     
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -2047,137 +2096,113 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
     return () => intervals.forEach(interval => clearInterval(interval));
   }, [systemStats]);
 
-  const fetchSystemStats = async () => {
-    try {
-      // In a real implementation, you would fetch actual data from your API
-      // This is a mock implementation that would be replaced with real API calls
-      const mockStats = await getRealSystemStats();
-      setSystemStats(mockStats);
-      setLoadingStats(false);
-    } catch (error) {
-      console.error('Error fetching system stats:', error);
-      // Fallback to showing no data rather than dummy data
-      setLoadingStats(false);
-    }
-  };
-
-  const getRealSystemStats = async () => {
-    // This function would make actual API calls to get real data
-    // For now, it returns empty/zero values as per your request
-    return {
-      totalStudents: 0, // Would be populated from real API
-      totalCheckins: 0, // Would be populated from real API
-      activeDevices: 0, // Would be populated from real API
-      apiRequests: 0    // Would be populated from real API
-    };
-  };
-
+  // Features array remains the same...
   const features = [
     {
       icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "RFID Hardware Integration",
-      description: "ESP8266 with MFRC522 reader for instant card detection",
+      title: "ESP8266 Hardware Integration",
+      description: "NodeMCU with MFRC522 RFID reader for instant card detection",
       color: "from-blue-500 to-cyan-500",
-      details: "13.56MHz frequency • ISO 14443A compliant • <100ms response time • 10cm reading range",
+      details: "13.56MHz frequency • ISO 14443A compliant • <100ms response time • OLED display",
       animation: "animate-pulse",
       highlight: true
     },
     {
-      icon: <Shield className="w-8 h-8 md:w-10 md:h-10" />,
+      icon: <ShieldCheck className="w-8 h-8 md:w-10 md:h-10" />,
       title: "Multi-Layer Security",
-      description: "End-to-end encrypted communication with role-based access",
+      description: "Device API keys + Session tokens + Role-based access control",
       color: "from-purple-500 to-pink-500",
-      details: "Device API keys • Session tokens • SHA-256 hashing • HTTPS only • Auto timeout",
+      details: "Separate device/user authentication • SHA-256 password hashing • HTTPS only • 30-min session timeout",
       animation: "animate-pulse",
       highlight: true
     },
     {
       icon: <Database className="w-8 h-8 md:w-10 md:h-10" />,
       title: "Google Sheets Backend",
-      description: "Real-time data synchronization with automatic logging",
+      description: "Google Apps Script API server with real-time data sync",
       color: "from-green-500 to-emerald-500",
-      details: "Automatic timestamping • Real-time updates • CSV export • Audit trail",
+      details: "Automatic timestamping • Real-time Google Sheets updates • CSV export • Complete audit trail",
       animation: "animate-pulse"
     },
     {
       icon: <BarChart3 className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Analytics Dashboard",
-      description: "Interactive charts and real-time attendance monitoring",
+      title: "Real-time Analytics Dashboard",
+      description: "Interactive charts and live attendance monitoring",
       color: "from-red-500 to-orange-500",
-      details: "4 visualization types • Real-time updates • Trend analysis • Class performance",
+      details: "4 visualization types • Weekly trends • Class performance • Attendance patterns",
       animation: "animate-pulse"
     },
     {
       icon: <Users className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Multi-Role Portal",
-      description: "Separate interfaces for teachers, admins, and parents",
+      title: "Dual-Role Portal",
+      description: "Separate interfaces for Teachers and Parents",
       color: "from-indigo-500 to-blue-500",
-      details: "Teacher dashboard • Parent portal • Admin controls • Role-based filtering",
+      details: "Teacher dashboard • Parent-only view • Role-based data filtering • Secure access",
       animation: "animate-pulse"
     },
     {
       icon: <Clock className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Automated Workflow",
-      description: "Automatic IN/OUT detection with toggle logic",
+      title: "Automated IN/OUT Logic",
+      description: "Smart toggle system for attendance tracking",
       color: "from-amber-500 to-yellow-500",
-      details: "Auto status toggle • Manual override • Time-based rules • Custom schedules",
+      details: "First scan = IN • Second scan = OUT • Automatic status calculation • Real-time updates",
       animation: "animate-pulse"
     },
     {
       icon: <Download className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Data Export & Reports",
-      description: "Comprehensive reporting with advanced filtering",
+      title: "Advanced Data Export",
+      description: "Filtered CSV reports with comprehensive data",
       color: "from-violet-500 to-purple-500",
-      details: "CSV export • Date range filters • Status filters • Class filters • Search",
+      details: "Date range filters • Status filters • Class filters • Real-time search • CSV export",
       animation: "animate-pulse"
     },
     {
       icon: <Smartphone className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Responsive Design",
-      description: "Fully responsive interface for all device types",
+      title: "Fully Responsive Design",
+      description: "Mobile-first interface for all device types",
       color: "from-rose-500 to-pink-500",
-      details: "Mobile optimized • Tablet support • Desktop interface • Touch friendly",
+      details: "Mobile optimized • Tablet support • Desktop interface • Touch-friendly • Dark mode",
       animation: "animate-pulse"
     }
   ];
 
   const architectureLayers = [
     {
-      title: "Hardware Layer",
+      title: "Hardware Layer (ESP8266)",
       icon: <Cpu className="w-8 h-8" />,
-      description: "Physical devices and RFID readers",
+      description: "Physical RFID hardware and microcontroller",
       components: [
-        "ESP8266 Microcontroller",
-        "MFRC522 RFID Reader Module",
-        "128x64 OLED Display",
+        "ESP8266 NodeMCU Microcontroller",
+        "MFRC522 RFID Reader (13.56MHz)",
+        "128x64 OLED Display (I2C)",
         "Active Buzzer for Audio Feedback",
-        "RFID Cards/Tags (13.56MHz)"
+        "RFID Cards/Tags per student"
       ],
       color: "border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-cyan-500/10"
     },
     {
-      title: "Backend Layer",
+      title: "Backend Layer (Google Apps Script)",
       icon: <Server className="w-8 h-8" />,
-      description: "Server infrastructure and data processing",
+      description: "API server and data processing",
       components: [
         "Google Apps Script API Server",
-        "Google Sheets Database",
-        "Authentication & Session Management",
-        "Role-Based Access Control",
-        "Real-time Data Processing"
+        "Google Sheets Database (4 sheets)",
+        "SHA-256 Authentication System",
+        "Session Token Management",
+        "Role-Based Access Control"
       ],
       color: "border-purple-500/30 bg-gradient-to-br from-purple-500/10 to-pink-500/10"
     },
     {
-      title: "Frontend Layer",
+      title: "Frontend Layer (Next.js)",
       icon: <Globe className="w-8 h-8" />,
-      description: "User interface and interaction",
+      description: "Web interface and user interaction",
       components: [
         "Next.js 14 Web Application",
         "Vercel Edge Network Hosting",
-        "Real-time WebSocket Updates",
-        "Interactive Charts & Analytics",
-        "Mobile-First Responsive Design"
+        "Recharts for Analytics",
+        "Real-time Data Updates",
+        "Responsive Mobile Design"
       ],
       color: "border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/10"
     }
@@ -2185,30 +2210,33 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
 
   const technicalSpecs = [
     {
-      category: "Hardware",
+      category: "Hardware Specifications",
       specs: [
         { label: "RFID Frequency", value: "13.56 MHz" },
-        { label: "Reading Range", value: "Up to 10cm" },
+        { label: "Reading Range", value: "5-10cm" },
         { label: "Response Time", value: "< 100ms" },
-        { label: "Power Supply", value: "5V DC / USB" }
+        { label: "Power Supply", value: "5V DC / USB" },
+        { label: "WiFi Protocol", value: "802.11 b/g/n" }
       ]
     },
     {
-      category: "Software",
+      category: "Software Stack",
       specs: [
         { label: "Frontend Framework", value: "Next.js 14" },
         { label: "Backend Platform", value: "Google Apps Script" },
         { label: "Database", value: "Google Sheets" },
-        { label: "Hosting", value: "Vercel Edge Network" }
+        { label: "Hosting", value: "Vercel Edge Network" },
+        { label: "API Proxy", value: "Vercel Serverless Functions" }
       ]
     },
     {
-      category: "Security",
+      category: "Security Features",
       specs: [
-        { label: "Authentication", value: "Session Tokens" },
+        { label: "Authentication", value: "Session Tokens + API Keys" },
         { label: "Encryption", value: "HTTPS/TLS 1.3" },
         { label: "Password Hashing", value: "SHA-256" },
-        { label: "Session Timeout", value: "30 minutes" }
+        { label: "Session Timeout", value: "30 minutes" },
+        { label: "Role-Based Access", value: "Teacher/Parent" }
       ]
     }
   ];
@@ -2216,60 +2244,199 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
   const workflowSteps = [
     {
       step: 1,
-      title: "Card Tap",
-      description: "Student taps RFID card on reader",
+      title: "Student Taps RFID Card",
+      description: "Card is scanned at entrance",
       icon: "📱",
-      details: "ESP8266 detects card UID and displays student info"
+      details: "ESP8266 detects card UID and sends to Google Apps Script"
     },
     {
       step: 2,
-      title: "Data Transmission",
-      description: "WiFi sends data to backend",
+      title: "Server Processing",
+      description: "Backend determines IN/OUT status",
       icon: "⚡",
-      details: "Encrypted JSON payload sent to Google Apps Script"
+      details: "Checks last status, logs attendance in Google Sheets"
     },
     {
       step: 3,
-      title: "Processing",
-      description: "Backend processes and logs data",
+      title: "Real-time Dashboard Update",
+      description: "All portals update instantly",
       icon: "🔄",
-      details: "Updates Google Sheets and determines IN/OUT status"
+      details: "Teachers and parents see live status changes"
     },
     {
       step: 4,
-      title: "Dashboard Update",
-      description: "Real-time frontend update",
+      title: "Data Analytics",
+      description: "Automatic reporting and insights",
       icon: "📊",
-      details: "All connected dashboards update immediately"
+      details: "Charts update, stats recalculate, reports available"
     }
   ];
 
   const systemCapabilities = {
     whatItDoes: [
-      "Real-time attendance tracking",
-      "Automatic IN/OUT detection",
-      "Multi-class support",
-      "Role-based access control",
+      "Real-time RFID attendance tracking",
+      "Automatic IN/OUT toggle logic",
+      "Multi-classroom support",
+      "Teacher/Parent role-based access",
       "Interactive analytics dashboard",
-      "CSV export functionality",
+      "Filtered CSV data export",
       "Advanced search and filtering",
-      "Mobile responsive design",
+      "Mobile responsive web portal",
       "Session-based authentication",
-      "Real-time status updates"
+      "Live status updates",
+      "Google Sheets backend",
+      "Complete audit trail"
     ],
     whatItDoesnt: [
       "Facial recognition",
-      "GPS tracking",
+      "GPS location tracking",
       "Biometric authentication",
       "SMS/email notifications",
-      "Native mobile apps",
-      "Offline web portal",
+      "Native mobile applications",
+      "Offline web access",
       "Multi-school management",
-      "Custom report generation",
+      "Custom report templates",
       "Video surveillance",
       "Biometric data collection"
     ]
   };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setLocalLoginState(prev => ({ ...prev, isSubmitting: true }));
+    await onLogin(localLoginState.username, localLoginState.password);
+    setLocalLoginState(prev => ({ ...prev, isSubmitting: false }));
+  };
+
+  const LoginForm = () => (
+    <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
+      <button
+        onClick={toggleTheme}
+        className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
+      >
+        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+
+      <div className="flex justify-center mb-6">
+        <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
+          <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
+        </div>
+      </div>
+      
+      <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+        Secure Portal Login
+      </h1>
+      <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
+        Sign in to access your role-based dashboard
+      </p>
+
+      <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
+        <div className="space-y-2">
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Username
+          </label>
+          <div className="relative">
+            <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+            <input
+              type="text"
+              value={localLoginState.username}
+              onChange={(e) => setLocalLoginState(prev => ({ ...prev, username: e.target.value }))}
+              className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
+              placeholder="Enter username"
+              required
+              disabled={loggingIn || localLoginState.isSubmitting}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Password
+          </label>
+          <div className="relative">
+            <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+            <input
+              type={localLoginState.showPassword ? "text" : "password"}
+              value={localLoginState.password}
+              onChange={(e) => setLocalLoginState(prev => ({ ...prev, password: e.target.value }))}
+              className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
+              placeholder="Enter password"
+              required
+              disabled={loggingIn || localLoginState.isSubmitting}
+            />
+            <button
+              type="button"
+              onClick={() => setLocalLoginState(prev => ({ ...prev, showPassword: !prev.showPassword }))}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
+              disabled={loggingIn || localLoginState.isSubmitting}
+            >
+              {localLoginState.showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {loginError && (
+          <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
+            <div className="flex items-center gap-2">
+              {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+              <span className="text-sm">{loginError}</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loggingIn || localLoginState.isSubmitting}
+          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn || localLoginState.isSubmitting) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
+        >
+          {(loggingIn || localLoginState.isSubmitting) ? (
+            <span className="flex items-center justify-center gap-2">
+              <RefreshCw size={20} className="animate-spin" />
+              Signing In...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <ShieldCheck size={20} />
+              Authenticate via Google Apps Script
+            </span>
+          )}
+          {(loggingIn || localLoginState.isSubmitting) && (
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mb-2`}>
+          🔒 Session-based authentication via Google Apps Script
+        </p>
+        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+          ⏱️ Auto-logout after 30 minutes of inactivity
+        </p>
+      </div>
+
+      {/* Role Information */}
+      <div className="mt-6 pt-6 border-t border-gray-700/50 dark:border-gray-600/50">
+        <h3 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Access Types:</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
+            <div className="flex items-center gap-2">
+              <Users size={14} className="text-blue-500" />
+              <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Teacher</span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Full dashboard access</p>
+          </div>
+          <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-200'}`}>
+            <div className="flex items-center gap-2">
+              <User size={14} className="text-purple-500" />
+              <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Parent</span>
+            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Child-only view</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -2297,9 +2464,9 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                 <Radio className="w-6 h-6 text-white" />
               </div>
               <div>
-                <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+                <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-0.5`}>
-                  Complete Attendance System
+                  ESP8266 • Google Apps Script • Next.js
                 </div>
               </div>
             </div>
@@ -2309,28 +2476,44 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
               <a 
                 href="#overview" 
                 className={`font-medium transition-colors ${activeSection === 'overview' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={() => setActiveSection('overview')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('overview');
+                  document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                Overview
+                System Overview
               </a>
               <a 
                 href="#features" 
                 className={`font-medium transition-colors ${activeSection === 'features' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={() => setActiveSection('features')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('features');
+                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
                 Features
               </a>
               <a 
                 href="#architecture" 
                 className={`font-medium transition-colors ${activeSection === 'architecture' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={() => setActiveSection('architecture')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('architecture');
+                  document.getElementById('architecture')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
                 Architecture
               </a>
               <a 
-                href="#login" 
+                href="#login-section" 
                 className={`font-medium transition-colors ${activeSection === 'login' ? 'text-blue-600 dark:text-blue-400' : darkMode ? 'text-gray-300 hover:text-white' : 'text-gray-700 hover:text-gray-900'}`}
-                onClick={() => setActiveSection('login')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('login');
+                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
                 Login
               </a>
@@ -2345,11 +2528,15 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               <a
-                href="#login"
+                href="#login-section"
                 className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                onClick={() => setActiveSection('login')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('login');
+                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                Sign In
+                Portal Login
               </a>
             </div>
           </div>
@@ -2362,59 +2549,67 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8 animate-pulse border border-blue-500/20">
               <Sparkles className="w-4 h-4 text-blue-500" />
-              <span className={`text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Smart Attendance System</span>
+              <span className={`text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Complete End-to-End System</span>
             </div>
             
             <h1 className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'} leading-tight`}>
-              Complete
+              RFID Attendance
               <span className="block bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent animate-gradient">
-                RFID Attendance System
+                Made Simple & Secure
               </span>
             </h1>
             
             <p className={`text-lg sm:text-xl md:text-2xl ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-4xl mx-auto mb-8 leading-relaxed`}>
-              A comprehensive end-to-end attendance tracking solution combining ESP8266 hardware, 
-              Google Apps Script backend, and a modern Next.js web portal. Real-time monitoring, 
-              detailed analytics, and secure multi-role access in one integrated platform.
+              A complete hardware-to-software solution combining ESP8266 RFID readers, 
+              Google Apps Script backend, and modern Next.js web portal for real-time 
+              attendance tracking with enterprise-grade security.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <a
-                href="#login"
+                href="#login-section"
                 className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl flex items-center justify-center space-x-2"
-                onClick={() => setActiveSection('login')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('login');
+                  document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                <span>Access Portal</span>
+                <span>Access Teacher/Parent Portal</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
               <a
                 href="#architecture"
                 className="group px-8 py-4 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2"
-                onClick={() => setActiveSection('architecture')}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveSection('architecture');
+                  document.getElementById('architecture')?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                <span>View Architecture</span>
-                <ExternalLink className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span>View Technical Architecture</span>
+                <Code className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
             </div>
           </div>
 
           {/* System Stats - Real Data Display */}
           <div className="mt-16">
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl overflow-hidden`}>
+            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl overflow-hidden animate-fade-in-up`}>
               <div className={`p-4 sm:p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className={`text-xl sm:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      System Overview
+                      Live System Statistics
                     </h2>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                      Real-time system metrics and performance data
+                      Powered by Google Sheets backend with real-time data sync
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-600'}`}>
-                      System Operational
+                    <div className={`w-2 h-2 rounded-full ${systemStats.apiRequests > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                    <span className={`text-sm ${systemStats.apiRequests > 0 ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-gray-400' : 'text-gray-500')}`}>
+                      {systemStats.apiRequests > 0 ? 'System Active' : 'Awaiting Data'}
                     </span>
                   </div>
                 </div>
@@ -2427,30 +2622,34 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                       key: 'students', 
                       label: 'Total Students', 
                       icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: ''
+                      suffix: '',
+                      description: 'Students in database'
                     },
                     { 
                       key: 'checkins', 
-                      label: 'Total Check-ins', 
+                      label: 'Today\'s Check-ins', 
                       icon: <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: ''
+                      suffix: '',
+                      description: 'Attendance records today'
                     },
                     { 
                       key: 'devices', 
-                      label: 'Active Devices', 
+                      label: 'Active Readers', 
                       icon: <Wifi className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: ''
+                      suffix: '',
+                      description: 'ESP8266 devices online'
                     },
                     { 
                       key: 'requests', 
                       label: 'API Requests', 
                       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
-                      suffix: ''
+                      suffix: '',
+                      description: 'Total requests processed'
                     }
                   ].map((stat, index) => (
                     <div 
                       key={stat.key}
-                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 hover:bg-gray-700/50' : 'bg-gray-50/50 hover:bg-gray-50/70'} rounded-xl p-4 sm:p-5 transition-all duration-300 transform hover:scale-105`}
+                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 hover:bg-gray-700/50' : 'bg-gray-50/50 hover:bg-gray-50/70'} rounded-xl p-4 sm:p-5 transition-all duration-300 transform hover:scale-105 animate-fade-in-up`}
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -2471,6 +2670,11 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                       <div className={`text-xs sm:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         {stat.label}
                       </div>
+                      {stat.description && (
+                        <div className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                          {stat.description}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2480,19 +2684,19 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                   {technicalSpecs.map((spec, index) => (
                     <div 
                       key={spec.category}
-                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50/50 border-gray-200'} rounded-xl border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg`}
+                      className={`backdrop-blur-sm ${darkMode ? 'bg-gray-700/30 border-gray-600' : 'bg-gray-50/50 border-gray-200'} rounded-xl border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg animate-fade-in-up`}
                       style={{ animationDelay: `${index * 150}ms` }}
                     >
                       <h3 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {spec.category} Specifications
+                        {spec.category}
                       </h3>
                       <div className="space-y-3">
                         {spec.specs.map((item, idx) => (
-                          <div key={idx} className="flex justify-between items-center">
+                          <div key={idx} className="flex justify-between items-center p-2 hover:bg-white/5 rounded-lg transition-colors">
                             <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                               {item.label}
                             </span>
-                            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} text-sm`}>
                               {item.value}
                             </span>
                           </div>
@@ -2507,147 +2711,10 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
         </div>
       </section>
 
-      {/* Login Form Section - Positioned after overview */}
-      <section id="login" className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Login Form */}
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl p-6 sm:p-8 transform hover:scale-[1.02] transition-all duration-300`}>
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mb-4">
-                  <Lock className="w-6 h-6 text-white" />
-                </div>
-                <h2 className={`text-2xl sm:text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Secure Portal Access
-                </h2>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Sign in to access your personalized dashboard
-                </p>
-              </div>
-
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-                <div className="space-y-2">
-                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Username
-                  </label>
-                  <div className="relative">
-                    <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                    <input
-                      type="text"
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                      placeholder="Enter your username"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                    <input
-                      type="password"
-                      className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                      placeholder="Enter your password"
-                    />
-                    <button
-                      type="button"
-                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-                >
-                  Sign In to Portal
-                </button>
-
-                <div className="text-center">
-                  <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                    🔒 Secured by session-based authentication & HTTPS encryption
-                  </p>
-                </div>
-              </form>
-            </div>
-
-            {/* Role Information */}
-            <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl p-6 sm:p-8`}>
-              <h3 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Multi-Role Access System
-              </h3>
-              
-              <div className="space-y-6">
-                {[
-                  {
-                    role: "Teacher Portal",
-                    icon: <Users className="w-6 h-6" />,
-                    features: [
-                      "Real-time class monitoring",
-                      "Attendance analytics & reports",
-                      "Student status tracking",
-                      "CSV data export",
-                      "Class performance insights"
-                    ],
-                    color: "from-blue-500 to-cyan-500"
-                  },
-                  {
-                    role: "Parent Portal",
-                    icon: <User className="w-6 h-6" />,
-                    features: [
-                      "Child's attendance tracking",
-                      "Daily check-in/out times",
-                      "Attendance history view",
-                      "Export child's records",
-                      "Real-time status updates"
-                    ],
-                    color: "from-purple-500 to-pink-500"
-                  },
-                  {
-                    role: "Admin Access",
-                    icon: <Shield className="w-6 h-6" />,
-                    features: [
-                      "System configuration",
-                      "User management",
-                      "Device monitoring",
-                      "System analytics",
-                      "Security settings"
-                    ],
-                    color: "from-green-500 to-emerald-500"
-                  }
-                ].map((role, index) => (
-                  <div 
-                    key={role.role}
-                    className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700/30' : 'bg-gray-50/50'} transition-all duration-300 hover:scale-105`}
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className={`p-2 bg-gradient-to-r ${role.color} rounded-lg`}>
-                        {role.icon}
-                      </div>
-                      <h4 className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {role.role}
-                      </h4>
-                    </div>
-                    <ul className="space-y-2">
-                      {role.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center space-x-2">
-                          <CheckCircle className={`w-4 h-4 ${darkMode ? 'text-green-400' : 'text-green-600'}`} />
-                          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {feature}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+      {/* Login Section */}
+      <section id="login-section" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto">
+          <LoginForm />
         </div>
       </section>
 
@@ -2656,13 +2723,13 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Comprehensive
+              Complete
               <span className="block bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                Feature Set
+                Feature Ecosystem
               </span>
             </h2>
             <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              Everything you need for modern attendance tracking in one integrated solution
+              Everything you need for modern, secure attendance tracking in one integrated solution
             </p>
           </div>
 
@@ -2678,7 +2745,7 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                 {feature.highlight && (
                   <div className="absolute -top-2 -right-2">
                     <span className="px-2 py-1 text-xs font-semibold bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-full">
-                      Featured
+                      Core Feature
                     </span>
                   </div>
                 )}
@@ -2719,7 +2786,7 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
               </span>
             </h2>
             <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              A complete system with hardware, backend, and frontend working seamlessly together
+              Hardware, backend, and frontend working seamlessly with secure data flow
             </p>
           </div>
 
@@ -2751,7 +2818,11 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                       className="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-transparent to-white/5"
                       style={{ animationDelay: `${idx * 50}ms` }}
                     >
-                      <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
+                      <div className={`w-2 h-2 rounded-full ${
+                        index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                        index === 1 ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                        'bg-gradient-to-r from-green-500 to-emerald-500'
+                      }`}></div>
                       <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{item}</span>
                     </li>
                   ))}
@@ -2767,7 +2838,7 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
           {/* Workflow Visualization */}
           <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 p-6 sm:p-8`}>
             <h3 className={`text-2xl font-bold mb-8 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Data Flow Workflow
+              Real-time Data Flow
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -2856,22 +2927,38 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
           <div className={`backdrop-blur-xl ${darkMode ? 'bg-gradient-to-r from-gray-800/40 via-gray-900/40 to-gray-800/40 border-gray-700' : 'bg-gradient-to-r from-white/40 via-blue-50/40 to-white/40 border-gray-200'} rounded-2xl border-2 p-8 md:p-12 relative overflow-hidden`}>
             <div className="relative z-10">
               <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Ready to Modernize Your Attendance System?
+                Ready to Deploy Your Attendance System?
               </h2>
               
               <p className={`text-lg sm:text-xl mb-8 max-w-2xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Experience the complete RFID attendance solution with real-time tracking, 
-                detailed analytics, and enterprise-grade security.
+                Experience the complete RFID solution with ESP8266 hardware, Google Sheets backend, 
+                and modern web portal—all with enterprise-grade security and real-time tracking.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="#login"
+                  href="#login-section"
                   className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl flex items-center justify-center space-x-2"
-                  onClick={() => setActiveSection('login')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveSection('login');
+                    document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  <span>Sign In to Portal</span>
+                  <span>Access Teacher/Parent Portal</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </a>
+                <a
+                  href="#overview"
+                  className="group px-8 py-4 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveSection('overview');
+                    document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <span>View System Details</span>
+                  <Info className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </a>
               </div>
             </div>
@@ -2888,9 +2975,9 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
                 <Radio className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Complete Attendance System
+                  ESP8266 • Google Apps Script • Next.js
                 </div>
               </div>
             </div>
@@ -2905,11 +2992,14 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
               <a href="#architecture" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
                 Architecture
               </a>
+              <a href="#login-section" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+                Login
+              </a>
             </div>
             
             <div className="mt-6 md:mt-0">
               <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                © {new Date().getFullYear()} RFID Attendance System
+                © {new Date().getFullYear()} Complete RFID Attendance System
               </div>
             </div>
           </div>
@@ -2974,11 +3064,15 @@ const LandingPage = ({ darkMode, toggleTheme }) => {
         * {
           max-width: 100%;
         }
+        
+        /* Smooth scrolling for anchor links */
+        html {
+          scroll-behavior: smooth;
+        }
       `}</style>
     </div>
   );
 };
-
 // Main component with mobile menu - UPDATED HEADER
 export default function AttendancePortal() {
   const [authenticated, setAuthenticated] = useState(false);
