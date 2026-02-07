@@ -2011,7 +2011,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
   const isMobile = useIsMobile();
 
-  // Generate random data for demo purposes with proper animation
   useEffect(() => {
     // Simulate loading delay
     const timer = setTimeout(() => {
@@ -2035,45 +2034,51 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Animate odometer values - FIXED VERSION
+  // Odometer effect - changes values every second
   useEffect(() => {
-    if (loadingStats) return; // Don't animate until stats are loaded
-    
-    const intervals = [];
-    const duration = 2000; // 2 seconds animation
-    const steps = 60; // 60 frames for smooth animation
-    const stepDuration = duration / steps;
-    
-    Object.keys(systemStats).forEach((key) => {
-      const target = systemStats[key];
-      const start = 0;
-      let currentStep = 0;
-      
-      const interval = setInterval(() => {
-        currentStep++;
-        
-        // Easing function for smooth animation
-        const t = currentStep / steps;
-        const easedT = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-        
-        const currentValue = Math.round(start + (target - start) * easedT);
-        
-        setOdometerValues(prev => ({
-          ...prev,
-          [key]: currentValue > target ? target : currentValue
-        }));
-        
-        if (currentStep >= steps) {
-          clearInterval(interval);
-        }
-      }, stepDuration);
-      
-      intervals.push(interval);
+    if (loadingStats) return;
+
+    // Function to generate random number within a range
+    const getRandomValue = (key) => {
+      switch(key) {
+        case 'totalStudents':
+          return Math.floor(Math.random() * 91) + 10; // 10-100
+        case 'totalCheckins':
+          return Math.floor(Math.random() * 91) + 10; // 10-100
+        case 'activeDevices':
+          return Math.floor(Math.random() * 6) + 1; // 1-6
+        case 'apiRequests':
+          return Math.floor(Math.random() * 91) + 10; // 10-100
+        default:
+          return 0;
+      }
+    };
+
+    // Initialize with random values immediately
+    const initialValues = {};
+    Object.keys(systemStats).forEach(key => {
+      initialValues[key] = getRandomValue(key);
     });
+    setOdometerValues(initialValues);
 
-    return () => intervals.forEach(interval => clearInterval(interval));
+    // Update values every second
+    const interval = setInterval(() => {
+      setOdometerValues(prev => {
+        const newValues = {};
+        Object.keys(prev).forEach(key => {
+          // 70% chance to change, 30% chance to stay the same
+          if (Math.random() < 0.7) {
+            newValues[key] = getRandomValue(key);
+          } else {
+            newValues[key] = prev[key];
+          }
+        });
+        return newValues;
+      });
+    }, 1000); // Update every 1 second
+
+    return () => clearInterval(interval);
   }, [systemStats, loadingStats]);
-
   const features = [
     {
       icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
