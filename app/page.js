@@ -403,7 +403,7 @@ const dailyData = useMemo(() => {
           initialDimension={{ width: 320, height: 200 }}
         >
           <AreaChart 
-            data={weeklyData.length > 0 ? weeklyData : dailyData}
+            data={weeklyData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
           >
             <CartesianGrid 
