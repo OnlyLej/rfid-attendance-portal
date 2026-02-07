@@ -2585,28 +2585,28 @@ const LoginForm = () => {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {[
                     { 
-                      key: 'students', 
+                      key: 'totalStudents', 
                       label: 'Total Students', 
                       icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
                       description: 'Demo data'
                     },
                     { 
-                      key: 'checkins', 
-                      label: 'Today\'s Check-ins', 
+                      key: 'totalCheckins', 
+                      label: "Today's Check-ins", 
                       icon: <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
                       description: 'Demo data'
                     },
                     { 
-                      key: 'devices', 
+                      key: 'activeDevices', 
                       label: 'Active Readers', 
                       icon: <Wifi className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
                       description: 'Demo data'
                     },
                     { 
-                      key: 'requests', 
+                      key: 'apiRequests', 
                       label: 'API Requests', 
                       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
