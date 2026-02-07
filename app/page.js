@@ -2017,56 +2017,27 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
   const isMobile = useIsMobile();
 
-  // Fetch real system stats from your API
-  const fetchRealStats = async () => {
-    try {
-      setLoadingStats(true);
-      // First try to get from your backend API
-      const response = await fetch('/api/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setSystemStats({
-          totalStudents: data.totalStudents || 0,
-          totalCheckins: data.totalCheckins || 0,
-          activeDevices: data.activeDevices || 0,
-          apiRequests: data.apiRequests || 0
-        });
-      } else {
-        // If API fails, fetch directly from Google Sheets (via your proxy)
-        const sheetsResponse = await fetch('/api/proxy?action=getDashboardStats');
-        if (sheetsResponse.ok) {
-          const sheetsData = await sheetsResponse.json();
-          if (sheetsData.success && sheetsData.stats) {
-            setSystemStats({
-              totalStudents: sheetsData.stats.totalStudents || 0,
-              totalCheckins: sheetsData.stats.totalCheckins || 0,
-              activeDevices: sheetsData.activeDevices || 0,
-              apiRequests: sheetsData.apiRequests || 0
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-      // Don't show dummy data - show zeros
-      setSystemStats({
-        totalStudents: 0,
-        totalCheckins: 0,
-        activeDevices: 0,
-        apiRequests: 0
-      });
-    } finally {
+  // Generate random data in the 10-100 range for demo purposes
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => {
+      const randomStats = {
+        totalStudents: Math.floor(Math.random() * 91) + 10, // 10-100
+        totalCheckins: Math.floor(Math.random() * 91) + 10, // 10-100
+        activeDevices: Math.floor(Math.random() * 6) + 1, // 1-6
+        apiRequests: Math.floor(Math.random() * 91) + 10 // 10-100
+      };
+      
+      setSystemStats(randomStats);
       setLoadingStats(false);
-    }
-  };
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
-    
-    // Fetch real stats
-    fetchRealStats();
-    
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -2096,40 +2067,39 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => intervals.forEach(interval => clearInterval(interval));
   }, [systemStats]);
 
-  // Features array remains the same...
   const features = [
     {
       icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
       title: "ESP8266 Hardware Integration",
       description: "NodeMCU with MFRC522 RFID reader for instant card detection",
       color: "from-blue-500 to-cyan-500",
-      details: "13.56MHz frequency • ISO 14443A compliant • <100ms response time • OLED display",
+      details: "13.56MHz frequency • <100ms response • OLED display • Audio feedback",
       animation: "animate-pulse",
       highlight: true
     },
     {
       icon: <ShieldCheck className="w-8 h-8 md:w-10 md:h-10" />,
       title: "Multi-Layer Security",
-      description: "Device API keys + Session tokens + Role-based access control",
+      description: "Device API keys + Session tokens + Role-based access",
       color: "from-purple-500 to-pink-500",
-      details: "Separate device/user authentication • SHA-256 password hashing • HTTPS only • 30-min session timeout",
+      details: "Separate authentication • SHA-256 hashing • HTTPS • 30-min timeout",
       animation: "animate-pulse",
       highlight: true
     },
     {
       icon: <Database className="w-8 h-8 md:w-10 md:h-10" />,
       title: "Google Sheets Backend",
-      description: "Google Apps Script API server with real-time data sync",
+      description: "Google Apps Script API with real-time data sync",
       color: "from-green-500 to-emerald-500",
-      details: "Automatic timestamping • Real-time Google Sheets updates • CSV export • Complete audit trail",
+      details: "Automatic logging • Real-time updates • CSV export • Audit trail",
       animation: "animate-pulse"
     },
     {
       icon: <BarChart3 className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Real-time Analytics Dashboard",
+      title: "Real-time Analytics",
       description: "Interactive charts and live attendance monitoring",
       color: "from-red-500 to-orange-500",
-      details: "4 visualization types • Weekly trends • Class performance • Attendance patterns",
+      details: "Weekly trends • Class performance • Attendance patterns • Real-time",
       animation: "animate-pulse"
     },
     {
@@ -2137,7 +2107,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       title: "Dual-Role Portal",
       description: "Separate interfaces for Teachers and Parents",
       color: "from-indigo-500 to-blue-500",
-      details: "Teacher dashboard • Parent-only view • Role-based data filtering • Secure access",
+      details: "Teacher dashboard • Parent-only view • Role-based filtering",
       animation: "animate-pulse"
     },
     {
@@ -2145,7 +2115,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       title: "Automated IN/OUT Logic",
       description: "Smart toggle system for attendance tracking",
       color: "from-amber-500 to-yellow-500",
-      details: "First scan = IN • Second scan = OUT • Automatic status calculation • Real-time updates",
+      details: "First scan = IN • Second scan = OUT • Auto calculation",
       animation: "animate-pulse"
     },
     {
@@ -2153,15 +2123,15 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       title: "Advanced Data Export",
       description: "Filtered CSV reports with comprehensive data",
       color: "from-violet-500 to-purple-500",
-      details: "Date range filters • Status filters • Class filters • Real-time search • CSV export",
+      details: "Date filters • Status filters • Class filters • Search",
       animation: "animate-pulse"
     },
     {
       icon: <Smartphone className="w-8 h-8 md:w-10 md:h-10" />,
-      title: "Fully Responsive Design",
-      description: "Mobile-first interface for all device types",
+      title: "Fully Responsive",
+      description: "Mobile-first interface for all devices",
       color: "from-rose-500 to-pink-500",
-      details: "Mobile optimized • Tablet support • Desktop interface • Touch-friendly • Dark mode",
+      details: "Mobile optimized • Tablet support • Desktop • Touch-friendly",
       animation: "animate-pulse"
     }
   ];
@@ -2186,8 +2156,8 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       description: "API server and data processing",
       components: [
         "Google Apps Script API Server",
-        "Google Sheets Database (4 sheets)",
-        "SHA-256 Authentication System",
+        "Google Sheets Database",
+        "SHA-256 Authentication",
         "Session Token Management",
         "Role-Based Access Control"
       ],
@@ -2199,10 +2169,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       description: "Web interface and user interaction",
       components: [
         "Next.js 14 Web Application",
-        "Vercel Edge Network Hosting",
+        "Vercel Edge Network",
         "Recharts for Analytics",
-        "Real-time Data Updates",
-        "Responsive Mobile Design"
+        "Real-time Updates",
+        "Mobile Design"
       ],
       color: "border-green-500/30 bg-gradient-to-br from-green-500/10 to-emerald-500/10"
     }
@@ -2210,33 +2180,30 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
   const technicalSpecs = [
     {
-      category: "Hardware Specifications",
+      category: "Hardware",
       specs: [
         { label: "RFID Frequency", value: "13.56 MHz" },
         { label: "Reading Range", value: "5-10cm" },
         { label: "Response Time", value: "< 100ms" },
-        { label: "Power Supply", value: "5V DC / USB" },
-        { label: "WiFi Protocol", value: "802.11 b/g/n" }
+        { label: "Power Supply", value: "5V USB" }
       ]
     },
     {
-      category: "Software Stack",
+      category: "Software",
       specs: [
-        { label: "Frontend Framework", value: "Next.js 14" },
-        { label: "Backend Platform", value: "Google Apps Script" },
+        { label: "Frontend", value: "Next.js 14" },
+        { label: "Backend", value: "Google Apps Script" },
         { label: "Database", value: "Google Sheets" },
-        { label: "Hosting", value: "Vercel Edge Network" },
-        { label: "API Proxy", value: "Vercel Serverless Functions" }
+        { label: "Hosting", value: "Vercel" }
       ]
     },
     {
-      category: "Security Features",
+      category: "Security",
       specs: [
-        { label: "Authentication", value: "Session Tokens + API Keys" },
-        { label: "Encryption", value: "HTTPS/TLS 1.3" },
+        { label: "Authentication", value: "Session Tokens" },
+        { label: "Encryption", value: "HTTPS/TLS" },
         { label: "Password Hashing", value: "SHA-256" },
-        { label: "Session Timeout", value: "30 minutes" },
-        { label: "Role-Based Access", value: "Teacher/Parent" }
+        { label: "Session Timeout", value: "30 minutes" }
       ]
     }
   ];
@@ -2247,28 +2214,28 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       title: "Student Taps RFID Card",
       description: "Card is scanned at entrance",
       icon: "📱",
-      details: "ESP8266 detects card UID and sends to Google Apps Script"
+      details: "ESP8266 detects card and sends to server"
     },
     {
       step: 2,
       title: "Server Processing",
       description: "Backend determines IN/OUT status",
       icon: "⚡",
-      details: "Checks last status, logs attendance in Google Sheets"
+      details: "Checks last status, logs to Google Sheets"
     },
     {
       step: 3,
-      title: "Real-time Dashboard Update",
-      description: "All portals update instantly",
+      title: "Real-time Update",
+      description: "Dashboards update instantly",
       icon: "🔄",
-      details: "Teachers and parents see live status changes"
+      details: "Teachers and parents see live changes"
     },
     {
       step: 4,
       title: "Data Analytics",
       description: "Automatic reporting and insights",
       icon: "📊",
-      details: "Charts update, stats recalculate, reports available"
+      details: "Charts update, stats recalculate"
     }
   ];
 
@@ -2283,9 +2250,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       "Advanced search and filtering",
       "Mobile responsive web portal",
       "Session-based authentication",
-      "Live status updates",
-      "Google Sheets backend",
-      "Complete audit trail"
+      "Live status updates"
     ],
     whatItDoesnt: [
       "Facial recognition",
@@ -2295,7 +2260,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       "Native mobile applications",
       "Offline web access",
       "Multi-school management",
-      "Custom report templates",
       "Video surveillance",
       "Biometric data collection"
     ]
@@ -2310,13 +2274,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
   const LoginForm = () => (
     <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
-      <button
-        onClick={toggleTheme}
-        className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
-      >
-        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
-
       <div className="flex justify-center mb-6">
         <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
           <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
@@ -2324,10 +2281,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
       </div>
       
       <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-        Secure Portal Login
+        System Login
       </h1>
       <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-        Sign in to access your role-based dashboard
+        Sign in to access your dashboard
       </p>
 
       <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
@@ -2396,8 +2353,8 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              <ShieldCheck size={20} />
-              Authenticate via Google Apps Script
+              <Shield size={20} />
+              Sign In
             </span>
           )}
           {(loggingIn || localLoginState.isSubmitting) && (
@@ -2408,10 +2365,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
 
       <div className="mt-6 text-center">
         <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'} mb-2`}>
-          🔒 Session-based authentication via Google Apps Script
-        </p>
-        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-          ⏱️ Auto-logout after 30 minutes of inactivity
+          🔒 Secure session-based authentication
         </p>
       </div>
 
@@ -2424,7 +2378,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
               <Users size={14} className="text-blue-500" />
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Teacher</span>
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Full dashboard access</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Full dashboard</p>
           </div>
           <div className={`p-2 rounded-lg ${darkMode ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-200'}`}>
             <div className="flex items-center gap-2">
@@ -2442,7 +2396,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     <div className="min-h-screen overflow-x-hidden">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Gradient Orbs */}
         <div className={`absolute -top-40 -left-40 w-80 h-80 ${darkMode ? 'bg-blue-500/10' : 'bg-blue-400/20'} rounded-full blur-3xl animate-pulse`}></div>
         <div className={`absolute -bottom-40 -right-40 w-80 h-80 ${darkMode ? 'bg-purple-500/10' : 'bg-purple-400/20'} rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }}></div>
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 ${darkMode ? 'bg-green-500/5' : 'bg-green-400/10'} rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '4s' }}></div>
@@ -2464,9 +2417,9 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                 <Radio className="w-6 h-6 text-white" />
               </div>
               <div>
-                <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
+                <span className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-0.5`}>
-                  ESP8266 • Google Apps Script • Next.js
+                  Smart Attendance System
                 </div>
               </div>
             </div>
@@ -2482,7 +2435,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                   document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                System Overview
+                Overview
               </a>
               <a 
                 href="#features" 
@@ -2536,7 +2489,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                   document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                Portal Login
+                Sign In
               </a>
             </div>
           </div>
@@ -2549,7 +2502,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
           <div className="text-center">
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 backdrop-blur-sm px-4 py-2 rounded-full mb-8 animate-pulse border border-blue-500/20">
               <Sparkles className="w-4 h-4 text-blue-500" />
-              <span className={`text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Complete End-to-End System</span>
+              <span className={`text-sm font-medium ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Complete Attendance System</span>
             </div>
             
             <h1 className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'} leading-tight`}>
@@ -2561,8 +2514,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             
             <p className={`text-lg sm:text-xl md:text-2xl ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-4xl mx-auto mb-8 leading-relaxed`}>
               A complete hardware-to-software solution combining ESP8266 RFID readers, 
-              Google Apps Script backend, and modern Next.js web portal for real-time 
-              attendance tracking with enterprise-grade security.
+              Google Apps Script backend, and modern web portal for real-time attendance tracking.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -2575,7 +2527,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                   document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                <span>Access Teacher/Parent Portal</span>
+                <span>Sign In to Dashboard</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
               <a
@@ -2587,29 +2539,29 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                   document.getElementById('architecture')?.scrollIntoView({ behavior: 'smooth' });
                 }}
               >
-                <span>View Technical Architecture</span>
+                <span>View Architecture</span>
                 <Code className="w-5 h-5 group-hover:scale-110 transition-transform" />
               </a>
             </div>
           </div>
 
-          {/* System Stats - Real Data Display */}
+          {/* System Stats - Random Data Display */}
           <div className="mt-16">
             <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 shadow-2xl overflow-hidden animate-fade-in-up`}>
               <div className={`p-4 sm:p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h2 className={`text-xl sm:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Live System Statistics
+                      System Overview
                     </h2>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
-                      Powered by Google Sheets backend with real-time data sync
+                      Demo data (sign in for live statistics)
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className={`w-2 h-2 rounded-full ${systemStats.apiRequests > 0 ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
                     <span className={`text-sm ${systemStats.apiRequests > 0 ? (darkMode ? 'text-green-400' : 'text-green-600') : (darkMode ? 'text-gray-400' : 'text-gray-500')}`}>
-                      {systemStats.apiRequests > 0 ? 'System Active' : 'Awaiting Data'}
+                      {systemStats.apiRequests > 0 ? 'Demo Active' : 'Loading...'}
                     </span>
                   </div>
                 </div>
@@ -2623,28 +2575,28 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                       label: 'Total Students', 
                       icon: <Users className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
-                      description: 'Students in database'
+                      description: 'Demo data'
                     },
                     { 
                       key: 'checkins', 
                       label: 'Today\'s Check-ins', 
                       icon: <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
-                      description: 'Attendance records today'
+                      description: 'Demo data'
                     },
                     { 
                       key: 'devices', 
                       label: 'Active Readers', 
                       icon: <Wifi className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
-                      description: 'ESP8266 devices online'
+                      description: 'Demo data'
                     },
                     { 
                       key: 'requests', 
                       label: 'API Requests', 
                       icon: <Database className="w-5 h-5 sm:w-6 sm:h-6" />,
                       suffix: '',
-                      description: 'Total requests processed'
+                      description: 'Demo data'
                     }
                   ].map((stat, index) => (
                     <div 
@@ -2725,11 +2677,11 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               Complete
               <span className="block bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                Feature Ecosystem
+                Feature Set
               </span>
             </h2>
             <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              Everything you need for modern, secure attendance tracking in one integrated solution
+              Everything you need for modern, secure attendance tracking
             </p>
           </div>
 
@@ -2782,11 +2734,11 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
             <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               Three-Layer
               <span className="block bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                System Architecture
+                Architecture
               </span>
             </h2>
             <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} max-w-3xl mx-auto`}>
-              Hardware, backend, and frontend working seamlessly with secure data flow
+              Hardware, backend, and frontend working seamlessly together
             </p>
           </div>
 
@@ -2921,18 +2873,18 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
         </div>
       </section>
 
-      {/* Final CTA */}
+      {/* Final CTA - Simplified */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
-          <div className={`backdrop-blur-xl ${darkMode ? 'bg-gradient-to-r from-gray-800/40 via-gray-900/40 to-gray-800/40 border-gray-700' : 'bg-gradient-to-r from-white/40 via-blue-50/40 to-white/40 border-gray-200'} rounded-2xl border-2 p-8 md:p-12 relative overflow-hidden`}>
+          <div className={`backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-gray-200'} rounded-2xl border-2 p-8 md:p-12 relative overflow-hidden`}>
             <div className="relative z-10">
               <h2 className={`text-3xl sm:text-4xl md:text-5xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Ready to Deploy Your Attendance System?
+                Start Tracking Attendance
               </h2>
               
               <p className={`text-lg sm:text-xl mb-8 max-w-2xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Experience the complete RFID solution with ESP8266 hardware, Google Sheets backend, 
-                and modern web portal—all with enterprise-grade security and real-time tracking.
+                Sign in to access the complete RFID attendance system with real-time tracking, 
+                detailed analytics, and secure role-based access.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -2945,20 +2897,8 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                     document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
                   }}
                 >
-                  <span>Access Teacher/Parent Portal</span>
+                  <span>Sign In Now</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </a>
-                <a
-                  href="#overview"
-                  className="group px-8 py-4 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all duration-300 hover:scale-105 flex items-center justify-center space-x-2"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveSection('overview');
-                    document.getElementById('overview')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <span>View System Details</span>
-                  <Info className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </a>
               </div>
             </div>
@@ -2966,7 +2906,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - Simplified */}
       <footer className={`py-8 px-4 sm:px-6 lg:px-8 ${darkMode ? 'bg-gray-900/80 border-t border-gray-800' : 'bg-white/80 border-t border-gray-200'}`}>
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
@@ -2975,9 +2915,9 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                 <Radio className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance System</span>
+                <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
                 <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  ESP8266 • Google Apps Script • Next.js
+                  Complete Attendance System
                 </div>
               </div>
             </div>
@@ -2992,14 +2932,11 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
               <a href="#architecture" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
                 Architecture
               </a>
-              <a href="#login-section" className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-                Login
-              </a>
             </div>
             
             <div className="mt-6 md:mt-0">
               <div className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                © {new Date().getFullYear()} Complete RFID Attendance System
+                © {new Date().getFullYear()} RFID Attendance System
               </div>
             </div>
           </div>
@@ -3045,27 +2982,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
                             linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
         }
         
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-          .text-balance {
-            text-wrap: balance;
-          }
-          
-          /* Touch-friendly tap targets */
-          button, 
-          a, 
-          [role="button"] {
-            min-height: 44px;
-            min-width: 44px;
-          }
-        }
-        
-        /* Prevent horizontal overflow */
-        * {
-          max-width: 100%;
-        }
-        
-        /* Smooth scrolling for anchor links */
         html {
           scroll-behavior: smooth;
         }
