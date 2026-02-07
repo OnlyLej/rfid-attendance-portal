@@ -8,7 +8,7 @@ import {
   Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon, 
   Radio, Database, Wifi, Smartphone, Zap, CheckCircle,
   ArrowRight, Star, Sparkles, Cpu, Server, Globe, ShieldCheck,
-  ExternalLink, Code, Key, Lock, ChevronRight
+  ExternalLink, Code, Key
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
