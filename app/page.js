@@ -2041,8 +2041,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
- // Replace the odometer animation useEffect with this:
-
+// Replace the odometer animation useEffect with this:
 useEffect(() => {
   if (loadingStats) return;
 
@@ -2064,14 +2063,12 @@ useEffect(() => {
 
   // Initialize with random values immediately
   const initialValues = {};
-  Object.keys(odometerValues).forEach(key => {
-    initialValues[key] = getRandomValue(key);
-  });
-  
-  // Convert to digit arrays
   const initialDigitValues = {};
-  Object.keys(initialValues).forEach(key => {
-    const value = initialValues[key];
+  
+  Object.keys(odometerValues).forEach(key => {
+    const value = getRandomValue(key);
+    initialValues[key] = value;
+    
     if (key === 'activeDevices') {
       initialDigitValues[key] = [value]; // Single digit for devices
     } else {
@@ -2088,7 +2085,7 @@ useEffect(() => {
   setOdometerValues(initialDigitValues);
   setDisplayValues(initialValues);
 
-  // Set new random target values every 1 second
+  // Set new random target values every 1.5 seconds
   const interval = setInterval(() => {
     setDisplayValues(prev => {
       const newValues = {};
@@ -2097,7 +2094,7 @@ useEffect(() => {
       });
       return newValues;
     });
-  }, 1000); // Change target every 1 second
+  }, 1500); // Change target every 1.5 seconds
 
   return () => clearInterval(interval);
 }, [loadingStats]);
@@ -2126,13 +2123,15 @@ useEffect(() => {
         // Animate each digit towards target
         const animatedDigits = [...currentDigits];
         for (let i = 0; i < animatedDigits.length; i++) {
-          const targetDigit = targetDigits[i];
-          if (animatedDigits[i] !== targetDigit) {
-            // Roll up or down by 1
-            if (animatedDigits[i] < targetDigit) {
-              animatedDigits[i] = (animatedDigits[i] + 1) % 10;
-            } else {
-              animatedDigits[i] = (animatedDigits[i] + 9) % 10; // Roll down
+          const targetDigit = targetDigits[i] || 0;
+          const currentDigit = animatedDigits[i] || 0;
+          
+          if (currentDigit !== targetDigit) {
+            // Roll up or down by 1 with smooth transition
+            if (currentDigit < targetDigit) {
+              animatedDigits[i] = (currentDigit + 1) % 10;
+            } else if (currentDigit > targetDigit) {
+              animatedDigits[i] = (currentDigit + 9) % 10; // Roll down
             }
           }
         }
@@ -2149,8 +2148,7 @@ useEffect(() => {
 
   return () => clearInterval(animationInterval);
 }, [displayValues, loadingStats]);
-
-  // Rest of the component remains the same...
+  
   const features = [
     {
       icon: <Radio className="w-8 h-8 md:w-10 md:h-10" />,
@@ -2349,11 +2347,7 @@ useEffect(() => {
     ]
   };
 
-// Add useRef to the imports at the top
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-
-// Then here's the fixed LoginForm component:
-const LoginForm = () => {
+const LoginForm = ({ darkMode, onLogin, loggingIn, loginError }) => {
   const [localUsername, setLocalUsername] = useState('');
   const [localPassword, setLocalPassword] = useState('');
   const [localShowPassword, setLocalShowPassword] = useState(false);
@@ -2372,7 +2366,7 @@ const LoginForm = () => {
     <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transition-all duration-300 animate-fade-in-up`}>
       <div className="flex justify-center mb-6">
         <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
-          <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
+          <Key className={`w-10 h-10 ${darkMode ? 'text-blue-400' : 'text-white'}`} strokeWidth={1.5} />
         </div>
       </div>
       
@@ -2760,7 +2754,12 @@ const LoginForm = () => {
       {/* Login Section */}
       <section id="login-section" className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md mx-auto">
-          <LoginForm />
+          <LoginForm 
+            darkMode={darkMode}
+            onLogin={onLogin}
+            loggingIn={loggingIn}
+            loginError={loginError}
+          />
         </div>
       </section>
 
