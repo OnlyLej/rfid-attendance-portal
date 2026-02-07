@@ -387,7 +387,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <span className="truncate">Weekly Trend</span>
             </h3>
             <div style={{ height: chartHeight, width: '100%' }}>
-              {weeklyData && weeklyData.length > 0 ? (
+              {weeklyData && weeklyData.length > 0 && weeklyData.some(day => day.present > 0 || day.absent > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
                     data={weeklyData}
@@ -2280,12 +2280,16 @@ export default function AttendancePortal() {
     try {
       const startDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const endDate = new Date().toISOString().split('T')[0];
-
+  
+      console.log('📊 Fetching data with dates:', { startDate, endDate });
+      
       const dashboardData = await secureApiCall('getDashboardStats', {
         startDate,
         endDate
       });
-
+  
+      console.log('📊 Raw API Response:', dashboardData);
+      
       if (dashboardData.success) {
         const fetchedStudents = dashboardData.students || [];
         const fetchedLogs = dashboardData.logs || [];
@@ -2295,16 +2299,27 @@ export default function AttendancePortal() {
           absentToday: 0,
           attendanceRate: 0
         };
-
+  
+        console.log('📊 Fetched Data:', {
+          studentsCount: fetchedStudents.length,
+          logsCount: fetchedLogs.length,
+          stats: fetchedStats,
+          sampleLog: fetchedLogs[0]
+        });
+  
+        // Sort logs by timestamp
         const sortedLogs = fetchedLogs.sort((a, b) => 
           new Date(b.timestamp) - new Date(a.timestamp)
         );
-
+  
         setStudents(fetchedStudents);
         setLogs(sortedLogs);
         setStats(fetchedStats);
         
+        // Calculate weekly data
         const calculatedWeeklyData = calculateWeeklyData(fetchedLogs, fetchedStudents);
+        console.log('📊 Calculated Weekly Data:', calculatedWeeklyData);
+        
         setWeeklyData(calculatedWeeklyData);
         
         if (userType === 'teacher') {
@@ -2339,120 +2354,73 @@ export default function AttendancePortal() {
     }
   };
 
-  const calculateWeeklyData = (logData, studentsList) => {
+ const calculateWeeklyData = (logData, studentsList) => {
+    console.log('📊 Calculating weekly data:', {
+      logCount: logData?.length,
+      studentCount: studentsList?.length
+    });
+  
+    // If no data, return empty array (not weeks of zeros)
     if (!logData || logData.length === 0 || !studentsList || studentsList.length === 0) {
-      const weeks = [];
+      console.log('📊 No data, returning empty array');
+      return [];
+    }
+  
+    try {
+      // Create array for last 7 days (not weeks)
+      const last7Days = [];
       const today = new Date();
-      for (let i = 7; i >= 0; i--) {
+      
+      // Get data for each of the last 7 days
+      for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
-        date.setDate(today.getDate() - (i * 7));
+        date.setDate(today.getDate() - i);
+        date.setHours(0, 0, 0, 0);
         
-        weeks.push({
-          name: `Week ${7-i+1}`,
-          present: 0,
-          absent: 0,
-          attendanceRate: 0
+        const dateString = date.toISOString().split('T')[0];
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        
+        // Filter logs for this specific date
+        const dayLogs = logData.filter(log => {
+          if (!log.timestamp) return false;
+          
+          try {
+            const logDate = new Date(log.timestamp);
+            const logDateString = logDate.toISOString().split('T')[0];
+            return logDateString === dateString;
+          } catch (e) {
+            return false;
+          }
+        });
+        
+        // Count unique students who were present (IN) on this day
+        const presentStudents = new Set();
+        dayLogs.forEach(log => {
+          if (log.status === 'IN' && log.studentId) {
+            presentStudents.add(log.studentId);
+          }
+        });
+        
+        const presentCount = presentStudents.size;
+        const totalStudents = studentsList.length;
+        const absentCount = Math.max(0, totalStudents - presentCount);
+        
+        last7Days.push({
+          name: dayName,
+          present: presentCount,
+          absent: absentCount,
+          attendanceRate: totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0,
+          date: dateString
         });
       }
-      return weeks;
+      
+      console.log('📊 Calculated last 7 days data:', last7Days);
+      return last7Days;
+      
+    } catch (error) {
+      console.error('❌ Error calculating weekly data:', error);
+      return [];
     }
-    
-    const weeklyMap = {};
-    const studentIdsInLogs = [...new Set(logData.map(log => log.studentId))];
-    
-    logData.forEach(log => {
-      if (!log.timestamp || !log.studentId) return;
-      
-      try {
-        const date = new Date(log.timestamp);
-        const weekStart = new Date(date);
-        const dayOfWeek = date.getDay();
-        const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        weekStart.setDate(date.getDate() + diffToMonday);
-        weekStart.setHours(0, 0, 0, 0);
-        
-        const weekKey = weekStart.toISOString().split('T')[0];
-        
-        if (!weeklyMap[weekKey]) {
-          const weekLabel = `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-          weeklyMap[weekKey] = {
-            name: weekLabel,
-            date: new Date(weekStart),
-            dailyAttendance: {}
-          };
-        }
-        
-        const logDate = date.toISOString().split('T')[0];
-        
-        if (!weeklyMap[weekKey].dailyAttendance[logDate]) {
-          weeklyMap[weekKey].dailyAttendance[logDate] = {
-            students: new Set(),
-            present: new Set()
-          };
-        }
-        
-        weeklyMap[weekKey].dailyAttendance[logDate].students.add(log.studentId);
-        
-        if (log.status === 'IN') {
-          weeklyMap[weekKey].dailyAttendance[logDate].present.add(log.studentId);
-        }
-        
-      } catch (error) {
-        console.error('Error processing log:', error, log);
-      }
-    });
-    
-    const weeklyArray = Object.keys(weeklyMap).map(weekKey => {
-      const week = weeklyMap[weekKey];
-      const dailyAttendance = week.dailyAttendance;
-      
-      let totalStudentDays = 0;
-      let presentStudentDays = 0;
-      
-      Object.values(dailyAttendance).forEach(day => {
-        totalStudentDays += day.students.size;
-        presentStudentDays += day.present.size;
-      });
-      
-      const attendanceRate = totalStudentDays > 0 
-        ? Math.round((presentStudentDays / totalStudentDays) * 100) 
-        : 0;
-      
-      const estimatedPresent = Math.round(presentStudentDays / 5);
-      const estimatedAbsent = Math.round((totalStudentDays - presentStudentDays) / 5);
-      
-      return {
-        name: week.name,
-        present: estimatedPresent,
-        absent: estimatedAbsent,
-        attendanceRate: attendanceRate,
-        date: week.date
-      };
-    });
-    
-    const sortedWeeks = weeklyArray
-      .sort((a, b) => b.date - a.date)
-      .slice(0, 8)
-      .reverse();
-    
-    if (sortedWeeks.length === 0) {
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() + diffToMonday);
-      weekStart.setHours(0, 0, 0, 0);
-      
-      sortedWeeks.push({
-        name: `Week of ${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
-        present: 0,
-        absent: 0,
-        attendanceRate: 0,
-        date: weekStart
-      });
-    }
-    
-    return sortedWeeks;
   };
 
   const getStudentStatus = (studentId) => {
