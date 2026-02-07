@@ -239,10 +239,6 @@ const dailyData = useMemo(() => {
     });
   }
   
-  console.log('📊 Final Daily Data:', days);
-  return days;
-}, [logs, students, isMobile]);
-  
   console.log('📊 Daily Data calculated:', days);
   return days;
 }, [logs, students, isMobile]);
