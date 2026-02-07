@@ -159,89 +159,108 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
   const isMobile = useIsMobile();
   
   // Calculate daily data for the last 7 days - FIXED VERSION
-// Calculate daily data for the last 7 days - FIXED VERSION
-const dailyData = useMemo(() => {
-  const days = [];
-  const today = new Date();
-  
-  // Log debug info
-  console.log('📊 Raw logs for daily calculation:', {
-    totalLogs: logs?.length,
-    sampleLogs: logs?.slice(0, 3),
-    totalStudents: students?.length
-  });
+  const dailyData = useMemo(() => {
+    const days = [];
+    const today = new Date();
+    
+    // Log debug info
+    console.log('📊 Raw logs for daily calculation:', {
+      totalLogs: logs?.length || 0,
+      sampleLogs: logs?.slice(0, 3),
+      totalStudents: students?.length || 0
+    });
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    date.setHours(0, 0, 0, 0);
-    
-    const nextDay = new Date(date);
-    nextDay.setDate(date.getDate() + 1);
-    
-    const dateString = date.toISOString().split('T')[0];
-    const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
-    
-    console.log(`📊 Processing ${dateString} (${dayName})`);
-    
-    // Get logs for this specific day
-    const dayLogs = logs.filter(log => {
-      if (!log.timestamp) {
-        console.log('⚠️ Log missing timestamp:', log);
-        return false;
+    // Safety check - return empty structure if no data
+    if (!logs || logs.length === 0 || !students || students.length === 0) {
+      console.log('⚠️ No data available for daily calculation');
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
+        days.push({
+          name: dayName,
+          fullDate: date.toISOString().split('T')[0],
+          present: 0,
+          absent: 0,
+          attendanceRate: 0
+        });
       }
+      return days;
+    }
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0);
       
-      try {
-        const logDate = new Date(log.timestamp);
-        const isSameDay = logDate >= date && logDate < nextDay;
-        
-        if (isSameDay) {
-          console.log(`✅ Found log for ${dateString}:`, {
-            studentId: log.studentId,
-            status: log.status,
-            timestamp: log.timestamp
-          });
+      const dateString = date.toISOString().split('T')[0];
+      const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
+      
+      console.log(`📊 Processing ${dateString} (${dayName})`);
+      
+      // Get logs for this specific day - IMPROVED FILTERING
+      const dayLogs = logs.filter(log => {
+        if (!log.timestamp) {
+          console.log('⚠️ Log missing timestamp:', log);
+          return false;
         }
         
-        return isSameDay;
-      } catch (e) {
-        console.error('❌ Error parsing log date:', log.timestamp, e);
-        return false;
-      }
-    });
+        try {
+          // Parse timestamp and normalize to date string
+          const logDate = new Date(log.timestamp);
+          const logDateString = logDate.toISOString().split('T')[0];
+          
+          // Simple string comparison is more reliable
+          const isSameDay = logDateString === dateString;
+          
+          if (isSameDay) {
+            console.log(`✅ Found log for ${dateString}:`, {
+              studentId: log.studentId,
+              status: log.status,
+              timestamp: log.timestamp
+            });
+          }
+          
+          return isSameDay;
+        } catch (e) {
+          console.error('❌ Error parsing log date:', log.timestamp, e);
+          return false;
+        }
+      });
+      
+      console.log(`📊 ${dayName}: found ${dayLogs.length} logs`);
+      
+      // Count unique students who checked IN
+      const presentStudents = new Set();
+      dayLogs.forEach(log => {
+        if (log.status === 'IN' && log.studentId) {
+          presentStudents.add(log.studentId);
+        }
+      });
+      
+      const present = presentStudents.size;
+      const absent = Math.max(0, students.length - present);
+      
+      console.log(`📊 ${dayName} results:`, {
+        present,
+        absent,
+        totalStudents: students.length,
+        presentStudents: Array.from(presentStudents)
+      });
+      
+      days.push({
+        name: dayName,
+        fullDate: dateString,
+        present,
+        absent,
+        attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
+      });
+    }
     
-    console.log(`📊 ${dayName}: found ${dayLogs.length} logs`);
-    
-    // Count unique students who checked IN
-    const presentStudents = new Set();
-    dayLogs.forEach(log => {
-      if (log.status === 'IN' && log.studentId) {
-        presentStudents.add(log.studentId);
-      }
-    });
-    
-    const present = presentStudents.size;
-    const absent = Math.max(0, students.length - present);
-    
-    console.log(`📊 ${dayName} results:`, {
-      present,
-      absent,
-      totalStudents: students.length,
-      presentStudents: Array.from(presentStudents)
-    });
-    
-    days.push({
-      name: dayName,
-      fullDate: dateString,
-      present,
-      absent,
-      attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
-    });
-  }
-  
-  console.log('📊 Daily Data calculated:', days);
-  return days;
-}, [logs, students, isMobile]);
+    console.log('📊 Daily Data calculated:', days);
+    return days;
+  }, [logs, students, isMobile]);
+
   // Calculate attendance by time of day
   const hourlyData = useMemo(() => {
     const hours = Array.from({ length: 12 }, (_, i) => {
@@ -252,14 +271,20 @@ const dailyData = useMemo(() => {
       };
     });
     
+    if (!logs || logs.length === 0) return hours;
+    
     logs.forEach(log => {
       if (log.status === 'IN' && log.timestamp) {
-        const hour = new Date(log.timestamp).getHours();
-        if (hour >= 7 && hour <= 18) {
-          const index = hour - 7;
-          if (hours[index]) {
-            hours[index].count++;
+        try {
+          const hour = new Date(log.timestamp).getHours();
+          if (hour >= 7 && hour <= 18) {
+            const index = hour - 7;
+            if (hours[index]) {
+              hours[index].count++;
+            }
           }
+        } catch (e) {
+          console.error('Error parsing timestamp for hourly data:', e);
         }
       }
     });
@@ -283,9 +308,13 @@ const dailyData = useMemo(() => {
       // Get logs for this month
       const monthLogs = logs.filter(log => {
         if (!log.timestamp) return false;
-        const logDate = new Date(log.timestamp);
-        return logDate.getMonth() === date.getMonth() && 
-               logDate.getFullYear() === date.getFullYear();
+        try {
+          const logDate = new Date(log.timestamp);
+          return logDate.getMonth() === date.getMonth() && 
+                 logDate.getFullYear() === date.getFullYear();
+        } catch (e) {
+          return false;
+        }
       });
       
       // Count unique days with attendance
@@ -294,9 +323,13 @@ const dailyData = useMemo(() => {
       
       monthLogs.forEach(log => {
         if (log.status === 'IN' && log.timestamp) {
-          const logDate = new Date(log.timestamp).toISOString().split('T')[0];
-          attendanceDays.add(logDate);
-          presentStudents.add(log.studentId);
+          try {
+            const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+            attendanceDays.add(logDate);
+            presentStudents.add(log.studentId);
+          } catch (e) {
+            console.error('Error processing month log:', e);
+          }
         }
       });
       
@@ -321,11 +354,15 @@ const dailyData = useMemo(() => {
     return classes.map(cls => {
       const classStudents = students.filter(s => s.class === cls);
       const today = new Date().toISOString().split('T')[0];
-      const todayLogs = logs.filter(log => 
-        log.class === cls && 
-        log.timestamp?.startsWith(today) && 
-        log.status === 'IN'
-      );
+      const todayLogs = logs.filter(log => {
+        if (!log.timestamp || log.class !== cls) return false;
+        try {
+          const logDateString = new Date(log.timestamp).toISOString().split('T')[0];
+          return logDateString === today && log.status === 'IN';
+        } catch (e) {
+          return false;
+        }
+      });
       
       const presentStudents = new Set();
       todayLogs.forEach(log => {
@@ -353,7 +390,6 @@ const dailyData = useMemo(() => {
 
   // Chart configuration based on screen size
   const chartHeight = isMobile ? 200 : 250;
-  const tickFontSize = isMobile ? 10 : 12;
 
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
@@ -424,305 +460,312 @@ const dailyData = useMemo(() => {
       </div>
 
       {/* Charts Grid */}
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-  
-  {/* Weekly Attendance Trend - FIXED with initialDimension */}
-  <AnimatedCard delay={100}>
-    <div className={`${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/95 border-blue-100 shadow-lg'}'} backdrop-blur-xl p-6 rounded-2xl border shadow-xl`}>
-          <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-            <Activity className="text-blue-500" size={20} />
-            Weekly Attendance Trend
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart 
-                data={weeklyData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        
+        {/* Weekly Attendance Trend */}
+        <AnimatedCard delay={100}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Weekly Attendance Trend</span>
+            </h3>
+            <div style={{ height: '250px', width: '100%' }}>
+              <ResponsiveContainer 
+                width="100%" 
+                height="100%"
+                minHeight={200}
               >
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="name" 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    color: darkMode ? '#ffffff' : '#000000'
-                  }}
-                />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="present" 
-                  name="Present" 
-                  stroke="#10b981" 
-                  fill="#10b981" 
-                  fillOpacity={0.6}
-                  strokeWidth={2}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="absent" 
-                  name="Absent" 
-                  stroke="#ef4444" 
-                  fill="#ef4444" 
-                  fillOpacity={0.6}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+                <AreaChart 
+                  data={weeklyData}
+                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                >
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <YAxis 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      color: darkMode ? '#ffffff' : '#000000',
+                      fontSize: isMobile ? 12 : 14
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="present" 
+                    name="Present" 
+                    stroke="#10b981" 
+                    fill="#10b981" 
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="absent" 
+                    name="Absent" 
+                    stroke="#ef4444" 
+                    fill="#ef4444" 
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
-  </AnimatedCard>
-  
-  {/* Daily Attendance - FIXED with initialDimension */}
-  <AnimatedCard delay={200}>
-    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
-      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-        <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
-        <span className="truncate">Daily Attendance</span>
-      </h3>
-      <div style={{ height: '250px', width: '100%' }}>
-        <ResponsiveContainer 
-          width="100%" 
-          height="100%"
-          initialDimension={{ width: 320, height: 200 }}
-        >
-          <BarChart 
-            data={dailyData}
-            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={darkMode ? '#374151' : '#e5e7eb'} 
-              vertical={false}
-            />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-            />
-            <YAxis 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px', 
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                color: darkMode ? '#ffffff' : '#000000',
-                fontSize: isMobile ? 12 : 14
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-            <Bar 
-              dataKey="present" 
-              name="Present" 
-              fill="#10b981" 
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar 
-              dataKey="absent" 
-              name="Absent" 
-              fill="#ef4444" 
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  </AnimatedCard>
-  
-  {/* Monthly Trend - Only on larger screens */}
-  {!isMobile && (
-    <AnimatedCard delay={300}>
-      <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-        backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-          <TrendingUp className="text-purple-500" size={20} />
-          Monthly Trend
-        </h3>
-        <div style={{ height: '250px', width: '100%' }}>
-          <ResponsiveContainer 
-            width="100%" 
-            height="100%"
-            initialDimension={{ width: 400, height: 200 }}
-          >
-            <LineChart 
-              data={monthlyData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                vertical={false}
-              />
-              <XAxis 
-                dataKey="name" 
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                  border: 'none', 
-                  borderRadius: '12px', 
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  color: darkMode ? '#ffffff' : '#000000'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="attendance" 
-                name="Avg Daily" 
-                stroke="#8b5cf6" 
-                strokeWidth={3} 
-                dot={{ fill: '#8b5cf6', r: 5 }}
-                activeDot={{ r: 8 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </AnimatedCard>
-  )}
+        </AnimatedCard>
+        
+        {/* Daily Attendance */}
+        <AnimatedCard delay={200}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Daily Attendance (Last 7 Days)</span>
+            </h3>
+            <div style={{ height: '250px', width: '100%' }}>
+              <ResponsiveContainer 
+                width="100%" 
+                height="100%"
+                minHeight={200}
+              >
+                <BarChart 
+                  data={dailyData}
+                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                >
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <YAxis 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      color: darkMode ? '#ffffff' : '#000000',
+                      fontSize: isMobile ? 12 : 14
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                  <Bar 
+                    dataKey="present" 
+                    name="Present" 
+                    fill="#10b981" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar 
+                    dataKey="absent" 
+                    name="Absent" 
+                    fill="#ef4444" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </AnimatedCard>
+        
+        {/* Monthly Trend - Only on larger screens */}
+        {!isMobile && (
+          <AnimatedCard delay={300}>
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+              backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
+              <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                <TrendingUp className="text-purple-500" size={20} />
+                Monthly Trend
+              </h3>
+              <div style={{ height: '250px', width: '100%' }}>
+                <ResponsiveContainer 
+                  width="100%" 
+                  height="100%"
+                  minHeight={200}
+                >
+                  <LineChart 
+                    data={monthlyData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000'
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="attendance" 
+                      name="Avg Daily" 
+                      stroke="#8b5cf6" 
+                      strokeWidth={3} 
+                      dot={{ fill: '#8b5cf6', r: 5 }}
+                      activeDot={{ r: 8 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </AnimatedCard>
+        )}
 
-  {/* Attendance by Time - Only on larger screens */}
-  {!isMobile && (
-    <AnimatedCard delay={400}>
-      <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-        backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
-        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-          <Clock className="text-orange-500" size={20} />
-          Check-ins by Time
-        </h3>
-        <div style={{ height: '250px', width: '100%' }}>
-          <ResponsiveContainer 
-            width="100%" 
-            height="100%"
-            initialDimension={{ width: 400, height: 200 }} 
-          >
-            <BarChart 
-              data={hourlyData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-            >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                vertical={false}
-              />
-              <XAxis 
-                dataKey="name" 
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis 
-                stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                  border: 'none', 
-                  borderRadius: '12px', 
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  color: darkMode ? '#ffffff' : '#000000'
-                }}
-              />
-              <Bar 
-                dataKey="count" 
-                name="Check-ins" 
-                fill="#f59e0b" 
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </AnimatedCard>
-  )}
+        {/* Attendance by Time - Only on larger screens */}
+        {!isMobile && (
+          <AnimatedCard delay={400}>
+            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+              backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
+              <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+                <Clock className="text-orange-500" size={20} />
+                Check-ins by Time
+              </h3>
+              <div style={{ height: '250px', width: '100%' }}>
+                <ResponsiveContainer 
+                  width="100%" 
+                  height="100%"
+                  minHeight={200}
+                >
+                  <BarChart 
+                    data={hourlyData}
+                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      name="Check-ins" 
+                      fill="#f59e0b" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </AnimatedCard>
+        )}
 
-  {/* Class Performance - Always show */}
-  <AnimatedCard delay={isMobile ? 300 : 500}>
-    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-      backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
-      <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-        <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
-        <span className="truncate">Class Performance</span>
-      </h3>
-      <div style={{ height: '250px', width: '100%' }}>
-        <ResponsiveContainer 
-          width="100%" 
-          height="100%"
-          initialDimension={{ width: 320, height: 200 }}
-        >
-          <BarChart 
-            data={classComparisonData}
-            margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke={darkMode ? '#374151' : '#e5e7eb'} 
-              vertical={false}
-            />
-            <XAxis 
-              dataKey="name" 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-              angle={isMobile ? -45 : 0}
-              textAnchor={isMobile ? "end" : "middle"}
-              height={isMobile ? 50 : undefined}
-            />
-            <YAxis 
-              stroke={darkMode ? '#9ca3af' : '#6b7280'}
-              domain={[0, 100]}
-              tickFormatter={(value) => `${value}%`}
-              tick={{ fontSize: isMobile ? 10 : 12 }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                border: 'none', 
-                borderRadius: '12px', 
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                color: darkMode ? '#ffffff' : '#000000',
-                fontSize: isMobile ? 12 : 14
-              }}
-              formatter={(value, name, props) => {
-                if (name === 'attendanceRate') {
-                  return [`${value}% (${props.payload.present || 0}/${props.payload.total || 0})`, 'Attendance'];
-                }
-                return [value, name];
-              }}
-            />
-            <Bar 
-              dataKey="attendanceRate" 
-              name="Attendance %" 
-              fill="#6366f1" 
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+        {/* Class Performance - Always show */}
+        <AnimatedCard delay={isMobile ? 300 : 500}>
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
+            <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
+              <span className="truncate">Class Performance</span>
+            </h3>
+            <div style={{ height: '250px', width: '100%' }}>
+              <ResponsiveContainer 
+                width="100%" 
+                height="100%"
+                minHeight={200}
+              >
+                <BarChart 
+                  data={classComparisonData}
+                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                >
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    angle={isMobile ? -45 : 0}
+                    textAnchor={isMobile ? "end" : "middle"}
+                    height={isMobile ? 50 : undefined}
+                  />
+                  <YAxis 
+                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                      border: 'none', 
+                      borderRadius: '12px', 
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      color: darkMode ? '#ffffff' : '#000000',
+                      fontSize: isMobile ? 12 : 14
+                    }}
+                    formatter={(value, name, props) => {
+                      if (name === 'attendanceRate') {
+                        return [`${value}% (${props.payload.present || 0}/${props.payload.total || 0})`, 'Attendance'];
+                      }
+                      return [value, name];
+                    }}
+                  />
+                  <Bar 
+                    dataKey="attendanceRate" 
+                    name="Attendance %" 
+                    fill="#6366f1" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </AnimatedCard>
       </div>
-    </div>
-  </AnimatedCard>
-</div>
 
       {/* Summary Cards - Responsive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -849,6 +892,7 @@ const dailyData = useMemo(() => {
     </div>
   );
 };
+              
 
 // Classroom Monitor Tab Component - Enhanced for mobile
 const ClassroomMonitorTab = ({ 
