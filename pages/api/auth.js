@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   try {
     // Call Google Apps Script authentication endpoint
     const url = `${GOOGLE_SCRIPT_URL}?action=authenticateUser&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-    
+    console.log(url);
     const response = await fetch(url);
     const data = await response.json();
 
