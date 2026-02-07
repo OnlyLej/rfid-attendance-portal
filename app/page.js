@@ -384,10 +384,10 @@ const dailyData = useMemo(() => {
           </AnimatedCard>
         ))}
       </div>
-                      
-      {/* Charts Grid */}
+{/* Charts Grid */}
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-  {/* Weekly Attendance Trend */}
+  
+  {/* Weekly Attendance Trend - FIXED with proper dimensions */}
   <AnimatedCard delay={100}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
@@ -395,8 +395,8 @@ const dailyData = useMemo(() => {
         <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Weekly Trend</span>
       </h3>
-      <div style={{ height: 250, width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64 min-h-[250px] w-full"> {/* FIXED: Added proper height and min-height */}
+        <ResponsiveContainer width="100%" height="100%" minHeight={250}> {/* FIXED: Added minHeight */}
           <AreaChart 
             data={weeklyData.length > 0 ? weeklyData : dailyData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
@@ -450,7 +450,7 @@ const dailyData = useMemo(() => {
     </div>
   </AnimatedCard>
   
-  {/* Daily Attendance */}
+  {/* Daily Attendance - FIXED with proper dimensions */}
   <AnimatedCard delay={200}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
@@ -458,8 +458,8 @@ const dailyData = useMemo(() => {
         <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Daily Attendance</span>
       </h3>
-      <div style={{ height: 250, width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64 min-h-[250px] w-full"> {/* FIXED: Added proper height and min-height */}
+        <ResponsiveContainer width="100%" height="100%" minHeight={250}>
           <BarChart 
             data={dailyData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
@@ -516,8 +516,8 @@ const dailyData = useMemo(() => {
           <TrendingUp className="text-purple-500" size={20} />
           Monthly Trend
         </h3>
-        <div style={{ height: 250 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-64 min-h-[250px] w-full">
+          <ResponsiveContainer width="100%" height="100%" minHeight={250}>
             <LineChart 
               data={monthlyData}
               margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
@@ -569,8 +569,8 @@ const dailyData = useMemo(() => {
           <Clock className="text-orange-500" size={20} />
           Check-ins by Time
         </h3>
-        <div style={{ height: 250 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-64 min-h-[250px] w-full">
+          <ResponsiveContainer width="100%" height="100%" minHeight={250}>
             <BarChart 
               data={hourlyData}
               margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
@@ -618,8 +618,8 @@ const dailyData = useMemo(() => {
         <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Class Performance</span>
       </h3>
-      <div style={{ height: 250, width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="h-64 min-h-[250px] w-full">
+        <ResponsiveContainer width="100%" height="100%" minHeight={250}>
           <BarChart 
             data={classComparisonData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
