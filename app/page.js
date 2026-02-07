@@ -2349,119 +2349,131 @@ useEffect(() => {
     ]
   };
 
-  const LoginForm = () => {
-    const [localUsername, setLocalUsername] = useState('');
-    const [localPassword, setLocalPassword] = useState('');
-    const [localShowPassword, setLocalShowPassword] = useState(false);
-    
-    const handleLoginSubmit = async (e) => {
-      e.preventDefault();
-      if (onLogin) {
-        await onLogin(localUsername, localPassword);
-      }
-    };
+ const LoginForm = () => {
+  const [localUsername, setLocalUsername] = useState('');
+  const [localPassword, setLocalPassword] = useState('');
+  const [localShowPassword, setLocalShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    if (onLogin) {
+      await onLogin(localUsername, localPassword);
+    }
+    setIsSubmitting(false);
+  };
 
-    return (
-      <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transform hover:scale-105 transition-all duration-300 animate-fade-in-up`}>
-        <div className="flex justify-center mb-6">
-          <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
-            <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
-          </div>
-        </div>
-        
-        <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-          System Login
-        </h1>
-        <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-          Sign in to access your dashboard
-        </p>
+  // Remove the problematic handleInputFocus function
 
-        <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Username
-            </label>
-            <div className="relative">
-              <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-              <input
-                type="text"
-                value={localUsername}
-                onChange={(e) => setLocalUsername(e.target.value)}
-                className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                placeholder="Enter username"
-                required
-                disabled={loggingIn}
-                autoComplete="username"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Password
-            </label>
-            <div className="relative">
-              <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
-              <input
-                type={localShowPassword ? "text" : "password"}
-                value={localPassword}
-                onChange={(e) => setLocalPassword(e.target.value)}
-                className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                placeholder="Enter password"
-                required
-                disabled={loggingIn}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setLocalShowPassword(!localShowPassword)}
-                className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
-                disabled={loggingIn}
-              >
-                {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
-
-          {loginError && (
-            <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
-              <div className="flex items-center gap-2">
-                {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                <span className="text-sm">{loginError}</span>
-              </div>
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loggingIn}
-            className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform ${(loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'} shadow-lg hover:shadow-xl relative overflow-hidden`}
-          >
-            {loggingIn ? (
-              <span className="flex items-center justify-center gap-2">
-                <RefreshCw size={20} className="animate-spin" />
-                Signing In...
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                <Shield size={20} />
-                Sign In
-              </span>
-            )}
-            {loggingIn && (
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-            🔒 Secure session-based authentication
-          </p>
+  return (
+    <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 border transition-all duration-300 animate-fade-in-up`}>
+      <div className="flex justify-center mb-6">
+        <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-pulse`}>
+          <Key className="w-10 h-10" strokeWidth={1.5} className={darkMode ? 'text-blue-400' : 'text-white'} />
         </div>
       </div>
-    );
-  };
+      
+      <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+        System Login
+      </h1>
+      <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
+        Sign in to access your dashboard
+      </p>
+
+      <form onSubmit={handleLoginSubmit} className="space-y-4 md:space-y-5">
+        <div className="space-y-2">
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Username
+          </label>
+          <div className="relative">
+            <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+            <input
+              type="text"
+              value={localUsername}
+              onChange={(e) => setLocalUsername(e.target.value)}
+              className={`w-full pl-10 pr-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+              placeholder="Enter username"
+              required
+              disabled={isSubmitting || loggingIn}
+              autoComplete="username"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Password
+          </label>
+          <div className="relative">
+            <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} size={20} />
+            <input
+              type={localShowPassword ? "text" : "password"}
+              value={localPassword}
+              onChange={(e) => setLocalPassword(e.target.value)}
+              className={`w-full pl-10 pr-12 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} 
+                border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+              placeholder="Enter password"
+              required
+              disabled={isSubmitting || loggingIn}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              onClick={() => setLocalShowPassword(!localShowPassword)}
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} 
+                transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+              disabled={isSubmitting || loggingIn}
+            >
+              {localShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {loginError && (
+          <div className={`p-4 rounded-xl ${loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400'} border-2 backdrop-blur-sm animate-fade-in`}>
+            <div className="flex items-center gap-2">
+              {loginError.toLowerCase().includes('success') || loginError.toLowerCase().includes('welcome') || loginError.toLowerCase().includes('logged') ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+              <span className="text-sm">{loginError}</span>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting || loggingIn}
+          className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 
+            ${(isSubmitting || loggingIn) ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'} 
+            shadow-lg hover:shadow-xl relative overflow-hidden`}
+        >
+          {isSubmitting || loggingIn ? (
+            <span className="flex items-center justify-center gap-2">
+              <RefreshCw size={20} className="animate-spin" />
+              Signing In...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Shield size={20} />
+              Sign In
+            </span>
+          )}
+          {(isSubmitting || loggingIn) && (
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 animate-shimmer"></div>
+          )}
+        </button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+          🔒 Secure session-based authentication
+        </p>
+      </div>
+    </div>
+  );
+};
 
   return (
     <div className="min-h-screen overflow-x-hidden">
