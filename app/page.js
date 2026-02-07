@@ -2003,10 +2003,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, loggingIn, loginError }) 
   });
   const [loadingStats, setLoadingStats] = useState(true);
   const [odometerValues, setOdometerValues] = useState({
-    students: 0,
-    checkins: 0,
-    devices: 0,
-    requests: 0
+    totalStudents: 0,
+    totalCheckins: 0,
+    activeDevices: 0,
+    apiRequests: 0
   });
 
   const isMobile = useIsMobile();
