@@ -374,7 +374,7 @@ const dailyData = useMemo(() => {
               </div>
               <div>
                 <p className={`text-xs md:text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-1 truncate`}>
-                  {isMobile && stat.title.length > 6 ? stat.title.substring(0, 5) + '..' : stat.title}
+                  {isMobile && stat.title.length > 10 ? stat.title.substring(0, 9) + '..' : stat.title}
                 </p>
                 <p className={`text-xl md:text-2xl lg:text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                   {stat.value}
@@ -384,10 +384,11 @@ const dailyData = useMemo(() => {
           </AnimatedCard>
         ))}
       </div>
-{/* Charts Grid */}
+
+      {/* Charts Grid */}
 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
   
-  {/* Weekly Attendance Trend - FIXED with proper dimensions */}
+  {/* Weekly Attendance Trend - FIXED with initialDimension */}
   <AnimatedCard delay={100}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
@@ -395,8 +396,12 @@ const dailyData = useMemo(() => {
         <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Weekly Trend</span>
       </h3>
-      <div className="h-64 min-h-[250px] w-full"> {/* FIXED: Added proper height and min-height */}
-        <ResponsiveContainer width="100%" height="100%" minHeight={250}> {/* FIXED: Added minHeight */}
+      <div style={{ height: '250px', width: '100%' }}>
+        <ResponsiveContainer 
+          width="100%" 
+          height="100%"
+          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+        >
           <AreaChart 
             data={weeklyData.length > 0 ? weeklyData : dailyData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
@@ -450,7 +455,7 @@ const dailyData = useMemo(() => {
     </div>
   </AnimatedCard>
   
-  {/* Daily Attendance - FIXED with proper dimensions */}
+  {/* Daily Attendance - FIXED with initialDimension */}
   <AnimatedCard delay={200}>
     <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
       backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
@@ -458,8 +463,12 @@ const dailyData = useMemo(() => {
         <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Daily Attendance</span>
       </h3>
-      <div className="h-64 min-h-[250px] w-full"> {/* FIXED: Added proper height and min-height */}
-        <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+      <div style={{ height: '250px', width: '100%' }}>
+        <ResponsiveContainer 
+          width="100%" 
+          height="100%"
+          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+        >
           <BarChart 
             data={dailyData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
@@ -516,8 +525,12 @@ const dailyData = useMemo(() => {
           <TrendingUp className="text-purple-500" size={20} />
           Monthly Trend
         </h3>
-        <div className="h-64 min-h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+        <div style={{ height: '250px', width: '100%' }}>
+          <ResponsiveContainer 
+            width="100%" 
+            height="100%"
+            initialDimension={{ width: 400, height: 200 }} {/* FIX: Added initialDimension */}
+          >
             <LineChart 
               data={monthlyData}
               margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
@@ -569,8 +582,12 @@ const dailyData = useMemo(() => {
           <Clock className="text-orange-500" size={20} />
           Check-ins by Time
         </h3>
-        <div className="h-64 min-h-[250px] w-full">
-          <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+        <div style={{ height: '250px', width: '100%' }}>
+          <ResponsiveContainer 
+            width="100%" 
+            height="100%"
+            initialDimension={{ width: 400, height: 200 }} {/* FIX: Added initialDimension */}
+          >
             <BarChart 
               data={hourlyData}
               margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
@@ -618,8 +635,12 @@ const dailyData = useMemo(() => {
         <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
         <span className="truncate">Class Performance</span>
       </h3>
-      <div className="h-64 min-h-[250px] w-full">
-        <ResponsiveContainer width="100%" height="100%" minHeight={250}>
+      <div style={{ height: '250px', width: '100%' }}>
+        <ResponsiveContainer 
+          width="100%" 
+          height="100%"
+          initialDimension={{ width: 320, height: 200 }} {/* FIX: Added initialDimension */}
+        >
           <BarChart 
             data={classComparisonData}
             margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
@@ -671,6 +692,7 @@ const dailyData = useMemo(() => {
     </div>
   </AnimatedCard>
 </div>
+
       {/* Summary Cards - Responsive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {[
