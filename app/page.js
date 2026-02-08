@@ -274,7 +274,7 @@ const weeklyData = useMemo(() => {
   const firstOfMonth = new Date(currentYear, currentMonth, 1);
   const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Helper: ISO week key
+  // Helper: ISO week key YYYY-Www
   const getWeekKey = (date) => {
     const d = new Date(date);
     const year = d.getFullYear();
@@ -284,7 +284,7 @@ const weeklyData = useMemo(() => {
     return `${year}-W${String(weekNum).padStart(2, '0')}`;
   };
 
-  // Collect all possible weeks in this month
+  // Collect all weeks that overlap this month
   const weekKeysInMonth = new Set();
   let currentDate = new Date(firstOfMonth);
   while (currentDate <= lastOfMonth) {
@@ -319,7 +319,7 @@ const weeklyData = useMemo(() => {
     const weekNum = weekKey.split('-W')[1];
     const label = `W${weekNum}`;
 
-    // Is this week in the future?
+    // Is this week in the future? (starts after today)
     const weekStart = new Date(currentYear, 0, 1);
     weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
     const isFuture = weekStart > now;
@@ -327,13 +327,13 @@ const weeklyData = useMemo(() => {
     return {
       name: label,
       present: isFuture ? 0 : present,
-      absent: isFuture ? totalStudents : absent,
+      absent: isFuture ? 0 : absent,   // ← this is the key change: 0 for future weeks
       avgRate: isFuture ? 0 : rate,
       isFuture
     };
   });
 
-  console.log("[weekly month] Final data:", chartData);
+  console.log("[weekly month] Final data (future = no bars):", chartData);
 
   return chartData;
 }, [logs, students]);
