@@ -225,7 +225,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     return days;
   }, [logs, students]);
 
-const weeklyData = useMemo(() => {
+const advanceWeeklyData = useMemo(() => {
   if (!logs?.length || !students?.length) {
     console.warn("[weekly calc] No logs or students → returning placeholder zeros");
     const today = new Date();
@@ -544,7 +544,7 @@ const weeklyData = useMemo(() => {
               {localWeeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
-                    data={weeklyData}
+                    data={advanceWeeklyData}
                     margin={{
                       top: 10,
                       right: isMobile ? 8 : 20,
