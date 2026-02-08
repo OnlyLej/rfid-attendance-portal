@@ -646,68 +646,53 @@ const weeklyData = useMemo(() => {
         
         {/* Daily Attendance - MOBILE OPTIMIZED */}
         <AnimatedCard delay={200}>
-          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
+          <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'}
             backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Daily Attendance</span>
+              <span className="truncate">Daily Attendance (Last 7 Days)</span>
             </h3>
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {dailyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
+                  <BarChart
                     data={dailyData}
-                   margin={{
-                    top: 10,
-                    right: isMobile ? 8 : 20,
-                    left: isMobile ? 0 : 0, 
-                    bottom: isMobile ? 40 : 20 
-                  }}
+                    margin={{
+                      top: 10,
+                      right: isMobile ? 8 : 20,
+                      left: isMobile ? 0 : 0,
+                      bottom: isMobile ? 40 : 20
+                    }}
                   >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      tickLine={false}
-                      width={isMobile ? 30 : 60}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
+                    <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} width={isMobile ? 30 : 60} />
                     <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
+                      contentStyle={{
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
                         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                         color: darkMode ? '#ffffff' : '#000000',
                         fontSize: isMobile ? 11 : 14
                       }}
                     />
-                    <Legend 
-                      wrapperStyle={{ fontSize: isMobile ? 11 : 14 }}
-                      iconSize={isMobile ? 10 : 14}
-                    />
+                    <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} iconSize={isMobile ? 10 : 14} />
                     <Bar 
                       dataKey="present" 
                       name="Present" 
                       fill="#10b981" 
-                      radius={[4, 4, 0, 0]}
+                      radius={[4, 4, 0, 0]} 
                       maxBarSize={isMobile ? 40 : 60}
+                      opacity={(props) => props.payload.present === 0 ? 0.3 : 1} // ← Gray out zero bars
                     />
                     <Bar 
                       dataKey="absent" 
                       name="Absent" 
                       fill="#ef4444" 
-                      radius={[4, 4, 0, 0]}
+                      radius={[4, 4, 0, 0]} 
                       maxBarSize={isMobile ? 40 : 60}
+                      opacity={(props) => props.payload.absent === 0 ? 0.3 : 1} // ← Gray out zero bars
                     />
                   </BarChart>
                 </ResponsiveContainer>
