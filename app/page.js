@@ -260,22 +260,21 @@ const dailyData = useMemo(() => {
 }, [logs, students]);
 
 const weeklyData = useMemo(() => {
-  console.log("[weekly stats] Starting...");
-  console.log("[weekly stats] Logs:", logs?.length || 0, "Students:", students?.length || 0);
-
   if (!logs?.length || !students?.length) {
-    return Array(8).fill().map((_, i) => ({
-      name: `W${i + 1}`,
-      present: 0,
-      absent: 0,
-      avgRate: 0,
-      tooltip: "No data"
-    }));
+    console.log("[weekly month] No data → empty");
+    return [];
   }
 
   const totalStudents = students.length;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-based
 
-  // Helper: get ISO week key (stable across years)
+  // Find first and last day of current month
+  const firstDay = new Date(currentYear, currentMonth, 1);
+  const lastDay = new Date(currentYear, currentMonth + 1, 0); // last day of month
+
+  // Helper: get ISO week key (YYYY-Www)
   const getWeekKey = (timestamp) => {
     if (!timestamp) return null;
     try {
@@ -291,52 +290,61 @@ const weeklyData = useMemo(() => {
     }
   };
 
-  // Group by week → collect unique present students per week
-  const weekMap = new Map(); // weekKey → Set of studentIds present that week
+  // Filter logs to current month only
+  const monthLogs = logs.filter(log => {
+    if (!log.timestamp) return false;
+    try {
+      const logDate = new Date(log.timestamp);
+      return (
+        logDate.getFullYear() === currentYear &&
+        logDate.getMonth() === currentMonth
+      );
+    } catch {
+      return false;
+    }
+  });
 
-  logs.forEach(log => {
-    if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
+  console.log("[weekly month] Logs in current month:", monthLogs.length);
+
+  // Group unique present students per week
+  const weekMap = new Map(); // weekKey → Set<studentId>
+
+  monthLogs.forEach(log => {
+    if (log.status !== 'IN' || !log.studentId) return;
     const weekKey = getWeekKey(log.timestamp);
     if (!weekKey) return;
     if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
     weekMap.get(weekKey).add(log.studentId);
   });
 
-  console.log("[weekly stats] Found weeks:", [...weekMap.keys()]);
+  // Get all unique week keys in the month (sorted oldest → newest)
+  const weekKeys = [...weekMap.keys()].sort();
 
-  // Convert to chart data (oldest → newest)
-  const chartData = [...weekMap.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0])) // oldest first
-    .slice(-10) // last 10 weeks max
-    .map(([weekKey, presentSet]) => {
-      const presentUnique = presentSet.size;
-      const absent = totalStudents - presentUnique;
-      const rate = totalStudents > 0 ? Math.round((presentUnique / totalStudents) * 100) : 0;
+  // Build chart data
+  const chartData = weekKeys.map(weekKey => {
+    const presentSet = weekMap.get(weekKey) || new Set();
+    const present = presentSet.size;
+    const absent = totalStudents - present;
+    const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
 
-      const weekNum = weekKey.split('-W')[1];
-      const label = `W${weekNum}`;
+    const weekNum = weekKey.split('-W')[1];
+    const label = `W${weekNum}`;
 
-      return {
-        name: label,
-        present: presentUnique,
-        absent: absent,
-        avgRate: rate,
-        tooltip: `${rate}% • ${presentUnique} present / ${absent} absent`
-      };
-    });
+    // Is this week partially/completely in the future?
+    const weekStartApprox = new Date(currentYear, 0, 1);
+    weekStartApprox.setDate(weekStartApprox.getDate() + (parseInt(weekNum) - 1) * 7);
+    const isFuture = weekStartApprox > now;
 
-  // Pad older weeks if fewer than 8
-  while (chartData.length < 8) {
-    chartData.unshift({
-      name: `W${chartData.length + 1}`,
-      present: 0,
-      absent: 0,
-      avgRate: 0,
-      tooltip: "No data"
-    });
-  }
+    return {
+      name: label,
+      present,
+      absent,
+      avgRate: rate,
+      isFuture
+    };
+  });
 
-  console.log("[weekly stats] Final data:", chartData);
+  console.log("[weekly month] Final data:", chartData);
 
   return chartData;
 }, [logs, students]);
@@ -550,7 +558,7 @@ const weeklyData = useMemo(() => {
             backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Weekly Attendance Trend</span>
+              <span className="truncate">Weekly Attendance - Current Month</span>
             </h3>
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {weeklyData.length > 0 ? (
@@ -558,7 +566,6 @@ const weeklyData = useMemo(() => {
                   <BarChart
                     data={weeklyData}
                     margin={{ top: 10, right: isMobile ? 8 : 20, left: 0, bottom: isMobile ? 40 : 20 }}
-                    stackOffset="sign" // optional: makes positive/negative stacking clearer if you want
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
                     <XAxis 
@@ -585,27 +592,28 @@ const weeklyData = useMemo(() => {
                     />
                     <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} iconSize={isMobile ? 10 : 14} />
                 
-                    {/* Present and Absent bars – side by side or stacked */}
                     <Bar 
                       dataKey="present" 
                       name="Present" 
                       fill="#10b981" 
                       radius={[4, 4, 0, 0]} 
-                      maxBarSize={isMobile ? 40 : 60} 
+                      maxBarSize={isMobile ? 40 : 60}
+                      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future weeks
                     />
                     <Bar 
                       dataKey="absent" 
                       name="Absent" 
                       fill="#ef4444" 
                       radius={[4, 4, 0, 0]} 
-                      maxBarSize={isMobile ? 40 : 60} 
+                      maxBarSize={isMobile ? 40 : 60}
+                      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future weeks
                     />
                 
-                    {/* Optional: add average rate as line */}
+                    {/* Optional: average rate line */}
                     <Line 
                       type="monotone" 
                       dataKey="avgRate" 
-                      name="Attendance %" 
+                      name="Avg Rate %" 
                       stroke="#6366f1" 
                       strokeWidth={2.5} 
                       dot={{ r: 4 }} 
