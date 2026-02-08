@@ -260,8 +260,8 @@ const dailyData = useMemo(() => {
 }, [logs, students]);
 
 const weeklyData = useMemo(() => {
-  if (!logs?.length || !students?.length) {
-    console.log("[weekly month] No data → empty");
+  if (!students?.length) {
+    console.log("[weekly month] No students → empty");
     return [];
   }
 
@@ -271,57 +271,50 @@ const weeklyData = useMemo(() => {
   const currentMonth = now.getMonth(); // 0-based
 
   // Find first and last day of current month
-  const firstDay = new Date(currentYear, currentMonth, 1);
-  const lastDay = new Date(currentYear, currentMonth + 1, 0); // last day of month
+  const firstOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Helper: get ISO week key (YYYY-Www)
-  const getWeekKey = (timestamp) => {
-    if (!timestamp) return null;
-    try {
-      const d = new Date(timestamp);
-      if (isNaN(d.getTime())) return null;
-      const year = d.getFullYear();
-      const startOfYear = new Date(year, 0, 1);
-      const pastDays = Math.floor((d - startOfYear) / 86400000);
-      const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7);
-      return `${year}-W${String(weekNum).padStart(2, '0')}`;
-    } catch {
-      return null;
-    }
+  // Helper: ISO week key YYYY-Www
+  const getWeekKey = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const startOfYear = new Date(year, 0, 1);
+    const pastDays = Math.floor((d - startOfYear) / 86400000);
+    const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7);
+    return `${year}-W${String(weekNum).padStart(2, '0')}`;
   };
 
-  // Filter logs to current month only
-  const monthLogs = logs.filter(log => {
-    if (!log.timestamp) return false;
-    try {
-      const logDate = new Date(log.timestamp);
-      return (
-        logDate.getFullYear() === currentYear &&
-        logDate.getMonth() === currentMonth
-      );
-    } catch {
-      return false;
-    }
-  });
+  // Find all unique week keys that overlap with this month
+  const weekKeysInMonth = new Set();
+  let currentDate = new Date(firstOfMonth);
+  while (currentDate <= lastOfMonth) {
+    weekKeysInMonth.add(getWeekKey(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
 
-  console.log("[weekly month] Logs in current month:", monthLogs.length);
+  // Sort weeks oldest → newest
+  const sortedWeekKeys = [...weekKeysInMonth].sort();
 
-  // Group unique present students per week
+  // Group unique present students per week from logs
   const weekMap = new Map(); // weekKey → Set<studentId>
 
-  monthLogs.forEach(log => {
-    if (log.status !== 'IN' || !log.studentId) return;
-    const weekKey = getWeekKey(log.timestamp);
-    if (!weekKey) return;
-    if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
-    weekMap.get(weekKey).add(log.studentId);
+  logs?.forEach(log => {
+    if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
+    try {
+      const logDate = new Date(log.timestamp);
+      if (logDate.getFullYear() === currentYear && logDate.getMonth() === currentMonth) {
+        const weekKey = getWeekKey(logDate);
+        if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
+        weekMap.get(weekKey).add(log.studentId);
+      }
+    } catch {}
   });
 
-  // Get all unique week keys in the month (sorted oldest → newest)
-  const weekKeys = [...weekMap.keys()].sort();
+  console.log("[weekly month] Weeks in month:", sortedWeekKeys);
+  console.log("[weekly month] Weeks with logs:", [...weekMap.keys()]);
 
-  // Build chart data
-  const chartData = weekKeys.map(weekKey => {
+  // Build data for every week in the month
+  const chartData = sortedWeekKeys.map(weekKey => {
     const presentSet = weekMap.get(weekKey) || new Set();
     const present = presentSet.size;
     const absent = totalStudents - present;
@@ -330,10 +323,12 @@ const weeklyData = useMemo(() => {
     const weekNum = weekKey.split('-W')[1];
     const label = `W${weekNum}`;
 
-    // Is this week partially/completely in the future?
-    const weekStartApprox = new Date(currentYear, 0, 1);
-    weekStartApprox.setDate(weekStartApprox.getDate() + (parseInt(weekNum) - 1) * 7);
-    const isFuture = weekStartApprox > now;
+    // Is this week completely in the future?
+    const weekStart = new Date(currentYear, 0, 1);
+    weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const isFuture = weekStart > now;
 
     return {
       name: label,
@@ -568,18 +563,8 @@ const weeklyData = useMemo(() => {
                     margin={{ top: 10, right: isMobile ? 8 : 20, left: 0, bottom: isMobile ? 40 : 20 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
-                      tick={{ fontSize: isMobile ? 10 : 12 }} 
-                      tickLine={false} 
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
-                      tick={{ fontSize: isMobile ? 10 : 12 }} 
-                      tickLine={false} 
-                      width={isMobile ? 30 : 60} 
-                    />
+                    <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} width={isMobile ? 30 : 60} />
                     <Tooltip 
                       contentStyle={{
                         backgroundColor: darkMode ? '#1f2937' : '#ffffff',
@@ -598,7 +583,7 @@ const weeklyData = useMemo(() => {
                       fill="#10b981" 
                       radius={[4, 4, 0, 0]} 
                       maxBarSize={isMobile ? 40 : 60}
-                      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future weeks
+                      opacity={(props) => props.payload.isFuture ? 0.4 : 1}
                     />
                     <Bar 
                       dataKey="absent" 
@@ -606,10 +591,10 @@ const weeklyData = useMemo(() => {
                       fill="#ef4444" 
                       radius={[4, 4, 0, 0]} 
                       maxBarSize={isMobile ? 40 : 60}
-                      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future weeks
+                      opacity={(props) => props.payload.isFuture ? 0.4 : 1}
                     />
                 
-                    {/* Optional: average rate line */}
+                    {/* Optional line for average rate */}
                     <Line 
                       type="monotone" 
                       dataKey="avgRate" 
