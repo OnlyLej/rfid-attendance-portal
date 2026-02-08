@@ -864,7 +864,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className=`${darkMode ? 'text-white' : 'text-gray-600'} text-lg md:text-xl truncate`>{classComparisonData[0].name}</p>
+                    <p className={`${darkMode ? 'text-white' : 'text-gray-600'} text-lg md:text-xl truncate`}>{classComparisonData[0].name}</p>
                     <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
                       {classComparisonData[0].present}/{classComparisonData[0].total} present
                     </p>
