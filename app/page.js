@@ -2833,7 +2833,7 @@ const fetchData = async () => {
 
           {/* Tabs for Teachers - Desktop - FIXED */}
           {!isMobile && userType === 'teacher' && (
-            <div className="flex gap-2 pb-4 w-full overflow-x-auto scrollbar-hide">
+            <div className="hidden md:flex gap-2 pb-4 w-full overflow-x-auto scrollbar-hide">
               {[
                 { name: 'Dashboard', icon: BarChart3 },
                 { name: 'Classroom', icon: Users },
@@ -3064,6 +3064,37 @@ const fetchData = async () => {
         @media (max-width: 767px) {
         .content-with-bottom-nav {
           padding-bottom: 80px !important;   /* ≈ nav height + safe zone */
+        }
+
+        /* inside <style jsx global> */
+
+        @media (max-width: 767px) {
+          /* Better touch targets */
+          button, a[role="button"], [tabindex="0"] {
+            min-height: 44px;
+            min-width: 44px;
+          }
+        
+          /* Prevent text shrinking too much */
+          .grid-cols-2 > * {
+            min-width: 0;
+          }
+        
+          /* Fix chart label overflow */
+          .recharts-cartesian-axis-tick text {
+            font-size: 10px !important;
+          }
+        
+          /* Make sure nothing causes horizontal scroll */
+          * {
+            max-width: 100vw;
+            box-sizing: border-box;
+          }
+        
+          /* More breathing room */
+          .space-y-4 > * + * {
+            margin-top: 1rem !important;
+          }
         }
       `}</style>
     </div>
