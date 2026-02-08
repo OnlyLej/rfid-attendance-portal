@@ -270,11 +270,10 @@ const weeklyData = useMemo(() => {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  // First and last day of current month
+  // First day of month
   const firstOfMonth = new Date(currentYear, currentMonth, 1);
-  const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Helper: ISO week key YYYY-Www
+  // Helper: ISO week key (for grouping logs)
   const getWeekKey = (date) => {
     const d = new Date(date);
     const year = d.getFullYear();
@@ -284,18 +283,22 @@ const weeklyData = useMemo(() => {
     return `${year}-W${String(weekNum).padStart(2, '0')}`;
   };
 
-  // Collect all weeks that overlap this month
-  const weekKeysInMonth = new Set();
+  // Map real ISO week → relative week number (1 = first week in month)
+  const weekToRelative = new Map();
+  let relativeCounter = 1;
   let currentDate = new Date(firstOfMonth);
-  while (currentDate <= lastOfMonth) {
-    weekKeysInMonth.add(getWeekKey(currentDate));
+  while (currentDate <= new Date(currentYear, currentMonth + 1, 0)) {
+    const key = getWeekKey(currentDate);
+    if (!weekToRelative.has(key)) {
+      weekToRelative.set(key, relativeCounter++);
+    }
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  const sortedWeekKeys = [...weekKeysInMonth].sort();
+  const totalWeeksInMonth = relativeCounter - 1;
 
-  // Group present students from logs (only current month)
-  const weekMap = new Map(); // weekKey → Set<studentId>
+  // Group logs by ISO week (only current month)
+  const weekMap = new Map(); // ISO weekKey → Set<studentId>
 
   logs?.forEach(log => {
     if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
@@ -309,65 +312,105 @@ const weeklyData = useMemo(() => {
     } catch {}
   });
 
-  // Build chart data
-  const chartData = sortedWeekKeys.map(weekKey => {
-    const presentSet = weekMap.get(weekKey) || new Set();
+  // Build data using relative week numbers
+  const chartData = [];
+  for (let relWeek = 1; relWeek <= totalWeeksInMonth; relWeek++) {
+    // Find the ISO key for this relative week
+    const isoKey = [...weekToRelative.entries()].find(([k, v]) => v === relWeek)?.[0];
+    const presentSet = isoKey ? (weekMap.get(isoKey) || new Set()) : new Set();
+
     const present = presentSet.size;
     const absent = totalStudents - present;
     const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
 
-    const weekNum = weekKey.split('-W')[1];
-    const label = `W${weekNum}`;
-
-    // Is this week in the future? (starts after today)
-    const weekStart = new Date(currentYear, 0, 1);
-    weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
+    // Is this week in the future?
+    const weekStartDay = (relWeek - 1) * 7 + 1;
+    const weekStart = new Date(currentYear, currentMonth, weekStartDay);
     const isFuture = weekStart > now;
 
-    return {
-      name: label,
+    chartData.push({
+      name: `W${relWeek}`,
       present: isFuture ? 0 : present,
-      absent: isFuture ? 0 : absent,   // ← this is the key change: 0 for future weeks
+      absent: isFuture ? 0 : absent,   // no bars for future
       avgRate: isFuture ? 0 : rate,
       isFuture
-    };
-  });
+    });
+  }
 
-  console.log("[weekly month] Final data (future = no bars):", chartData);
+  console.log("[weekly month] Final data (relative W1–Wn):", chartData);
 
   return chartData;
 }, [logs, students]);
 
-  // Calculate attendance by time of day
-  const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 12 }, (_, i) => {
-      const hour = i + 7;
-      return {
-        name: isMobile ? `${hour}` : `${hour}:00`,
-        count: 0
-      };
-    });
-    
-    if (!logs || logs.length === 0) return hours;
-    
-    logs.forEach(log => {
-      if (log.status === 'IN' && log.timestamp) {
-        try {
-          const hour = new Date(log.timestamp).getHours();
-          if (hour >= 7 && hour <= 18) {
-            const index = hour - 7;
-            if (hours[index]) {
-              hours[index].count++;
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing timestamp for hourly data:', e);
-        }
-      }
-    });
-    
-    return hours;
-  }, [logs, isMobile]);
+const hourlyData = useMemo(() => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Filter logs for current month only
+  const monthLogs = logs.filter(log => {
+    if (!log.timestamp || log.status !== 'IN') return false;
+    try {
+      const d = new Date(log.timestamp);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    } catch {
+      return false;
+    }
+  });
+
+  if (monthLogs.length === 0) {
+    return Array.from({ length: 12 }, (_, i) => ({
+      name: isMobile ? `${i + 7}` : `${i + 7}:00`,
+      W1: 0, W2: 0, W3: 0, W4: 0, W5: 0, W6: 0
+    }));
+  }
+
+  // Helper: get relative week number in month (W1 = first week)
+  const firstOfMonth = new Date(currentYear, currentMonth, 1);
+  const getRelativeWeek = (date) => {
+    const dayOfMonth = date.getDate();
+    const firstWeekday = firstOfMonth.getDay();
+    const adjusted = (firstWeekday === 0 ? 7 : firstWeekday); // Monday start
+    return Math.ceil((dayOfMonth + adjusted - 1) / 7);
+  };
+
+  // Count check-ins per hour per week
+  const weekHourCount = {};
+
+  monthLogs.forEach(log => {
+    try {
+      const d = new Date(log.timestamp);
+      const hour = d.getHours();
+      if (hour < 7 || hour > 18) return; // only 7 AM - 6 PM
+
+      const relWeek = getRelativeWeek(d);
+      if (relWeek > 6) return; // safety
+
+      const key = `${relWeek}-${hour}`;
+      weekHourCount[key] = (weekHourCount[key] || 0) + 1;
+    } catch {}
+  });
+
+  // Build final data: one entry per hour (7 AM to 6 PM)
+  const data = [];
+  for (let h = 7; h <= 18; h++) {
+    const entry = {
+      name: isMobile ? `${h}` : `${h}:00`,
+    };
+
+    // For each possible week (1 to 6), get count or 0
+    for (let w = 1; w <= 6; w++) {
+      const count = weekHourCount[`${w}-${h}`] || 0;
+      entry[`W${w}`] = count;
+    }
+
+    data.push(entry);
+  }
+
+  console.log("Check-ins by Time (weekly in current month):", data);
+
+  return data;
+}, [logs, isMobile]);
   // Calculate monthly attendance trend
   const monthlyData = useMemo(() => {
     const months = [];
@@ -744,66 +787,61 @@ const getCurrentWeekStart = () => {
           </AnimatedCard>
         )}
 
-        {/* Attendance by Time - Only on larger screens */}
-        {!isMobile && (
-          <AnimatedCard delay={400}>
-            <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
-              backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
-              <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
-                <Clock className="text-orange-500" size={20} />
-                Check-ins by Time
-              </h3>
-              <div style={{ height: '250px', width: '100%' }}>
-                {hourlyData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={hourlyData}
-                      margin={{
-                        top: 10,
-                        right: isMobile ? 8 : 20,
-                        left: isMobile ? 0 : 0,  
-                        bottom: isMobile ? 40 : 20 
-                      }}
-                    >
-                      <CartesianGrid 
-                        strokeDasharray="3 3" 
-                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                        vertical={false}
-                      />
-                      <XAxis 
-                        dataKey="name" 
-                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                          border: 'none', 
-                          borderRadius: '12px', 
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                          color: darkMode ? '#ffffff' : '#000000'
-                        }}
-                      />
-                      <Bar 
-                        dataKey="count" 
-                        name="Check-ins" 
-                        fill="#f59e0b" 
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </AnimatedCard>
+        {/* Check-ins by Time - Weekly in Current Month */}
+{!isMobile && (
+  <AnimatedCard delay={400}>
+    <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'}
+      backdrop-blur-xl p-6 rounded-2xl border shadow-xl h-full w-full`}>
+      <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+        <Clock className="text-orange-500" size={20} />
+        Check-ins by Time (Weekly)
+      </h3>
+      <div style={{ height: '250px', width: '100%' }}>
+        {hourlyData.some(h => Object.values(h).some(v => typeof v === 'number' && v > 0)) ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={hourlyData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
+              <XAxis 
+                dataKey="name" 
+                stroke={darkMode ? '#9ca3af' : '#6b7280'} 
+                tick={{ fontSize: 12 }} 
+              />
+              <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: 12 }} />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  color: darkMode ? '#ffffff' : '#000000'
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+
+              {/* One line per week */}
+              {['W1', 'W2', 'W3', 'W4', 'W5', 'W6'].map((week, idx) => (
+                <Line
+                  key={week}
+                  type="monotone"
+                  dataKey={week}
+                  name={week}
+                  stroke={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][idx]}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  connectNulls={false}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No check-ins this month</p>
+          </div>
         )}
+      </div>
+    </div>
+  </AnimatedCard>
+)}
 
         {/* Class Performance - MOBILE OPTIMIZED */}
         <AnimatedCard delay={isMobile ? 300 : 500}>
