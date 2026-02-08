@@ -270,77 +270,59 @@ const weeklyData = useMemo(() => {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-based
 
-  // First and last day of current month
+  // First day of current month
   const firstOfMonth = new Date(currentYear, currentMonth, 1);
-  const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Helper: ISO week key YYYY-Www
-  const getWeekKey = (date) => {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const startOfYear = new Date(year, 0, 1);
-    const pastDays = Math.floor((d - startOfYear) / 86400000);
-    const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7);
-    return `${year}-W${String(weekNum).padStart(2, '0')}`;
+  // Helper: Get relative week number within the month (1 = first week, 2 = second, etc.)
+  const getRelativeWeekNum = (date) => {
+    const dayOfMonth = date.getDate();
+    const firstDayWeekday = firstOfMonth.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    // Adjust to make Monday the start (common for weeks)
+    const adjustedFirst = (firstDayWeekday === 0 ? 7 : firstDayWeekday);
+    return Math.ceil((dayOfMonth + adjustedFirst - 1) / 7);
   };
 
-  // Collect every week that overlaps this month
-  const weekKeysInMonth = new Set();
-  let currentDate = new Date(firstOfMonth);
-  while (currentDate <= lastOfMonth) {
-    weekKeysInMonth.add(getWeekKey(currentDate));
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-
-  const sortedWeekKeys = [...weekKeysInMonth].sort();
-
-  console.log("[weekly month] All weeks in month:", sortedWeekKeys);
-
-  // Group logs only from this month
-  const weekMap = new Map(); // weekKey → Set<studentId>
+  // Group logs by relative week number (only current month)
+  const weekMap = new Map(); // relativeWeekNum → Set<studentId>
 
   logs?.forEach(log => {
     if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
     try {
       const logDate = new Date(log.timestamp);
       if (logDate.getFullYear() === currentYear && logDate.getMonth() === currentMonth) {
-        const weekKey = getWeekKey(logDate);
-        if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
-        weekMap.get(weekKey).add(log.studentId);
+        const relWeek = getRelativeWeekNum(logDate);
+        if (!weekMap.has(relWeek)) weekMap.set(relWeek, new Set());
+        weekMap.get(relWeek).add(log.studentId);
       }
     } catch {}
   });
 
-  // Build data for every week in the month
-  const chartData = sortedWeekKeys.map(weekKey => {
-    const presentSet = weekMap.get(weekKey) || new Set();
+  // Find total weeks in month (max 5 or 6)
+  const totalWeeksInMonth = getRelativeWeekNum(new Date(currentYear, currentMonth + 1, 0));
+
+  // Build data for each week 1 → totalWeeksInMonth
+  const chartData = [];
+  for (let week = 1; week <= totalWeeksInMonth; week++) {
+    const presentSet = weekMap.get(week) || new Set();
     const present = presentSet.size;
     const absent = totalStudents - present;
     const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
 
-    const weekNum = weekKey.split('-W')[1];
-    const label = `W${weekNum}`;
+    // Is this week in the future?
+    const weekStartDay = (week - 1) * 7 + 1;
+    const weekStartDate = new Date(currentYear, currentMonth, weekStartDay);
+    const isFuture = weekStartDate > now;
 
-    // Is this week in the future? (starts after today)
-    const weekStart = new Date(currentYear, 0, 1);
-    weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
-    const isFuture = weekStart > now;
-
-    // For future weeks: force 0 present / full absent
-    const finalPresent = isFuture ? 0 : present;
-    const finalAbsent = isFuture ? totalStudents : absent;
-    const finalRate = isFuture ? 0 : rate;
-
-    return {
-      name: label,
-      present: finalPresent,
-      absent: finalAbsent,
-      avgRate: finalRate,
+    chartData.push({
+      name: `W${week}`,
+      present: isFuture ? 0 : present,
+      absent: isFuture ? totalStudents : absent,
+      avgRate: isFuture ? 0 : rate,
       isFuture
-    };
-  });
+    });
+  }
 
-  console.log("[weekly month] Final chart data:", chartData);
+  console.log("[weekly month] Final data (relative weeks):", chartData);
 
   return chartData;
 }, [logs, students]);
@@ -473,6 +455,17 @@ const weeklyData = useMemo(() => {
     return data;
   }, [classes, students, logs, isMobile]);
 
+  // Helper: Get start of current week (Monday) in PH time
+const getCurrentWeekStart = () => {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const diff = day === 0 ? -6 : 1 - day; // adjust to Monday
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday.toISOString().split('T')[0];
+};
+  
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
       {/* Stats Cards - Responsive grid */}
@@ -915,81 +908,81 @@ const weeklyData = useMemo(() => {
     ),
     delay: 600
   },
-  {
-    title: "Week Summary",
-    icon: TrendingUp,
-    iconColor: "text-green-500",
-    content: (
-      <div className="space-y-2 md:space-y-3">
-        {/* Avg Daily Present Students */}
-        <div className="flex justify-between items-center">
-          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            Avg Daily Present:
-          </span>
-          <span className="font-bold">
-            {dailyData.length > 0
-              ? Math.round(
-                  dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length
-                )
-              : 0}
-          </span>
-        </div>
-
-        {/* Avg Attendance Rate */}
-        <div className="flex justify-between items-center">
-          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            Avg Rate:
-          </span>
-          <span className="font-bold text-purple-500">
-            {dailyData.length > 0
-              ? `${Math.round(
-                  dailyData.reduce((sum, day) => sum + day.attendanceRate, 0) / dailyData.length
-                )}%`
-              : '0%'}
-          </span>
-        </div>
-
-        {/* Best Day */}
-        <div className="flex justify-between items-center">
-          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            Best Day:
-          </span>
-          <span className="font-bold text-green-500">
-            {dailyData.length > 0 && dailyData.some(d => d.present > 0)
-              ? dailyData.reduce((max, day) => (day.present > max.present ? day : max), dailyData[0]).name
-              : 'N/A'}
-          </span>
-        </div>
-
-        {/* Trend – only show if enough data */}
-        <div className="flex justify-between items-center">
-          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
-            Trend:
-          </span>
-          <span
-            className={`font-bold ${
-              dailyData.length >= 3
-                ? dailyData[dailyData.length - 1].attendanceRate > dailyData[dailyData.length - 3].attendanceRate
-                  ? 'text-green-500'
-                  : dailyData[dailyData.length - 1].attendanceRate < dailyData[dailyData.length - 3].attendanceRate
-                    ? 'text-red-500'
-                    : 'text-yellow-500'
-                : 'text-gray-500'
-            }`}
-          >
-            {dailyData.length >= 3
-              ? dailyData[dailyData.length - 1].attendanceRate > dailyData[dailyData.length - 3].attendanceRate
-                ? '↗ Improving'
-                : dailyData[dailyData.length - 1].attendanceRate < dailyData[dailyData.length - 3].attendanceRate
-                  ? '↘ Declining'
-                  : '→ Stable'
-              : 'Not enough data'}
-          </span>
-        </div>
+{
+  title: "Week Summary",
+  icon: TrendingUp,
+  iconColor: "text-green-500",
+  content: (
+    <div className="space-y-2 md:space-y-3">
+      {/* Avg Daily Present Students – this week only */}
+      <div className="flex justify-between items-center">
+        <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+          Avg Daily Present:
+        </span>
+        <span className="font-bold">
+          {dailyData.length > 0
+            ? Math.round(
+                dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length
+              )
+            : 0}
+        </span>
       </div>
-    ),
-    delay: 700
-  },
+
+      {/* Avg Rate – this week only */}
+      <div className="flex justify-between items-center">
+        <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+          Avg Rate:
+        </span>
+        <span className="font-bold text-purple-500">
+          {dailyData.length > 0
+            ? `${Math.round(
+                dailyData.reduce((sum, day) => sum + day.attendanceRate, 0) / dailyData.length
+              )}%`
+            : '0%'}
+        </span>
+      </div>
+
+      {/* Best Day – only in current week */}
+      <div className="flex justify-between items-center">
+        <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+          Best Day This Week:
+        </span>
+        <span className="font-bold text-green-500">
+          {dailyData.length > 0 && dailyData.some(d => d.present > 0)
+            ? dailyData.reduce((max, day) => (day.present > max.present ? day : max), dailyData[0]).name
+            : 'N/A'}
+        </span>
+      </div>
+
+      {/* Trend – last day vs first day in available data */}
+      <div className="flex justify-between items-center">
+        <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+          Trend This Week:
+        </span>
+        <span
+          className={`font-bold ${
+            dailyData.length > 1
+              ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
+                ? 'text-green-500'
+                : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
+                  ? 'text-red-500'
+                  : 'text-yellow-500'
+              : 'text-gray-500'
+          }`}
+        >
+          {dailyData.length > 1
+            ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
+              ? '↗ Improving'
+              : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
+                ? '↘ Declining'
+                : '→ Stable'
+            : 'Not enough data'}
+        </span>
+      </div>
+    </div>
+  ),
+  delay: 700
+},
   {
     title: "Top Class",
     icon: Award,
