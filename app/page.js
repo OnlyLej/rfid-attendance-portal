@@ -270,7 +270,7 @@ const weeklyData = useMemo(() => {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-based
 
-  // Find first and last day of current month
+  // First and last day of current month
   const firstOfMonth = new Date(currentYear, currentMonth, 1);
   const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
@@ -284,7 +284,7 @@ const weeklyData = useMemo(() => {
     return `${year}-W${String(weekNum).padStart(2, '0')}`;
   };
 
-  // Find all unique week keys that overlap with this month
+  // Collect every week that overlaps this month
   const weekKeysInMonth = new Set();
   let currentDate = new Date(firstOfMonth);
   while (currentDate <= lastOfMonth) {
@@ -292,10 +292,11 @@ const weeklyData = useMemo(() => {
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // Sort weeks oldest → newest
   const sortedWeekKeys = [...weekKeysInMonth].sort();
 
-  // Group unique present students per week from logs
+  console.log("[weekly month] All weeks in month:", sortedWeekKeys);
+
+  // Group logs only from this month
   const weekMap = new Map(); // weekKey → Set<studentId>
 
   logs?.forEach(log => {
@@ -310,9 +311,6 @@ const weeklyData = useMemo(() => {
     } catch {}
   });
 
-  console.log("[weekly month] Weeks in month:", sortedWeekKeys);
-  console.log("[weekly month] Weeks with logs:", [...weekMap.keys()]);
-
   // Build data for every week in the month
   const chartData = sortedWeekKeys.map(weekKey => {
     const presentSet = weekMap.get(weekKey) || new Set();
@@ -323,23 +321,26 @@ const weeklyData = useMemo(() => {
     const weekNum = weekKey.split('-W')[1];
     const label = `W${weekNum}`;
 
-    // Is this week completely in the future?
+    // Is this week in the future? (starts after today)
     const weekStart = new Date(currentYear, 0, 1);
     weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
     const isFuture = weekStart > now;
+
+    // For future weeks: force 0 present / full absent
+    const finalPresent = isFuture ? 0 : present;
+    const finalAbsent = isFuture ? totalStudents : absent;
+    const finalRate = isFuture ? 0 : rate;
 
     return {
       name: label,
-      present,
-      absent,
-      avgRate: rate,
+      present: finalPresent,
+      absent: finalAbsent,
+      avgRate: finalRate,
       isFuture
     };
   });
 
-  console.log("[weekly month] Final data:", chartData);
+  console.log("[weekly month] Final chart data:", chartData);
 
   return chartData;
 }, [logs, students]);
@@ -553,60 +554,58 @@ const weeklyData = useMemo(() => {
             backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full`}>
             <h3 className={`text-base md:text-lg font-semibold mb-3 md:mb-4 ${darkMode ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
-              <span className="truncate">Weekly Attendance - Current Month</span>
+              <span className="truncate">Weekly Attendance - {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
             </h3>
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {weeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={weeklyData}
-                    margin={{ top: 10, right: isMobile ? 8 : 20, left: 0, bottom: isMobile ? 40 : 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
-                    <XAxis dataKey="name" stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} />
-                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tick={{ fontSize: isMobile ? 10 : 12 }} tickLine={false} width={isMobile ? 30 : 60} />
-                    <Tooltip 
-                      contentStyle={{
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff',
-                        border: 'none',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000',
-                        fontSize: isMobile ? 11 : 14
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} iconSize={isMobile ? 10 : 14} />
-                
-                    <Bar 
-                      dataKey="present" 
-                      name="Present" 
-                      fill="#10b981" 
-                      radius={[4, 4, 0, 0]} 
-                      maxBarSize={isMobile ? 40 : 60}
-                      opacity={(props) => props.payload.isFuture ? 0.4 : 1}
-                    />
-                    <Bar 
-                      dataKey="absent" 
-                      name="Absent" 
-                      fill="#ef4444" 
-                      radius={[4, 4, 0, 0]} 
-                      maxBarSize={isMobile ? 40 : 60}
-                      opacity={(props) => props.payload.isFuture ? 0.4 : 1}
-                    />
-                
-                    {/* Optional line for average rate */}
-                    <Line 
-                      type="monotone" 
-                      dataKey="avgRate" 
-                      name="Avg Rate %" 
-                      stroke="#6366f1" 
-                      strokeWidth={2.5} 
-                      dot={{ r: 4 }} 
-                      yAxisId="right"
-                    />
-                    <YAxis yAxisId="right" orientation="right" stroke="#6366f1" />
-                  </BarChart>
-                </ResponsiveContainer>
+  <BarChart
+    data={weeklyData}
+    margin={{ top: 10, right: isMobile ? 8 : 20, left: 0, bottom: isMobile ? 40 : 20 }}
+  >
+    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
+    <XAxis 
+      dataKey="name" 
+      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
+      tick={{ fontSize: isMobile ? 10 : 12 }} 
+      tickLine={false} 
+    />
+    <YAxis 
+      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
+      tick={{ fontSize: isMobile ? 10 : 12 }} 
+      tickLine={false} 
+      width={isMobile ? 30 : 60} 
+    />
+    <Tooltip 
+      contentStyle={{
+        backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+        border: 'none',
+        borderRadius: '12px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        color: darkMode ? '#ffffff' : '#000000',
+        fontSize: isMobile ? 11 : 14
+      }}
+    />
+    <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} iconSize={isMobile ? 10 : 14} />
+
+    <Bar 
+      dataKey="present" 
+      name="Present" 
+      fill="#10b981" 
+      radius={[4, 4, 0, 0]} 
+      maxBarSize={isMobile ? 40 : 60}
+      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future
+    />
+    <Bar 
+      dataKey="absent" 
+      name="Absent" 
+      fill="#ef4444" 
+      radius={[4, 4, 0, 0]} 
+      maxBarSize={isMobile ? 40 : 60}
+      opacity={(props) => props.payload.isFuture ? 0.4 : 1} // gray future
+    />
+  </BarChart>
+</ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>No data available</p>
@@ -882,145 +881,164 @@ const weeklyData = useMemo(() => {
       {/* Summary Cards - Responsive */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {[
-          { 
-            title: "Today's Summary", 
-            icon: Calendar, 
-            iconColor: "text-blue-500",
-            content: (
-              <div className="space-y-2 md:space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Total Check-ins:</span>
-                  <span className={`${darkMode ? 'text-white' : 'text-gray-600'} font-bold`}>{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Attendance Rate:</span>
-                  <span className="font-bold text-green-500">{dailyData.length > 0 ? `${dailyData[dailyData.length - 1].attendanceRate}%` : '0%'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Absent:</span>
-                  <span className="font-bold text-red-500">{dailyData.length > 0 ? dailyData[dailyData.length - 1].absent : 0}</span>
-                </div>
-              </div>
-            ),
-            delay: 600
-          },
-         {
-            title: "Week Summary",
-            icon: TrendingUp,
-            iconColor: "text-green-500",
-            content: (
-              <div className="space-y-2 md:space-y-3">
-                {/* Avg Daily Present Students */}
-                <div className="flex justify-between items-center">
-                  <span 
-                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
-                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
-                  >
-                    Avg Daily:
-                  </span>
-                  <span className="font-bold">
-                    {dailyData.length > 0
-                      ? Math.round(
-                          dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length
-                        )
-                      : 0}
-                  </span>
-                </div>
-          
-                {/* Best Day (highest present count) */}
-                <div className="flex justify-between items-center">
-                  <span 
-                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
-                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
-                  >
-                    Best Day:
-                  </span>
-                  <span className="font-bold text-green-500">
-                    {dailyData.length > 0
-                      ? dailyData.reduce((max, day) => 
-                          day.present > max.present ? day : max, dailyData[0]
-                        ).name
-                      : 'N/A'}
-                  </span>
-                </div>
-          
-                {/* Trend: compare first day vs last day in the 7-day period */}
-                <div className="flex justify-between items-center">
-                  <span 
-                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
-                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
-                  >
-                    Trend:
-                  </span>
-                  <span 
-                    className={`font-bold ${
-                      dailyData.length > 1
-                        ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
-                          ? 'text-green-500'
-                          : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
-                            ? 'text-red-500'
-                            : 'text-yellow-500'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    {dailyData.length > 1
-                      ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
-                        ? '↗ Improving'
-                        : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
-                          ? '↘ Declining'
-                          : '→ Stable'
-                      : '→'}
-                  </span>
-                </div>
-              </div>
-            ),
-            delay: 700
-          },
-          { 
-            title: "Top Class", 
-            icon: Award, 
-            iconColor: "text-yellow-500",
-            content: classComparisonData.length > 0 ? (
-              <div className="space-y-3 md:space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className={`${darkMode ? 'text-white' : 'text-gray-600'} font-bold text-lg md:text-xl truncate`}>{classComparisonData[0].name}</p>
-                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
-                      {classComparisonData[0].present}/{classComparisonData[0].total} present
-                    </p>
-                  </div>
-                  <div className={`text-2xl md:text-3xl font-bold ${
-                    classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' : 
-                    classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
-                  }`}>
-                    {classComparisonData[0].attendanceRate}%
-                  </div>
-                </div>
-                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                    style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
-                    Rank: 1/{classComparisonData.length}
-                  </span>
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
-                    {classComparisonData.length > 1 
-                      ? `Next: ${classComparisonData[1].attendanceRate}% (${classComparisonData[1].name})`
-                      : 'Only class'}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>No class data</p>
-              </div>
-            ),
-            delay: 800
-          }
-        ].map((card, idx) => (
+  {
+    title: "Today's Summary",
+    icon: Calendar,
+    iconColor: "text-blue-500",
+    content: (
+      <div className="space-y-2 md:space-y-3">
+        <div className="flex justify-between items-center">
+          <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Total Check-ins:
+          </span>
+          <span className={`${darkMode ? 'text-white' : 'text-gray-600'} font-bold`}>
+            {dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Attendance Rate:
+          </span>
+          <span className="font-bold text-green-500">
+            {dailyData.length > 0 ? `${dailyData[dailyData.length - 1].attendanceRate}%` : '0%'}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Absent:
+          </span>
+          <span className="font-bold text-red-500">
+            {dailyData.length > 0 ? dailyData[dailyData.length - 1].absent : students.length || 0}
+          </span>
+        </div>
+      </div>
+    ),
+    delay: 600
+  },
+  {
+    title: "Week Summary",
+    icon: TrendingUp,
+    iconColor: "text-green-500",
+    content: (
+      <div className="space-y-2 md:space-y-3">
+        {/* Avg Daily Present Students */}
+        <div className="flex justify-between items-center">
+          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Avg Daily Present:
+          </span>
+          <span className="font-bold">
+            {dailyData.length > 0
+              ? Math.round(
+                  dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length
+                )
+              : 0}
+          </span>
+        </div>
+
+        {/* Avg Attendance Rate */}
+        <div className="flex justify-between items-center">
+          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Avg Rate:
+          </span>
+          <span className="font-bold text-purple-500">
+            {dailyData.length > 0
+              ? `${Math.round(
+                  dailyData.reduce((sum, day) => sum + day.attendanceRate, 0) / dailyData.length
+                )}%`
+              : '0%'}
+          </span>
+        </div>
+
+        {/* Best Day */}
+        <div className="flex justify-between items-center">
+          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Best Day:
+          </span>
+          <span className="font-bold text-green-500">
+            {dailyData.length > 0 && dailyData.some(d => d.present > 0)
+              ? dailyData.reduce((max, day) => (day.present > max.present ? day : max), dailyData[0]).name
+              : 'N/A'}
+          </span>
+        </div>
+
+        {/* Trend – only show if enough data */}
+        <div className="flex justify-between items-center">
+          <span className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>
+            Trend:
+          </span>
+          <span
+            className={`font-bold ${
+              dailyData.length >= 3
+                ? dailyData[dailyData.length - 1].attendanceRate > dailyData[dailyData.length - 3].attendanceRate
+                  ? 'text-green-500'
+                  : dailyData[dailyData.length - 1].attendanceRate < dailyData[dailyData.length - 3].attendanceRate
+                    ? 'text-red-500'
+                    : 'text-yellow-500'
+                : 'text-gray-500'
+            }`}
+          >
+            {dailyData.length >= 3
+              ? dailyData[dailyData.length - 1].attendanceRate > dailyData[dailyData.length - 3].attendanceRate
+                ? '↗ Improving'
+                : dailyData[dailyData.length - 1].attendanceRate < dailyData[dailyData.length - 3].attendanceRate
+                  ? '↘ Declining'
+                  : '→ Stable'
+              : 'Not enough data'}
+          </span>
+        </div>
+      </div>
+    ),
+    delay: 700
+  },
+  {
+    title: "Top Class",
+    icon: Award,
+    iconColor: "text-yellow-500",
+    content: classComparisonData.length > 0 ? (
+      <div className="space-y-3 md:space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0">
+            <p className={`${darkMode ? 'text-white' : 'text-gray-600'} font-bold text-lg md:text-xl truncate`}>
+              {classComparisonData[0].name}
+            </p>
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
+              {classComparisonData[0].present}/{classComparisonData[0].total} present today
+            </p>
+          </div>
+          <div className={`text-2xl md:text-3xl font-bold ${
+            classComparisonData[0].attendanceRate >= 90 ? 'text-green-500' :
+            classComparisonData[0].attendanceRate >= 70 ? 'text-yellow-500' : 'text-red-500'
+          }`}>
+            {classComparisonData[0].attendanceRate}%
+          </div>
+        </div>
+        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+            style={{ width: `${Math.min(classComparisonData[0].attendanceRate, 100)}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
+            Rank: 1/{classComparisonData.length}
+          </span>
+          {classComparisonData.length > 1 && (
+            <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
+              Next: {classComparisonData[1].attendanceRate}% ({classComparisonData[1].name})
+            </span>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="text-center py-4">
+        <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm md:text-base`}>
+          {classes.length === 0 ? "No classes found" : "No attendance data yet"}
+        </p>
+      </div>
+    ),
+    delay: 800
+  }
+].map((card, idx) => (
           <AnimatedCard key={idx} delay={card.delay}>
             <div className={`${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-white/95 border-blue-100'} 
               backdrop-blur-xl p-4 md:p-6 rounded-xl md:rounded-2xl border shadow-xl h-full w-full overflow-hidden`}>
