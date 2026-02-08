@@ -496,7 +496,7 @@ const advanceWeeklyData = useMemo(() => {
           },
           {
             title: 'Week Avg',
-            value: `${localWeeklyData.length > 0 ? Math.round(localWeeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / localWeeklyData.length) : 0}%`,
+            value: `${advanceWeeklyData.length > 0 ? Math.round(advanceWeeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / advanceWeeklyData.length) : 0}%`,
             icon: Calendar,
             color: 'indigo',
             delay: 500
@@ -541,7 +541,7 @@ const advanceWeeklyData = useMemo(() => {
               <span className="truncate">Weekly Attendance Trend</span>
             </h3>
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
-              {localWeeklyData.length > 0 ? (
+              {advanceWeeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
                     data={advanceWeeklyData}
@@ -940,12 +940,12 @@ const advanceWeeklyData = useMemo(() => {
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
                   <span className={`font-bold ${
-                    localWeeklyData.length > 1 && localWeeklyData[localWeeklyData.length - 1].attendanceRate > localWeeklyData[0].attendanceRate 
+                    advanceWeeklyData.length > 1 && advanceWeeklyData[advanceWeeklyData.length - 1].attendanceRate > advanceWeeklyData[0].attendanceRate 
                       ? 'text-green-500' 
                       : 'text-red-500'
                   }`}>
-                    {localWeeklyData.length > 1 
-                      ? localWeeklyData[localWeeklyData.length - 1].attendanceRate > localWeeklyData[0].attendanceRate 
+                    {locadvanceWeeklyData.length > 1 
+                      ? advanceWeeklyData[advanceWeeklyData.length - 1].attendanceRate > advanceWeeklyData[0].attendanceRate 
                         ? '↗' 
                         : '↘'
                       : '→'}
