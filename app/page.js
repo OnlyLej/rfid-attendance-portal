@@ -944,7 +944,7 @@ const advanceWeeklyData = useMemo(() => {
                       ? 'text-green-500' 
                       : 'text-red-500'
                   }`}>
-                    {locadvanceWeeklyData.length > 1 
+                    {advanceWeeklyData.length > 1 
                       ? advanceWeeklyData[advanceWeeklyData.length - 1].attendanceRate > advanceWeeklyData[0].attendanceRate 
                         ? '↗' 
                         : '↘'
