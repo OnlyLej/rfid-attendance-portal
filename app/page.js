@@ -225,13 +225,112 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     return days;
   }, [logs, students]);
 
-  // Recalculate weekly data locally if it's empty
-  const localWeeklyData = useMemo(() => {
-    if (weeklyData && weeklyData.length > 0) {
-      return weeklyData;
+const weeklyData = useMemo(() => {
+  if (!logs?.length || !students?.length) {
+    console.warn("[weekly calc] No logs or students → returning placeholder zeros");
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      return {
+        name: d.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: d.toISOString().split('T')[0],
+        present: 0,
+        absent: 0,
+        total: students?.length || 0,
+        rate: 0,
+        change: 0,           // % change from previous day
+        isPeak: false,
+        trend: 'neutral',    // 'up', 'down', 'neutral'
+      };
+    });
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // normalize to start of today
+
+  const result = [];
+  let previousRate = null;
+
+  // From 6 days ago → today (oldest to newest)
+  for (let i = 6; i >= 0; i--) {
+    const dayStart = new Date(today);
+    dayStart.setDate(today.getDate() - i);
+
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayStart.getDate() + 1);
+
+    const dateStr = dayStart.toISOString().split('T')[0];
+    const dayName = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
+
+    // All logs that belong to this calendar day
+    const dayLogs = logs.filter(log => {
+      if (!log.timestamp) return false;
+      try {
+        const t = new Date(log.timestamp);
+        return t >= dayStart && t < dayEnd;
+      } catch {
+        return false;
+      }
+    });
+
+    // Unique students who checked IN
+    const presentSet = new Set(
+      dayLogs
+        .filter(l => l.status === 'IN' && l.studentId)
+        .map(l => l.studentId)
+    );
+
+    const present = presentSet.size;
+    const total = students.length;
+    const absent = Math.max(0, total - present);
+    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+
+    // Day-to-day change
+    let change = 0;
+    let trend = 'neutral';
+    if (previousRate !== null) {
+      change = rate - previousRate;
+      trend = change > 3 ? 'up' : change < -3 ? 'down' : 'neutral';
     }
-    return dailyData;
-  }, [weeklyData, dailyData]);
+    previousRate = rate;
+
+    result.push({
+      name: dayName,
+      date: dateStr,
+      present,
+      absent,
+      total,
+      rate,
+      change,
+      trend,
+      isPeak: false,           // will be updated after full loop
+      formattedRate: `${rate}%`,
+      tooltipInfo: `${present}/${total} present • ${absent} absent`,
+    });
+  }
+
+  // After collecting all days → find peak day(s)
+  const maxRate = Math.max(...result.map(d => d.rate));
+  result.forEach(day => {
+    if (day.rate === maxRate && maxRate > 0) {
+      day.isPeak = true;
+    }
+  });
+
+  console.log("[advanced weekly data]", {
+    days: result.length,
+    data: result,
+    overallAvg: result.length
+      ? Math.round(result.reduce((sum, d) => sum + d.rate, 0) / result.length)
+      : 0,
+    bestDay: result.reduce((best, curr) =>
+      curr.rate > best.rate ? curr : best, result[0] || {}
+    )?.name,
+  });
+
+  return result;
+}, [logs, students]);
 
   // Calculate attendance by time of day
   const hourlyData = useMemo(() => {
@@ -445,7 +544,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               {localWeeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
-                    data={localWeeklyData}
+                    data={weeklyData}
                     margin={{
                       top: 10,
                       right: isMobile ? 8 : 20,
