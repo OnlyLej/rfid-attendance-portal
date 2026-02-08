@@ -3778,7 +3778,7 @@ const SystemCard = ({ feature, idx, darkMode }) => {
                       <Clock size={12} className={darkMode ? 'text-gray-400' : 'text-blue-500'} />
                     </div>
                     <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
-                      {getGreeting()}, <span className="font-semibold text-blue-500 truncate">{userInfo?.fullName?.split(' ')[0] || username}</span>
+                      {getGreeting()}, <span className="font-semibold text-blue-500 truncate">{userInfo?.fullName || username}</span>
                     </p>
                   </div>
                 </div>
