@@ -906,39 +906,71 @@ const weeklyData = useMemo(() => {
             ),
             delay: 600
           },
-          { 
-            title: "Week Summary", 
-            icon: TrendingUp, 
+         {
+            title: "Week Summary",
+            icon: TrendingUp,
             iconColor: "text-green-500",
             content: (
               <div className="space-y-2 md:space-y-3">
+                {/* Avg Daily Present Students */}
                 <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Avg Daily:</span>
-                  <span className={`${darkMode ? 'text-white' : 'text-gray-600'} font-bold`}>
-                    {dailyData.length > 0 
-                      ? Math.round(dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length)
+                  <span 
+                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
+                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Avg Daily:
+                  </span>
+                  <span className="font-bold">
+                    {dailyData.length > 0
+                      ? Math.round(
+                          dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length
+                        )
                       : 0}
                   </span>
                 </div>
+          
+                {/* Best Day (highest present count) */}
                 <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Best Day:</span>
+                  <span 
+                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
+                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Best Day:
+                  </span>
                   <span className="font-bold text-green-500">
-                    {dailyData.length > 0 
-                      ? dailyData.reduce((max, day) => day.present > max.present ? day : max, dailyData[0]).name
+                    {dailyData.length > 0
+                      ? dailyData.reduce((max, day) => 
+                          day.present > max.present ? day : max, dailyData[0]
+                        ).name
                       : 'N/A'}
                   </span>
                 </div>
+          
+                {/* Trend: compare first day vs last day in the 7-day period */}
                 <div className="flex justify-between items-center">
-                  <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
-                  <span className={`font-bold ${
-                    weekData.length > 1 && weekData[weeklyData.length - 1].attendanceRate > weekData[0].attendanceRate 
-                      ? 'text-green-500' 
-                      : 'text-red-500'
-                  }`}>
-                    {weekData.length > 1 
-                      ? weekData[weekData.length - 1].attendanceRate > weekData[0].attendanceRate 
-                        ? '↗' 
-                        : '↘'
+                  <span 
+                    className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`} 
+                    style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}
+                  >
+                    Trend:
+                  </span>
+                  <span 
+                    className={`font-bold ${
+                      dailyData.length > 1
+                        ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
+                          ? 'text-green-500'
+                          : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
+                            ? 'text-red-500'
+                            : 'text-yellow-500'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    {dailyData.length > 1
+                      ? dailyData[dailyData.length - 1].attendanceRate > dailyData[0].attendanceRate
+                        ? '↗ Improving'
+                        : dailyData[dailyData.length - 1].attendanceRate < dailyData[0].attendanceRate
+                          ? '↘ Declining'
+                          : '→ Stable'
                       : '→'}
                   </span>
                 </div>
