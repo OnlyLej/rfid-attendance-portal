@@ -194,23 +194,27 @@ const AnimatedCard = ({ children, delay = 0, className = '' }) => {
 const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) => {
   const isMobile = useIsMobile();
   
-  const dailyData = useMemo(() => {
+const dailyData = useMemo(() => {
   const days = [];
 
-  // 1. Find the most recent log date (in UTC)
-  let latestLogDate = null;
-  if (logs?.length) {
-    const timestamps = logs
-      .map(log => log.timestamp ? new Date(log.timestamp).getTime() : 0)
-      .filter(t => t > 0);
-    if (timestamps.length) {
-      latestLogDate = new Date(Math.max(...timestamps));
-      latestLogDate.setHours(0, 0, 0, 0);
+  // 1. Find the most recent log timestamp (in UTC)
+  let latestLogTime = 0;
+  logs?.forEach(log => {
+    if (log.timestamp) {
+      try {
+        const t = new Date(log.timestamp).getTime();
+        if (t > latestLogTime) latestLogTime = t;
+      } catch {}
     }
-  }
+  });
 
-  // 2. Use today if no logs, or latest log date if it's more recent
-  const referenceDate = latestLogDate || new Date();
+  // 2. Use most recent log date OR today if no logs
+  let referenceDate;
+  if (latestLogTime > 0) {
+    referenceDate = new Date(latestLogTime);
+  } else {
+    referenceDate = new Date();
+  }
   referenceDate.setHours(0, 0, 0, 0);
 
   // 3. Build last 7 days backward from reference date
@@ -220,13 +224,13 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
 
     const dateString = date.toISOString().split('T')[0]; // UTC YYYY-MM-DD
 
-    // PH weekday name for display
+    // PH weekday name for display (correct local name)
     const dayName = date.toLocaleDateString('en-US', {
       weekday: 'short',
       timeZone: 'Asia/Manila'
     });
 
-    // Match logs using UTC date string
+    // Filter logs that fall on this day (UTC match)
     const dayLogs = logs.filter(log => {
       if (!log.timestamp) return false;
       try {
@@ -256,11 +260,13 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
     });
   }
 
-  console.log("dailyData (fixed reference):", days.map(d => ({
+  // Debug output – remove later if you want
+  console.log("Daily Data (last 7 days from latest log):", days.map(d => ({
     day: d.name,
     date: d.fullDate,
     present: d.present,
-    rate: d.attendanceRate
+    absent: d.absent,
+    rate: `${d.attendanceRate}%`
   })));
 
   return days;
