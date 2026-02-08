@@ -888,7 +888,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                   </span>
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600 truncate'}>
                     {classComparisonData.length > 1 
-                      ? `Next: ${classComparisonData[1].attendanceRate}%`
+                      ? `Next: ${classComparisonData[1].attendanceRate}% (${classComparisonData[1].name})`
                       : 'Only class'}
                   </span>
                 </div>
