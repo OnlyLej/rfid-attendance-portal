@@ -441,16 +441,16 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <Activity className="text-blue-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Weekly Attendance Trend</span>
             </h3>
-            <div style={{ width: '100%', height: isMobile ? '220px' : '250px' }}>
+            <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {localWeeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
                     data={localWeeklyData}
-                    margin={{ 
-                      top: 10, 
-                      right: isMobile ? 10 : 30, 
-                      left: isMobile ? -20 : 0, 
-                      bottom: isMobile ? 5 : 20 
+                    margin={{
+                      top: 10,
+                      right: isMobile ? 8 : 20,
+                      left: isMobile ? 0 : 0,
+                      bottom: isMobile ? 40 : 20
                     }}
                   >
                     <CartesianGrid 
@@ -521,17 +521,17 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <Calendar className="text-green-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Daily Attendance</span>
             </h3>
-            <div style={{ width: '100%', height: isMobile ? '220px' : '250px' }}>
+            <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {dailyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={dailyData}
-                    margin={{ 
-                      top: 10, 
-                      right: isMobile ? 10 : 30, 
-                      left: isMobile ? -20 : 0, 
-                      bottom: isMobile ? 5 : 20 
-                    }}
+                   margin={{
+                    top: 10,
+                    right: isMobile ? 8 : 20,
+                    left: isMobile ? 0 : 0, 
+                    bottom: isMobile ? 40 : 20 
+                  }}
                   >
                     <CartesianGrid 
                       strokeDasharray="3 3" 
@@ -603,7 +603,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart 
                       data={monthlyData}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                      margin={{
+                        top: 10,
+                        right: isMobile ? 8 : 20,
+                        left: isMobile ? 0 : 0,  
+                        bottom: isMobile ? 40 : 20 
+                      }}
                     >
                       <CartesianGrid 
                         strokeDasharray="3 3" 
@@ -662,7 +667,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
                       data={hourlyData}
-                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                      margin={{
+                        top: 10,
+                        right: isMobile ? 8 : 20,
+                        left: isMobile ? 0 : 0,  
+                        bottom: isMobile ? 40 : 20 
+                      }}
                     >
                       <CartesianGrid 
                         strokeDasharray="3 3" 
@@ -712,16 +722,16 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <Target className="text-indigo-500" size={isMobile ? 16 : 20} />
               <span className="truncate">Class Performance</span>
             </h3>
-            <div style={{ width: '100%', height: isMobile ? '220px' : '250px' }}>
+            <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {classComparisonData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
                     data={classComparisonData}
-                    margin={{ 
-                      top: 10, 
-                      right: isMobile ? 10 : 30, 
-                      left: isMobile ? -20 : 0, 
-                      bottom: isMobile ? 30 : 20 
+                   margin={{
+                      top: 10,
+                      right: isMobile ? 8 : 20,
+                      left: isMobile ? 0 : 0,  
+                      bottom: isMobile ? 40 : 20  
                     }}
                   >
                     <CartesianGrid 
@@ -733,9 +743,9 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                       dataKey="name" 
                       stroke={darkMode ? '#9ca3af' : '#6b7280'}
                       tick={{ fontSize: isMobile ? 9 : 12 }}
-                      angle={isMobile ? -45 : 0}
-                      textAnchor={isMobile ? "end" : "middle"}
-                      height={isMobile ? 60 : 30}
+                      angle={isMobile ? -60 : -45} 
+                      textAnchor="end"
+                      height={isMobile ? 70 : 50}
                       tickLine={false}
                     />
                     <YAxis 
@@ -2848,7 +2858,13 @@ const fetchData = async () => {
       </div>
 
       {/* Content */}
-      <div className="relative max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8 overflow-x-hidden">
+      <div className={`
+        relative max-w-full mx-auto 
+        px-4 sm:px-6 lg:px-8 
+        pb-24 md:pb-8    // ← increased bottom padding on mobile
+        pt-4 md:pt-8
+        overflow-x-hidden
+      `}>
         {userType === 'teacher' ? (
           <>
             {activeTab === 0 && (
@@ -2903,26 +2919,28 @@ const fetchData = async () => {
 
       {/* Mobile bottom navigation for teachers */}
       {isMobile && userType === 'teacher' && !mobileMenuOpen && (
-        <div className={`fixed bottom-0 left-0 right-0 ${darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-blue-100'} 
-          border-t backdrop-blur-xl z-50`}>
-          <div className="flex justify-around items-center h-16 w-full px-2">
-            {[
-              { name: 'Dashboard', icon: BarChart3 },
-              { name: 'Classroom', icon: Users },
-              { name: 'Logs', icon: Calendar }
-            ].map((tab, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveTab(idx)}
-                className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${activeTab === idx ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}
-              >
-                <tab.icon size={22} />
-                <span className="text-xs mt-1 truncate w-full text-center">{tab.name}</span>
-                {activeTab === idx && (
-                  <div className="w-6 h-1 bg-blue-600 dark:bg-blue-400 rounded-full mt-1"></div>
-                )}
-              </button>
-            ))}
+        <div className="content-with-bottom-nav">
+          <div className={`fixed bottom-0 left-0 right-0 ${darkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-blue-100'} 
+            border-t backdrop-blur-xl z-50`}>
+            <div className="flex justify-around items-center h-16 w-full px-2">
+              {[
+                { name: 'Dashboard', icon: BarChart3 },
+                { name: 'Classroom', icon: Users },
+                { name: 'Logs', icon: Calendar }
+              ].map((tab, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveTab(idx)}
+                  className={`flex flex-col items-center justify-center p-2 min-w-0 flex-1 ${activeTab === idx ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}
+                >
+                  <tab.icon size={22} />
+                  <span className="text-xs mt-1 truncate w-full text-center">{tab.name}</span>
+                  {activeTab === idx && (
+                    <div className="w-6 h-1 bg-blue-600 dark:bg-blue-400 rounded-full mt-1"></div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -3041,6 +3059,11 @@ const fetchData = async () => {
           input, select, textarea {
             font-size: 16px;
           }
+        }
+
+        @media (max-width: 767px) {
+        .content-with-bottom-nav {
+          padding-bottom: 80px !important;   /* ≈ nav height + safe zone */
         }
       `}</style>
     </div>
