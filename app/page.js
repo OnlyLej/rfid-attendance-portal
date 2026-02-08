@@ -196,42 +196,45 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
   
   const dailyData = useMemo(() => {
   const days = [];
-  const today = new Date();
 
-  // Safety fallback
-  if (!logs?.length || !students?.length) {
-    console.log('⚠️ No data → zero days');
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      days.push({
-        name: date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Manila' }),
-        fullDate: date.toISOString().split('T')[0],
-        present: 0,
-        absent: 0,
-        attendanceRate: 0
-      });
+  // 1. Find the most recent log date (in UTC)
+  let latestLogDate = null;
+  if (logs?.length) {
+    const timestamps = logs
+      .map(log => log.timestamp ? new Date(log.timestamp).getTime() : 0)
+      .filter(t => t > 0);
+    if (timestamps.length) {
+      latestLogDate = new Date(Math.max(...timestamps));
+      latestLogDate.setHours(0, 0, 0, 0);
     }
-    return days;
   }
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    date.setHours(0, 0, 0, 0);
+  // 2. Use today if no logs, or latest log date if it's more recent
+  const referenceDate = latestLogDate || new Date();
+  referenceDate.setHours(0, 0, 0, 0);
 
-    const dateString = date.toISOString().split('T')[0];
+  // 3. Build last 7 days backward from reference date
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(referenceDate);
+    date.setDate(referenceDate.getDate() - i);
+
+    const dateString = date.toISOString().split('T')[0]; // UTC YYYY-MM-DD
+
+    // PH weekday name for display
     const dayName = date.toLocaleDateString('en-US', {
       weekday: 'short',
-      timeZone: 'Asia/Manila' // show correct PH weekday name
+      timeZone: 'Asia/Manila'
     });
 
-    // Use safe parser for log timestamps
+    // Match logs using UTC date string
     const dayLogs = logs.filter(log => {
       if (!log.timestamp) return false;
-      const logDate = parseLogTimestamp(log.timestamp);
-      if (!logDate) return false;
-      return logDate.toISOString().split('T')[0] === dateString;
+      try {
+        const logDate = new Date(log.timestamp);
+        return logDate.toISOString().split('T')[0] === dateString;
+      } catch {
+        return false;
+      }
     });
 
     const presentStudents = new Set(
@@ -253,11 +256,11 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
     });
   }
 
-  console.log("dailyData (fixed):", days.map(d => ({
+  console.log("dailyData (fixed reference):", days.map(d => ({
     day: d.name,
     date: d.fullDate,
     present: d.present,
-    rate: `${d.attendanceRate}%`
+    rate: d.attendanceRate
   })));
 
   return days;
