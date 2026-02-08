@@ -154,7 +154,7 @@ const AnimatedCard = ({ children, delay = 0, className = '' }) => {
   );
 };
 
-// Dashboard Tab Component - Enhanced for mobile
+// Dashboard Tab Component - COMPLETE FIX
 const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) => {
   const isMobile = useIsMobile();
   
@@ -172,11 +172,11 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
 
     // Safety check - return empty structure if no data
     if (!logs || logs.length === 0 || !students || students.length === 0) {
-      console.log('⚠️ No data available for daily calculation');
+      console.log('⚠️ No data available for daily calculation, returning zeros');
       for (let i = 6; i >= 0; i--) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
-        const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
         days.push({
           name: dayName,
           fullDate: date.toISOString().split('T')[0],
@@ -194,14 +194,13 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       date.setHours(0, 0, 0, 0);
       
       const dateString = date.toISOString().split('T')[0];
-      const dayName = date.toLocaleDateString('en-US', { weekday: isMobile ? 'short' : 'short' });
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
       
       console.log(`📊 Processing ${dateString} (${dayName})`);
       
       // Get logs for this specific day - IMPROVED FILTERING
       const dayLogs = logs.filter(log => {
         if (!log.timestamp) {
-          console.log('⚠️ Log missing timestamp:', log);
           return false;
         }
         
@@ -211,17 +210,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
           const logDateString = logDate.toISOString().split('T')[0];
           
           // Simple string comparison is more reliable
-          const isSameDay = logDateString === dateString;
-          
-          if (isSameDay) {
-            console.log(`✅ Found log for ${dateString}:`, {
-              studentId: log.studentId,
-              status: log.status,
-              timestamp: log.timestamp
-            });
-          }
-          
-          return isSameDay;
+          return logDateString === dateString;
         } catch (e) {
           console.error('❌ Error parsing log date:', log.timestamp, e);
           return false;
@@ -244,22 +233,34 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       console.log(`📊 ${dayName} results:`, {
         present,
         absent,
-        totalStudents: students.length,
-        presentStudents: Array.from(presentStudents)
+        totalStudents: students.length
       });
       
       days.push({
         name: dayName,
         fullDate: dateString,
-        present,
-        absent,
+        present: present,
+        absent: absent,
         attendanceRate: students.length > 0 ? Math.round((present / students.length) * 100) : 0
       });
     }
     
-    console.log('📊 Daily Data calculated:', days);
+    console.log('📊 Final Daily Data:', days);
     return days;
   }, [logs, students, isMobile]);
+
+  // Recalculate weekly data locally if it's empty
+  const localWeeklyData = useMemo(() => {
+    // If weeklyData prop has data, use it
+    if (weeklyData && weeklyData.length > 0) {
+      console.log('📊 Using weeklyData from props:', weeklyData);
+      return weeklyData;
+    }
+    
+    // Otherwise calculate it locally (same as dailyData)
+    console.log('📊 Calculating weeklyData locally');
+    return dailyData;
+  }, [weeklyData, dailyData]);
 
   // Calculate attendance by time of day
   const hourlyData = useMemo(() => {
@@ -289,6 +290,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       }
     });
     
+    console.log('📊 Hourly Data:', hours);
     return hours;
   }, [logs, isMobile]);
 
@@ -344,14 +346,18 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
       });
     }
     
+    console.log('📊 Monthly Data:', months);
     return months;
   }, [logs, isMobile]);
 
   // Calculate class comparison data
   const classComparisonData = useMemo(() => {
-    if (!classes || classes.length === 0 || !students || students.length === 0) return [];
+    if (!classes || classes.length === 0 || !students || students.length === 0) {
+      console.log('⚠️ No class data available');
+      return [];
+    }
     
-    return classes.map(cls => {
+    const data = classes.map(cls => {
       const classStudents = students.filter(s => s.class === cls);
       const today = new Date().toISOString().split('T')[0];
       const todayLogs = logs.filter(log => {
@@ -386,10 +392,22 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     })
     .filter(cls => cls.total > 0)
     .sort((a, b) => b.attendanceRate - a.attendanceRate);
+    
+    console.log('📊 Class Comparison Data:', data);
+    return data;
   }, [classes, students, logs, isMobile]);
 
-  // Chart configuration based on screen size
-  const chartHeight = isMobile ? 200 : 250;
+  // Debug: Log all calculated data
+  useEffect(() => {
+    console.log('📊 DashboardTab Data Summary:', {
+      dailyData: dailyData.length,
+      localWeeklyData: localWeeklyData.length,
+      hourlyData: hourlyData.length,
+      monthlyData: monthlyData.length,
+      classComparisonData: classComparisonData.length,
+      hasData: dailyData.some(d => d.present > 0 || d.absent > 0)
+    });
+  }, [dailyData, localWeeklyData, hourlyData, monthlyData, classComparisonData]);
 
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in overflow-x-hidden">
@@ -426,7 +444,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
           },
           {
             title: 'Week Avg',
-            value: `${weeklyData.length > 0 ? Math.round(weeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / weeklyData.length) : 0}%`,
+            value: `${localWeeklyData.length > 0 ? Math.round(localWeeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / localWeeklyData.length) : 0}%`,
             icon: Calendar,
             color: 'indigo',
             delay: 500
@@ -471,60 +489,62 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <span className="truncate">Weekly Attendance Trend</span>
             </h3>
             <div style={{ height: '250px', width: '100%' }}>
-              <ResponsiveContainer 
-                width="100%" 
-                height="100%"
-                minHeight={200}
-              >
-                <AreaChart 
-                  data={weeklyData}
-                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                >
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <YAxis 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                      border: 'none', 
-                      borderRadius: '12px', 
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      color: darkMode ? '#ffffff' : '#000000',
-                      fontSize: isMobile ? 12 : 14
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="present" 
-                    name="Present" 
-                    stroke="#10b981" 
-                    fill="#10b981" 
-                    fillOpacity={0.6}
-                    strokeWidth={2}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="absent" 
-                    name="Absent" 
-                    stroke="#ef4444" 
-                    fill="#ef4444" 
-                    fillOpacity={0.6}
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {localWeeklyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart 
+                    data={localWeeklyData}
+                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000',
+                        fontSize: isMobile ? 12 : 14
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="present" 
+                      name="Present" 
+                      stroke="#10b981" 
+                      fill="#10b981" 
+                      fillOpacity={0.6}
+                      strokeWidth={2}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="absent" 
+                      name="Absent" 
+                      stroke="#ef4444" 
+                      fill="#ef4444" 
+                      fillOpacity={0.6}
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+                </div>
+              )}
             </div>
           </div>
         </AnimatedCard>
@@ -538,54 +558,56 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <span className="truncate">Daily Attendance (Last 7 Days)</span>
             </h3>
             <div style={{ height: '250px', width: '100%' }}>
-              <ResponsiveContainer 
-                width="100%" 
-                height="100%"
-                minHeight={200}
-              >
-                <BarChart 
-                  data={dailyData}
-                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                >
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <YAxis 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                      border: 'none', 
-                      borderRadius: '12px', 
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      color: darkMode ? '#ffffff' : '#000000',
-                      fontSize: isMobile ? 12 : 14
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
-                  <Bar 
-                    dataKey="present" 
-                    name="Present" 
-                    fill="#10b981" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar 
-                    dataKey="absent" 
-                    name="Absent" 
-                    fill="#ef4444" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {dailyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={dailyData}
+                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000',
+                        fontSize: isMobile ? 12 : 14
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: isMobile ? 12 : 14 }} />
+                    <Bar 
+                      dataKey="present" 
+                      name="Present" 
+                      fill="#10b981" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="absent" 
+                      name="Absent" 
+                      fill="#ef4444" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+                </div>
+              )}
             </div>
           </div>
         </AnimatedCard>
@@ -600,48 +622,50 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                 Monthly Trend
               </h3>
               <div style={{ height: '250px', width: '100%' }}>
-                <ResponsiveContainer 
-                  width="100%" 
-                  height="100%"
-                  minHeight={200}
-                >
-                  <LineChart 
-                    data={monthlyData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000'
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="attendance" 
-                      name="Avg Daily" 
-                      stroke="#8b5cf6" 
-                      strokeWidth={3} 
-                      dot={{ fill: '#8b5cf6', r: 5 }}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {monthlyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={monthlyData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                        vertical={false}
+                      />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                          border: 'none', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                          color: darkMode ? '#ffffff' : '#000000'
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="attendance" 
+                        name="Avg Daily" 
+                        stroke="#8b5cf6" 
+                        strokeWidth={3} 
+                        dot={{ fill: '#8b5cf6', r: 5 }}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+                  </div>
+                )}
               </div>
             </div>
           </AnimatedCard>
@@ -657,45 +681,47 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                 Check-ins by Time
               </h3>
               <div style={{ height: '250px', width: '100%' }}>
-                <ResponsiveContainer 
-                  width="100%" 
-                  height="100%"
-                  minHeight={200}
-                >
-                  <BarChart 
-                    data={hourlyData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
-                  >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
-                    <XAxis 
-                      dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        color: darkMode ? '#ffffff' : '#000000'
-                      }}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      name="Check-ins" 
-                      fill="#f59e0b" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {hourlyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={hourlyData}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 20 }}
+                    >
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                        vertical={false}
+                      />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                          border: 'none', 
+                          borderRadius: '12px', 
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                          color: darkMode ? '#ffffff' : '#000000'
+                        }}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        name="Check-ins" 
+                        fill="#f59e0b" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+                  </div>
+                )}
               </div>
             </div>
           </AnimatedCard>
@@ -710,58 +736,60 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <span className="truncate">Class Performance</span>
             </h3>
             <div style={{ height: '250px', width: '100%' }}>
-              <ResponsiveContainer 
-                width="100%" 
-                height="100%"
-                minHeight={200}
-              >
-                <BarChart 
-                  data={classComparisonData}
-                  margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
-                >
-                  <CartesianGrid 
-                    strokeDasharray="3 3" 
-                    stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                    vertical={false}
-                  />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                    angle={isMobile ? -45 : 0}
-                    textAnchor={isMobile ? "end" : "middle"}
-                    height={isMobile ? 50 : undefined}
-                  />
-                  <YAxis 
-                    stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                    domain={[0, 100]}
-                    tickFormatter={(value) => `${value}%`}
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                      border: 'none', 
-                      borderRadius: '12px', 
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      color: darkMode ? '#ffffff' : '#000000',
-                      fontSize: isMobile ? 12 : 14
-                    }}
-                    formatter={(value, name, props) => {
-                      if (name === 'attendanceRate') {
-                        return [`${value}% (${props.payload.present || 0}/${props.payload.total || 0})`, 'Attendance'];
-                      }
-                      return [value, name];
-                    }}
-                  />
-                  <Bar 
-                    dataKey="attendanceRate" 
-                    name="Attendance %" 
-                    fill="#6366f1" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+              {classComparisonData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={classComparisonData}
+                    margin={{ top: 10, right: isMobile ? 5 : 30, left: isMobile ? -10 : 0, bottom: 20 }}
+                  >
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
+                      vertical={false}
+                    />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                      angle={isMobile ? -45 : 0}
+                      textAnchor={isMobile ? "end" : "middle"}
+                      height={isMobile ? 50 : undefined}
+                    />
+                    <YAxis 
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
+                      domain={[0, 100]}
+                      tickFormatter={(value) => `${value}%`}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
+                        border: 'none', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        color: darkMode ? '#ffffff' : '#000000',
+                        fontSize: isMobile ? 12 : 14
+                      }}
+                      formatter={(value, name, props) => {
+                        if (name === 'attendanceRate') {
+                          return [`${value}% (${props.payload.present || 0}/${props.payload.total || 0})`, 'Attendance'];
+                        }
+                        return [value, name];
+                      }}
+                    />
+                    <Bar 
+                      dataKey="attendanceRate" 
+                      name="Attendance %" 
+                      fill="#6366f1" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No class data available</p>
+                </div>
+              )}
             </div>
           </div>
         </AnimatedCard>
@@ -817,12 +845,12 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
                   <span className={`font-bold ${
-                    weeklyData.length > 1 && weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                    localWeeklyData.length > 1 && localWeeklyData[localWeeklyData.length - 1].attendanceRate > localWeeklyData[0].attendanceRate 
                       ? 'text-green-500' 
                       : 'text-red-500'
                   }`}>
-                    {weeklyData.length > 1 
-                      ? weeklyData[weeklyData.length - 1].attendanceRate > weeklyData[0].attendanceRate 
+                    {localWeeklyData.length > 1 
+                      ? localWeeklyData[localWeeklyData.length - 1].attendanceRate > localWeeklyData[0].attendanceRate 
                         ? '↗' 
                         : '↘'
                       : '→'}
