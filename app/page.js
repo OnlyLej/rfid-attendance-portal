@@ -802,7 +802,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <div className="space-y-2 md:space-y-3">
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Total Check-ins:</span>
-                  <span className="font-bold">{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
+                  <span className={darkMode ? 'text-white' : 'text-gray-600'}>{dailyData.length > 0 ? dailyData[dailyData.length - 1].present : 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Attendance Rate:</span>
@@ -824,7 +824,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <div className="space-y-2 md:space-y-3">
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Avg Daily:</span>
-                  <span className="font-bold">
+                  <span className={darkMode ? 'text-white' : 'text-gray-600'}>
                     {dailyData.length > 0 
                       ? Math.round(dailyData.reduce((sum, day) => sum + day.present, 0) / dailyData.length)
                       : 0}
@@ -864,7 +864,7 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
               <div className="space-y-3 md:space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-lg md:text-xl font-bold truncate">{classComparisonData[0].name}</p>
+                    <p className=`${darkMode ? 'text-white' : 'text-gray-600'} text-lg md:text-xl truncate`>{classComparisonData[0].name}</p>
                     <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} text-xs md:text-sm truncate`}>
                       {classComparisonData[0].present}/{classComparisonData[0].total} present
                     </p>
