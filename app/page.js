@@ -226,142 +226,83 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
   }, [logs, students]);
 
 const advanceWeeklyData = useMemo(() => {
-  if (!logs?.length || !students?.length) {
-    console.warn("[weekly calc] No logs or students → returning placeholder zeros");
-    const today = new Date();
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(today.getDate() - (6 - i));
-      return {
-        name: d.toLocaleDateString('en-US', { weekday: 'short' }),
-        date: d.toISOString().split('T')[0],
-        present: 0,
-        absent: 0,
-        total: students?.length || 0,
-        rate: 0,
-        change: 0,           // % change from previous day
-        isPeak: false,
-        trend: 'neutral',    // 'up', 'down', 'neutral'
-      };
-    });
-  }
+  if (!logs?.length || !students?.length) return [];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // normalize to start of today
+  const WEEKS_TO_SHOW = 10;
+  const totalStudents = students.length;
 
-  const result = [];
-  let previousRate = null;
+  const getWeekStart = (date) => {
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+  };
 
-  // From 6 days ago → today (oldest to newest)
-  for (let i = 6; i >= 0; i--) {
-    const dayStart = new Date(today);
-    dayStart.setDate(today.getDate() - i);
+  // weekKey → { days: Map<dayKey, presentCount>, weekStart: Date }
+  const weekData = new Map();
 
-    const dayEnd = new Date(dayStart);
-    dayEnd.setDate(dayStart.getDate() + 1);
+  // 1. Collect present students per day per week
+  logs.forEach(log => {
+    if (!log.timestamp || log.status !== 'IN' || !log.studentId) return;
+    try {
+      const t = new Date(log.timestamp);
+      const monday = getWeekStart(t);
+      const weekKey = monday.toISOString().split('T')[0];
+      const dayKey  = t.toISOString().split('T')[0];
 
-    const dateStr = dayStart.toISOString().split('T')[0];
-    const dayName = dayStart.toLocaleDateString('en-US', { weekday: 'short' });
-
-    // All logs that belong to this calendar day
-    const dayLogs = logs.filter(log => {
-      if (!log.timestamp) return false;
-      try {
-        const t = new Date(log.timestamp);
-        return t >= dayStart && t < dayEnd;
-      } catch {
-        return false;
+      if (!weekData.has(weekKey)) {
+        weekData.set(weekKey, { days: new Map(), weekStart: monday });
       }
-    });
 
-    // Unique students who checked IN
-    const presentSet = new Set(
-      dayLogs
-        .filter(l => l.status === 'IN' && l.studentId)
-        .map(l => l.studentId)
-    );
-
-    const present = presentSet.size;
-    const total = students.length;
-    const absent = Math.max(0, total - present);
-    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-
-    // Day-to-day change
-    let change = 0;
-    let trend = 'neutral';
-    if (previousRate !== null) {
-      change = rate - previousRate;
-      trend = change > 3 ? 'up' : change < -3 ? 'down' : 'neutral';
-    }
-    previousRate = rate;
-
-    result.push({
-      name: dayName,
-      date: dateStr,
-      present,
-      absent,
-      total,
-      rate,
-      change,
-      trend,
-      isPeak: false,           // will be updated after full loop
-      formattedRate: `${rate}%`,
-      tooltipInfo: `${present}/${total} present • ${absent} absent`,
-    });
-  }
-
-  // After collecting all days → find peak day(s)
-  const maxRate = Math.max(...result.map(d => d.rate));
-  result.forEach(day => {
-    if (day.rate === maxRate && maxRate > 0) {
-      day.isPeak = true;
-    }
+      const entry = weekData.get(weekKey);
+      if (!entry.days.has(dayKey)) {
+        entry.days.set(dayKey, new Set());
+      }
+      entry.days.get(dayKey).add(log.studentId);
+    } catch {}
   });
 
-  console.log("[advanced weekly data]", {
-    days: result.length,
-    data: result,
-    overallAvg: result.length
-      ? Math.round(result.reduce((sum, d) => sum + d.rate, 0) / result.length)
-      : 0,
-    bestDay: result.reduce((best, curr) =>
-      curr.rate > best.rate ? curr : best, result[0] || {}
-    )?.name,
-  });
+  // 2. Get recent weeks
+  const recentWeeks = [...weekData.entries()]
+    .sort((a,b) => new Date(b[0]) - new Date(a[0]))
+    .slice(0, WEEKS_TO_SHOW)
+    .reverse(); // oldest → newest
 
-  return result;
+  // 3. Calculate for each week
+  return recentWeeks.map(([weekKey, {days, weekStart}]) => {
+    const monday = new Date(weekKey);
+    const rates = [];
+
+    // Go through each of the 7 days in the week
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      const dayKey = day.toISOString().split('T')[0];
+
+      const presentSet = days.get(dayKey);
+      const present = presentSet ? presentSet.size : 0;
+      const rate = totalStudents > 0 ? (present / totalStudents) * 100 : 0;
+      rates.push(rate);
+    }
+
+    const avgRate = Math.round(rates.reduce((a,b)=>a+b,0) / 7);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const label = monday.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+
+    return {
+      name: label,
+      fullRange: `${label} – ${sunday.toLocaleDateString('en-US', {day:'numeric'})}`,
+      avgRate,
+      daysWithData: rates.filter(r => r > 0).length,
+      tooltip: `${avgRate}% weekly avg • (missing days = 0%)`,
+    };
+  });
 }, [logs, students]);
-
-  // Calculate attendance by time of day
-  const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 12 }, (_, i) => {
-      const hour = i + 7;
-      return {
-        name: isMobile ? `${hour}` : `${hour}:00`,
-        count: 0
-      };
-    });
-    
-    if (!logs || logs.length === 0) return hours;
-    
-    logs.forEach(log => {
-      if (log.status === 'IN' && log.timestamp) {
-        try {
-          const hour = new Date(log.timestamp).getHours();
-          if (hour >= 7 && hour <= 18) {
-            const index = hour - 7;
-            if (hours[index]) {
-              hours[index].count++;
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing timestamp for hourly data:', e);
-        }
-      }
-    });
-    
-    return hours;
-  }, [logs, isMobile]);
 
   // Calculate monthly attendance trend
   const monthlyData = useMemo(() => {
@@ -496,7 +437,7 @@ const advanceWeeklyData = useMemo(() => {
           },
           {
             title: 'Week Avg',
-            value: `${advanceWeeklyData.length > 0 ? Math.round(advanceWeeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / advanceWeeklyData.length) : 0}%`,
+            value: `${weeklyData.length > 0 ? Math.round(weeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / weeklyData.length) : 0}%`,
             icon: Calendar,
             color: 'indigo',
             delay: 500
