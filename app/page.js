@@ -198,9 +198,13 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
   
 const dailyData = useMemo(() => {
   const days = [];
-  const today = new Date();
-
-  // Set to midnight in local time (safe starting point)
+  
+  // Use Philippine time for all date calculations
+  const now = new Date();
+  const phTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+  
+  // Set to midnight in Philippine time
+  const today = new Date(phTime);
   today.setHours(0, 0, 0, 0);
 
   // Loop: today (i=0) ← yesterday ← ... ← 6 days ago (i=6)
@@ -208,20 +212,34 @@ const dailyData = useMemo(() => {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
 
-    const dateString = date.toISOString().split('T')[0]; // UTC YYYY-MM-DD for comparison
+    // Get date string in Philippine time for comparison
+    const dateString = date.toLocaleDateString('en-US', { 
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2');
 
-    // Weekday name in Philippine time (correct display)
+    // Weekday name in Philippine time
     const dayName = date.toLocaleDateString('en-US', {
       weekday: 'short',
       timeZone: 'Asia/Manila'
     });
 
-    // Find logs exactly on this day (UTC date match)
+    // Find logs exactly on this day (Philippine date match)
     const dayLogs = logs.filter(log => {
       if (!log.timestamp) return false;
       try {
+        // Convert log timestamp to Philippine date
         const logDate = new Date(log.timestamp);
-        return logDate.toISOString().split('T')[0] === dateString;
+        const logDateString = logDate.toLocaleDateString('en-US', { 
+          timeZone: 'Asia/Manila',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$1-$2');
+        
+        return logDateString === dateString;
       } catch {
         return false;
       }
@@ -247,8 +265,7 @@ const dailyData = useMemo(() => {
     });
   }
 
-  // Debug output – helps confirm the dates and values
-  console.log("Daily Data – last 7 calendar days (today included):", 
+  console.log("Daily Data – last 7 calendar days (Philippine time):", 
     days.map(d => ({
       day: d.name,
       date: d.fullDate,
