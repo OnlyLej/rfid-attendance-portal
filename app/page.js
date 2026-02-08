@@ -268,61 +268,72 @@ const weeklyData = useMemo(() => {
   const totalStudents = students.length;
   const now = new Date();
   const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-based
+  const currentMonth = now.getMonth();
 
-  // First day of current month
+  // First and last day of current month
   const firstOfMonth = new Date(currentYear, currentMonth, 1);
+  const lastOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-  // Helper: Get relative week number within the month (1 = first week, 2 = second, etc.)
-  const getRelativeWeekNum = (date) => {
-    const dayOfMonth = date.getDate();
-    const firstDayWeekday = firstOfMonth.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    // Adjust to make Monday the start (common for weeks)
-    const adjustedFirst = (firstDayWeekday === 0 ? 7 : firstDayWeekday);
-    return Math.ceil((dayOfMonth + adjustedFirst - 1) / 7);
+  // Helper: ISO week key
+  const getWeekKey = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const startOfYear = new Date(year, 0, 1);
+    const pastDays = Math.floor((d - startOfYear) / 86400000);
+    const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7);
+    return `${year}-W${String(weekNum).padStart(2, '0')}`;
   };
 
-  // Group logs by relative week number (only current month)
-  const weekMap = new Map(); // relativeWeekNum → Set<studentId>
+  // Collect all possible weeks in this month
+  const weekKeysInMonth = new Set();
+  let currentDate = new Date(firstOfMonth);
+  while (currentDate <= lastOfMonth) {
+    weekKeysInMonth.add(getWeekKey(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  const sortedWeekKeys = [...weekKeysInMonth].sort();
+
+  // Group present students from logs (only current month)
+  const weekMap = new Map(); // weekKey → Set<studentId>
 
   logs?.forEach(log => {
     if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
     try {
       const logDate = new Date(log.timestamp);
       if (logDate.getFullYear() === currentYear && logDate.getMonth() === currentMonth) {
-        const relWeek = getRelativeWeekNum(logDate);
-        if (!weekMap.has(relWeek)) weekMap.set(relWeek, new Set());
-        weekMap.get(relWeek).add(log.studentId);
+        const weekKey = getWeekKey(logDate);
+        if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
+        weekMap.get(weekKey).add(log.studentId);
       }
     } catch {}
   });
 
-  // Find total weeks in month (max 5 or 6)
-  const totalWeeksInMonth = getRelativeWeekNum(new Date(currentYear, currentMonth + 1, 0));
-
-  // Build data for each week 1 → totalWeeksInMonth
-  const chartData = [];
-  for (let week = 1; week <= totalWeeksInMonth; week++) {
-    const presentSet = weekMap.get(week) || new Set();
+  // Build chart data
+  const chartData = sortedWeekKeys.map(weekKey => {
+    const presentSet = weekMap.get(weekKey) || new Set();
     const present = presentSet.size;
     const absent = totalStudents - present;
     const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
 
-    // Is this week in the future?
-    const weekStartDay = (week - 1) * 7 + 1;
-    const weekStartDate = new Date(currentYear, currentMonth, weekStartDay);
-    const isFuture = weekStartDate > now;
+    const weekNum = weekKey.split('-W')[1];
+    const label = `W${weekNum}`;
 
-    chartData.push({
-      name: `W${week}`,
+    // Is this week in the future?
+    const weekStart = new Date(currentYear, 0, 1);
+    weekStart.setDate(weekStart.getDate() + (parseInt(weekNum) - 1) * 7);
+    const isFuture = weekStart > now;
+
+    return {
+      name: label,
       present: isFuture ? 0 : present,
       absent: isFuture ? totalStudents : absent,
       avgRate: isFuture ? 0 : rate,
       isFuture
-    });
-  }
+    };
+  });
 
-  console.log("[weekly month] Final data (relative weeks):", chartData);
+  console.log("[weekly month] Final data:", chartData);
 
   return chartData;
 }, [logs, students]);
