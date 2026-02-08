@@ -155,7 +155,7 @@ const AnimatedCard = ({ children, delay = 0, className = '' }) => {
 };
 
 // Dashboard Tab Component - MOBILE FIX
-const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) => {
+const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) => {
   const isMobile = useIsMobile();
   
   // Calculate daily data for the last 7 days - FIXED VERSION
@@ -225,83 +225,99 @@ const DashboardTab = ({ darkMode, stats, weeklyData, students, logs, classes }) 
     return days;
   }, [logs, students]);
 
-const advanceWeeklyData = useMemo(() => {
-  if (!logs?.length || !students?.length) return [];
+const weeklyData = useMemo(() => {
+  console.log("[weekly avg] Starting calculation...");
+  console.log("[weekly avg] Logs count:", logs?.length || 0);
+  console.log("[weekly avg] Students count:", students?.length || 0);
 
-  const WEEKS_TO_SHOW = 10;
+  if (!logs?.length || !students?.length) {
+    console.log("[weekly avg] No logs or students → returning empty weeks");
+    return Array(8).fill().map((_, i) => ({
+      name: `Week ${i + 1}`,
+      avgRate: 0,
+      daysWithData: 0,
+      tooltip: "No data",
+    }));
+  }
+
   const totalStudents = students.length;
 
-  const getWeekStart = (date) => {
-    const d = new Date(date);
-    d.setHours(0,0,0,0);
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff);
-    return d;
+  // Super simple week key: YYYY-Www (ISO-like)
+  const getWeekKey = (timestamp) => {
+    if (!timestamp) return null;
+    try {
+      const d = new Date(timestamp);
+      if (isNaN(d.getTime())) return null;
+      
+      // ISO week calculation (handles year rollover correctly)
+      const year = d.getFullYear();
+      const startOfYear = new Date(year, 0, 1);
+      const pastDays = Math.floor((d - startOfYear) / 86400000);
+      const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7); // +6 to make week 1 start near Jan 1-4
+      
+      return `${year}-W${String(weekNum).padStart(2, '0')}`;
+    } catch (e) {
+      console.warn("Bad timestamp:", timestamp, e);
+      return null;
+    }
   };
 
-  // weekKey → { days: Map<dayKey, presentCount>, weekStart: Date }
-  const weekData = new Map();
+  // Group: weekKey → total unique presents in that week
+  // We'll approximate average later
+  const weekPresents = new Map();
 
-  // 1. Collect present students per day per week
   logs.forEach(log => {
-    if (!log.timestamp || log.status !== 'IN' || !log.studentId) return;
-    try {
-      const t = new Date(log.timestamp);
-      const monday = getWeekStart(t);
-      const weekKey = monday.toISOString().split('T')[0];
-      const dayKey  = t.toISOString().split('T')[0];
+    if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
+    
+    const weekKey = getWeekKey(log.timestamp);
+    if (!weekKey) return;
 
-      if (!weekData.has(weekKey)) {
-        weekData.set(weekKey, { days: new Map(), weekStart: monday });
-      }
-
-      const entry = weekData.get(weekKey);
-      if (!entry.days.has(dayKey)) {
-        entry.days.set(dayKey, new Set());
-      }
-      entry.days.get(dayKey).add(log.studentId);
-    } catch {}
-  });
-
-  // 2. Get recent weeks
-  const recentWeeks = [...weekData.entries()]
-    .sort((a,b) => new Date(b[0]) - new Date(a[0]))
-    .slice(0, WEEKS_TO_SHOW)
-    .reverse(); // oldest → newest
-
-  // 3. Calculate for each week
-  return recentWeeks.map(([weekKey, {days, weekStart}]) => {
-    const monday = new Date(weekKey);
-    const rates = [];
-
-    // Go through each of the 7 days in the week
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(monday);
-      day.setDate(monday.getDate() + i);
-      const dayKey = day.toISOString().split('T')[0];
-
-      const presentSet = days.get(dayKey);
-      const present = presentSet ? presentSet.size : 0;
-      const rate = totalStudents > 0 ? (present / totalStudents) * 100 : 0;
-      rates.push(rate);
+    if (!weekPresents.has(weekKey)) {
+      weekPresents.set(weekKey, new Set());
     }
-
-    const avgRate = Math.round(rates.reduce((a,b)=>a+b,0) / 7);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const label = monday.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-
-    return {
-      name: label,
-      fullRange: `${label} – ${sunday.toLocaleDateString('en-US', {day:'numeric'})}`,
-      avgRate,
-      daysWithData: rates.filter(r => r > 0).length,
-      tooltip: `${avgRate}% weekly avg • (missing days = 0%)`,
-    };
+    weekPresents.get(weekKey).add(log.studentId);
   });
+
+  console.log("[weekly avg] Found weeks:", [...weekPresents.keys()]);
+
+  // Sort weeks newest → oldest, take last 8–10
+  const sortedWeeks = [...weekPresents.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0])) // newest first
+    .slice(0, 10);
+
+  // Build chart data — oldest to newest
+  const chartData = sortedWeeks
+    .reverse()
+    .map(([weekKey, presentSet], index) => {
+      const present = presentSet.size;
+      const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
+
+      // Very simple label
+      const weekNum = weekKey.split('-W')[1];
+      const label = `W${weekNum}`;
+
+      return {
+        name: label,
+        weekKey,
+        avgRate: rate,
+        presentUnique: present,
+        tooltip: `${rate}% • ${present} unique students this week`,
+      };
+    });
+
+  // If very few weeks, pad with zeros at the beginning
+  while (chartData.length < 8) {
+    chartData.unshift({
+      name: `W${chartData.length + 1}`,
+      avgRate: 0,
+      presentUnique: 0,
+      tooltip: "No attendance recorded",
+    });
+  }
+
+  console.log("[weekly avg] Final chart data:", chartData);
+
+  return chartData;
 }, [logs, students]);
 
   // Calculate attendance by time of day
@@ -467,7 +483,7 @@ const advanceWeeklyData = useMemo(() => {
           },
           {
             title: 'Week Avg',
-            value: `${weeklyData.length > 0 ? Math.round(weeklyData.reduce((sum, week) => sum + week.attendanceRate, 0) / weeklyData.length) : 0}%`,
+            value: `${weekData.length > 0 ? Math.round(weekData.reduce((sum, week) => sum + week.attendanceRate, 0) / weekData.length) : 0}%`,
             icon: Calendar,
             color: 'indigo',
             delay: 500
@@ -512,10 +528,10 @@ const advanceWeeklyData = useMemo(() => {
               <span className="truncate">Weekly Attendance Trend</span>
             </h3>
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
-              {advanceWeeklyData.length > 0 ? (
+              {weeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
-                    data={advanceWeeklyData}
+                    data={weeklyData}
                     margin={{
                       top: 10,
                       right: isMobile ? 8 : 20,
@@ -911,12 +927,12 @@ const advanceWeeklyData = useMemo(() => {
                 <div className="flex justify-between items-center">
                   <span className={darkMode ? 'text-gray-400' : 'text-gray-600'} style={{ fontSize: isMobile ? '0.75rem' : '0.875rem' }}>Trend:</span>
                   <span className={`font-bold ${
-                    advanceWeeklyData.length > 1 && advanceWeeklyData[advanceWeeklyData.length - 1].attendanceRate > advanceWeeklyData[0].attendanceRate 
+                    weekData.length > 1 && weekData[weeklyData.length - 1].attendanceRate > weekData[0].attendanceRate 
                       ? 'text-green-500' 
                       : 'text-red-500'
                   }`}>
-                    {advanceWeeklyData.length > 1 
-                      ? advanceWeeklyData[advanceWeeklyData.length - 1].attendanceRate > advanceWeeklyData[0].attendanceRate 
+                    {weekData.length > 1 
+                      ? weekData[weekData.length - 1].attendanceRate > weekData[0].attendanceRate 
                         ? '↗' 
                         : '↘'
                       : '→'}
