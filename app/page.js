@@ -483,7 +483,11 @@ const weeklyData = useMemo(() => {
           },
           {
             title: 'Week Avg',
-            value: `${weekData.length > 0 ? Math.round(weekData.reduce((sum, week) => sum + week.attendanceRate, 0) / weekData.length) : 0}%`,
+            value: dailyData?.length > 0 
+              ? `${Math.round(
+                  dailyData.reduce((sum, day) => sum + (day.attendanceRate || 0), 0) / dailyData.length
+                )}%`
+              : '0%',
             icon: Calendar,
             color: 'indigo',
             delay: 500
