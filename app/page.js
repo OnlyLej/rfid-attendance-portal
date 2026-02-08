@@ -5,7 +5,9 @@ import {
   Calendar, Users, Clock, TrendingUp, Download, Lock, Eye, EyeOff, LogOut,
   BarChart3, Activity, UserCheck, UserX, AlertCircle, Sun, Moon,
   ChevronRight, Search, RefreshCw, Award, Target, Shield, Bell,
-  Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon
+  Filter, ArrowUpDown, X, User, Info, Menu, X as XIcon, LogIn, Sparkles, Zap, ArrowRight,
+  Cpu, CheckCircle, RadioTower, Database, Cloud, ShieldCheck, Brain, Network, CloudCog, Globe,
+  Monitor, Wifi, Radio, ChevronDown, ChevronUp
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
@@ -2321,6 +2323,74 @@ export default function AttendancePortal() {
 
   const isMobile = useIsMobile();
 
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [activeSystemSection, setActiveSystemSection] = useState(0);
+  const [animatedNumbers, setAnimatedNumbers] = useState({
+    students: 0,
+    checkins: 0,
+    uptime: 0,
+    responseTime: 0
+  });
+  
+
+// Stats animation effect - FASTER and NO DECIMALS
+useEffect(() => {
+  if (!authenticated) {
+    const targetValues = {
+      students: 100,
+      checkins: 250,
+      uptime: 99.95,
+      responseTime: 100
+    };
+
+    // Start from rounded values
+    setAnimatedNumbers({
+      students: 0,
+      checkins: 0,
+      uptime: 0,
+      responseTime: 150
+    });
+
+    // Use setTimeout for simpler animation (2 seconds total)
+    let currentStep = 0;
+    const totalSteps = 10; // Reduced for faster animation
+    const stepDuration = 100; // 100ms per step = 2 seconds total
+    
+    const timer = setInterval(() => {
+      currentStep++;
+      const progress = Math.min(currentStep / totalSteps, 1);
+      
+      // Use ease-out function
+      const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+      const easedProgress = easeOut(progress);
+      
+      // Update values - NO DECIMALS for students and checkins
+      setAnimatedNumbers({
+        students: Math.floor(easedProgress * targetValues.students),
+        checkins: Math.floor(easedProgress * targetValues.checkins),
+        uptime: parseFloat((easedProgress * targetValues.uptime).toFixed(2)),
+        responseTime: Math.floor(150 - (easedProgress * 50))
+      });
+      
+      if (currentStep >= totalSteps) {
+        clearInterval(timer);
+        // Ensure final values are exact (no decimals)
+        setAnimatedNumbers({
+          students: 100,
+          checkins: 250,
+          uptime: 99.95,
+          responseTime: 100
+        });
+      }
+    }, stepDuration);
+    
+    return () => clearInterval(timer);
+  }
+}, [authenticated]);
+
+  
+ 
+
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme');
@@ -2756,114 +2826,843 @@ const getStudentStatus = (studentId) => {
   }, [authenticated]);
 
   if (!mounted) return null;
-
-  if (!authenticated) {
-    return (
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'} flex items-center justify-center p-4 transition-all duration-500 overflow-x-hidden`}>
-        <div className="absolute inset-0 overflow-hidden">
-          <div className={`absolute -top-1/2 -left-1/2 w-full h-full rounded-full ${darkMode ? 'bg-blue-500/5' : 'bg-blue-400/20'} blur-3xl animate-pulse`}></div>
-          <div className={`absolute -bottom-1/2 -right-1/2 w-full h-full rounded-full ${darkMode ? 'bg-purple-500/5' : 'bg-purple-400/20'} blur-3xl animate-pulse`}></div>
+// FeatureCard Component for System Architecture section
+const FeatureCard = ({ feature, idx, darkMode, activeSystemSection, setActiveSystemSection }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const shouldShowDetails = isHovered || activeSystemSection === idx;
+  
+  const colorClasses = {
+    blue: {
+      dark: { bg: 'from-blue-500/5 to-blue-600/5', border: 'border-blue-400/20', accent: 'bg-blue-500', iconBg: 'bg-blue-500/10', icon: 'text-blue-400' },
+      light: { bg: 'from-blue-50 to-blue-100/50', border: 'border-blue-200', accent: 'bg-blue-500', iconBg: 'bg-blue-100', icon: 'text-blue-600' }
+    },
+    purple: {
+      dark: { bg: 'from-purple-500/5 to-purple-600/5', border: 'border-purple-400/20', accent: 'bg-purple-500', iconBg: 'bg-purple-500/10', icon: 'text-purple-400' },
+      light: { bg: 'from-purple-50 to-purple-100/50', border: 'border-purple-200', accent: 'bg-purple-500', iconBg: 'bg-purple-100', icon: 'text-purple-600' }
+    },
+    green: {
+      dark: { bg: 'from-green-500/5 to-green-600/5', border: 'border-green-400/20', accent: 'bg-green-500', iconBg: 'bg-green-500/10', icon: 'text-green-400' },
+      light: { bg: 'from-green-50 to-green-100/50', border: 'border-green-200', accent: 'bg-green-500', iconBg: 'bg-green-100', icon: 'text-green-600' }
+    }
+  };
+  
+  const colors = colorClasses[feature.color][darkMode ? 'dark' : 'light'];
+  
+  return (
+    <div 
+      className={`group relative bg-gradient-to-br ${colors.bg} backdrop-blur-sm rounded-2xl p-6 border ${colors.border} shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.005] cursor-pointer`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => setActiveSystemSection(activeSystemSection === idx ? null : idx)}
+    >
+      {/* Animated accent line */}
+      <div className={`absolute top-0 left-0 h-1 ${colors.accent} rounded-t-2xl transition-all duration-500`}
+        style={{ width: shouldShowDetails ? '100%' : '40%' }}
+      />
+      
+      <div className="flex items-start gap-6">
+        <div className={`p-4 rounded-xl ${colors.iconBg} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+          <feature.icon className={colors.icon} size={28} />
         </div>
-
-        <div className={`relative backdrop-blur-xl ${darkMode ? 'bg-gray-800/40 border-gray-700' : 'bg-white/40 border-white/60'} rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 max-w-md w-full border transform hover:scale-105 transition-all duration-300 mx-4`}>
-          <button
-            onClick={toggleTheme}
-            className={`absolute top-4 right-4 p-2 rounded-full ${darkMode ? 'bg-gray-700 text-yellow-400' : 'bg-white/50 text-gray-700'} hover:scale-110 transition-transform`}
-          >
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
-          <div className="flex justify-center mb-6">
-            <div className={`${darkMode ? 'bg-blue-500/20' : 'bg-gradient-to-br from-blue-500 to-indigo-600'} p-4 rounded-2xl animate-bounce`}>
-              <Lock size={40} className={darkMode ? 'text-blue-400' : 'text-white'} />
+        
+        <div className="flex-1">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
+              <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>{feature.description}</p>
+            </div>
+            <div className={`transition-transform duration-300 ${shouldShowDetails ? 'rotate-180' : ''}`}>
+              <ChevronDown className={darkMode ? 'text-gray-400' : 'text-gray-400'} size={20} />
             </div>
           </div>
           
-          <h1 className={`text-3xl md:text-4xl font-bold text-center mb-2 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-            Welcome Back
-          </h1>
-          <p className={`text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 text-sm md:text-base`}>
-            RFID Attendance Portal
-          </p>
-
-          <form onSubmit={handleLogin} className="space-y-4 md:space-y-5">
-            <div className="space-y-2">
-              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Username
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm`}
-                placeholder="Enter username"
-                required
-                disabled={loggingIn}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-700/50 border-gray-600 text-white' : 'bg-white/50 border-gray-200 text-gray-900'} border-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm pr-12`}
-                  placeholder="Enter password"
-                  required
-                  disabled={loggingIn}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'} transition-colors`}
-                  disabled={loggingIn}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+          {/* Expandable details */}
+          <div className={`overflow-hidden transition-all duration-500 ${shouldShowDetails ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className={`pt-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{feature.details}</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {feature.features.map((featureItem, fIdx) => (
+                  <div key={fIdx} className={`flex items-center gap-3 p-3 rounded-lg border shadow-sm ${
+                    darkMode 
+                      ? 'bg-gray-800/50 border-gray-700 text-gray-300' 
+                      : 'bg-gradient-to-r from-gray-50 to-white border-gray-100 text-gray-700'
+                  }`}>
+                    <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                    <span className="text-sm">{featureItem}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {loginError && (
-              <div className="bg-red-500/10 border-2 border-red-500/50 text-red-600 dark:text-red-400 px-4 py-3 rounded-xl text-sm backdrop-blur-sm animate-shake">
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={18} />
-                  {loginError}
-                </div>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
-            >
-              {loggingIn ? (
-                <span className="flex items-center justify-center gap-2">
-                  <RefreshCw size={20} className="animate-spin" />
-                  Signing In...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  <Shield size={20} />
-                  Secure Sign In
-                </span>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-              🔒 Protected by session-based authentication
-            </p>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+};
+
+// SystemCard Component for Features section
+const SystemCard = ({ feature, idx, darkMode }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  const colorClasses = {
+    blue: {
+      dark: { bg: 'from-blue-500/5 to-blue-600/5', border: 'border-blue-400/20', icon: 'text-blue-400', accent: 'bg-blue-500' },
+      light: { bg: 'from-blue-50 to-blue-100', border: 'border-blue-200', icon: 'text-blue-600', accent: 'bg-blue-500' }
+    },
+    purple: {
+      dark: { bg: 'from-purple-500/5 to-purple-600/5', border: 'border-purple-400/20', icon: 'text-purple-400', accent: 'bg-purple-500' },
+      light: { bg: 'from-purple-50 to-purple-100', border: 'border-purple-200', icon: 'text-purple-600', accent: 'bg-purple-500' }
+    },
+    green: {
+      dark: { bg: 'from-green-500/5 to-green-600/5', border: 'border-green-400/20', icon: 'text-green-400', accent: 'bg-green-500' },
+      light: { bg: 'from-green-50 to-green-100', border: 'border-green-200', icon: 'text-green-600', accent: 'bg-green-500' }
+    }
+  };
+
+  const colors = colorClasses[feature.color][darkMode ? 'dark' : 'light'];
+
+  return (
+    <div 
+      className={`group relative bg-gradient-to-br ${colors.bg} backdrop-blur-sm rounded-2xl p-6 border ${colors.border} shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ animationDelay: `${idx * 100}ms` }}
+    >
+      {/* Animated accent bar */}
+      <div 
+        className={`absolute top-0 left-0 right-0 h-1 ${colors.accent} rounded-t-2xl transition-all duration-500`}
+        style={{ width: isHovered ? '100%' : '40%' }}
+      />
+      
+      <div className="flex items-start gap-4 mb-4">
+        <div className={`p-3 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-md group-hover:scale-110 transition-transform duration-300`}>
+          <feature.icon className={colors.icon} size={24} />
+        </div>
+        <div>
+          <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{feature.title}</h3>
+          <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{feature.description}</p>
+        </div>
+      </div>
+      
+      {/* Expandable features on hover */}
+      {feature.features.length > 0 && (
+        <div className={`overflow-hidden transition-all duration-500 ${isHovered ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className="space-y-2">
+              {feature.features.map((item, fIdx) => (
+                <div key={fIdx} className="flex items-center gap-2 text-sm animate-slide-up" 
+                  style={{ animationDelay: `${fIdx * 100}ms` }}>
+                  <CheckCircle className="text-green-500" size={14} />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Hover indicator */}
+      <div className={`absolute bottom-4 right-4 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+        <ChevronUp className={colors.icon} size={20} />
+      </div>
+    </div>
+  );
+};
+// Define the data arrays for the landing page
+  const systemArchitectureData = [
+    {
+      title: "Hardware Layer",
+      icon: Cpu,
+      description: "ESP8266 + RFID Readers",
+      color: "blue",
+      features: [
+        "Real-time RFID card scanning",
+        "OLED display with status feedback", 
+        "WiFi connectivity for data transmission",
+        "Audio confirmation beeps",
+        "24/7 reliable operation"
+      ],
+      details: "Physical devices installed at entry points that read student RFID cards and transmit data securely to the cloud."
+    },
+    {
+      title: "Backend System",
+      icon: Database,
+      description: "Google Apps Script + Sheets",
+      color: "purple", 
+      features: [
+        "Secure API endpoints for all devices",
+        "Role-based access control system",
+        "Real-time data processing & storage",
+        "Automatic session management",
+        "GDPR compliant data handling"
+      ],
+      details: "Cloud-based processing layer that securely manages all attendance data, user authentication, and system logic."
+    },
+    {
+      title: "Frontend Portal", 
+      icon: Monitor,
+      description: "Next.js Dashboard",
+      color: "green",
+      features: [
+        "Real-time analytics dashboard",
+        "Interactive charts & visualizations", 
+        "Multi-role dashboards (Teacher/Parent)",
+        "Mobile responsive design",
+        "Live data updates every 30 seconds"
+      ],
+      details: "Modern web interface providing real-time insights, analytics, and management tools for administrators."
+    }
+  ];
+
+  const featuresData = [
+    {
+      icon: Users,
+      title: "Multi-Role Access",
+      description: "Separate, secure portals for teachers and parents with granular permission controls.",
+      color: "blue",
+      features: ["Teacher Dashboard", "Parent Portal", "Role-based data filtering", "Custom access levels"]
+    },
+    {
+      icon: BarChart3, 
+      title: "Advanced Analytics",
+      description: "Comprehensive data insights with real-time charts, trends, and predictive analytics.",
+      color: "purple",
+      features: ["Live attendance charts", "Trend analysis reports", "Predictive insights", "Export capabilities"]
+    },
+    {
+      icon: Shield,
+      title: "Enterprise Security",
+      description: "Military-grade security with end-to-end encryption and compliance certifications.",
+      color: "green",
+      features: ["256-bit encryption", "Session token security", "API key protection", "GDPR compliance"]
+    }
+  ];
+  
+ if (!authenticated) {
+  return (
+    <div className={`min-h-screen transition-all duration-500 ${darkMode ? 'dark bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'}`}>
+      
+      {/* Navigation */}
+      <nav className={`relative backdrop-blur-sm ${darkMode ? 'bg-gray-800/80 border-gray-700' : 'bg-white/80 border-gray-200/50'} border-b shadow-sm`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'} shadow-md`}>
+                <RadioTower className="text-white" size={22} />
+              </div>
+              <div>
+                <div className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</div>
+                <div className={`text-xs ${darkMode ? 'text-blue-300' : 'text-blue-600'} font-medium`}>Enterprise Portal</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors shadow-sm border ${
+                  darkMode 
+                    ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600 border-gray-600' 
+                    : 'bg-white text-blue-600 hover:bg-blue-50 border-gray-200'
+                }`}
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className={`bg-gradient-to-r ${darkMode ? 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600'} text-white font-medium py-2 px-5 rounded-lg transition-all transform hover:scale-105 shadow-md hover:shadow-lg`}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative py-12 md:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              {/* Animated Badge */}
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium shadow-sm animate-fade-in ${
+                darkMode 
+                  ? 'bg-blue-500/10 border-blue-400/20 text-blue-300' 
+                  : 'bg-gradient-to-r from-blue-100 to-indigo-100 border-blue-200 text-blue-700'
+              }`}>
+                <Sparkles className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`} size={14} />
+                Enterprise Attendance Solution
+              </div>
+              
+              {/* Main Heading */}
+              <h1 className={`text-4xl md:text-5xl font-bold leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Modern <span className={`${darkMode ? 'text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400' : 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'}`}>
+                  RFID Attendance
+                </span> Management
+              </h1>
+              
+              {/* Subheading */}
+              <p className={`text-xl leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Real-time tracking, advanced analytics, and seamless integration for educational institutions.
+              </p>
+              
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="group bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium py-3 px-8 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                >
+                  <span>Access Portal</span>
+                  <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+                </button>
+                
+                <button
+                  onClick={() => document.getElementById('system-overview')?.scrollIntoView({ behavior: 'smooth' })}
+                  className={`group border-2 font-medium py-3 px-8 rounded-xl transition-all flex items-center justify-center gap-3 ${
+                    darkMode 
+                      ? 'border-blue-500/30 hover:border-blue-400 text-blue-300 hover:bg-blue-500/10' 
+                      : 'border-blue-200 hover:border-blue-500 text-blue-600 hover:bg-blue-50'
+                  }`}
+                >
+                  <Info size={20} />
+                  <span>See How It Works</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Stats Grid - Updated for Dark Mode */}
+            <div className="grid grid-cols-2 gap-4 md:gap-6">
+              {[
+                { 
+                  value: Math.floor(animatedNumbers.students), 
+                  label: 'Active Students', 
+                  icon: Users, 
+                  color: 'blue',
+                  suffix: '+'
+                },
+                { 
+                  value: Math.floor(animatedNumbers.checkins), 
+                  label: 'Daily Check-ins', 
+                  icon: CheckCircle, 
+                  color: 'green',
+                  suffix: '+'
+                },
+                { 
+                  value: animatedNumbers.uptime.toFixed(2), 
+                  label: 'System Uptime', 
+                  icon: Cloud, 
+                  color: 'purple',
+                  suffix: '%'
+                },
+                { 
+                  value: Math.round(animatedNumbers.responseTime), 
+                  label: 'Response Time', 
+                  icon: Clock, 
+                  color: 'orange',
+                  suffix: 'ms',
+                  prefix: '<'
+                }
+              ].map((stat, idx) => {
+                const colorClasses = {
+                  blue: {
+                    dark: { bg: 'from-blue-500/10 to-blue-600/10', border: 'border-blue-400/20', text: 'text-blue-400' },
+                    light: { bg: 'from-blue-500/10 to-blue-600/10', border: 'border-blue-200', text: 'text-blue-600' }
+                  },
+                  green: {
+                    dark: { bg: 'from-green-500/10 to-green-600/10', border: 'border-green-400/20', text: 'text-green-400' },
+                    light: { bg: 'from-green-500/10 to-green-600/10', border: 'border-green-200', text: 'text-green-600' }
+                  },
+                  purple: {
+                    dark: { bg: 'from-purple-500/10 to-purple-600/10', border: 'border-purple-400/20', text: 'text-purple-400' },
+                    light: { bg: 'from-purple-500/10 to-purple-600/10', border: 'border-purple-200', text: 'text-purple-600' }
+                  },
+                  orange: {
+                    dark: { bg: 'from-orange-500/10 to-orange-600/10', border: 'border-orange-400/20', text: 'text-orange-400' },
+                    light: { bg: 'from-orange-500/10 to-orange-600/10', border: 'border-orange-200', text: 'text-orange-600' }
+                  }
+                };
+                
+                const colors = colorClasses[stat.color][darkMode ? 'dark' : 'light'];
+                
+                return (
+                  <div key={idx} className={`group bg-gradient-to-br ${colors.bg} backdrop-blur-sm rounded-xl p-5 border ${colors.border} shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.03]`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`p-2.5 rounded-lg ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                        <stat.icon className={colors.text} size={20} />
+                      </div>
+                      <div className={`text-xs font-medium uppercase tracking-wider ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {stat.label}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-1">
+                      <div className={`text-3xl font-bold tabular-nums ${colors.text}`}>
+                        {stat.prefix || ''}{stat.value}{stat.suffix}
+                      </div>
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className={`mt-4 h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}>
+                      <div 
+                        className={`h-full transition-all duration-1000 ${
+                          stat.color === 'blue' ? 'bg-blue-500/20' :
+                          stat.color === 'green' ? 'bg-green-500/20' :
+                          stat.color === 'purple' ? 'bg-purple-500/20' :
+                          'bg-orange-500/20'
+                        }`}
+                        style={{ 
+                          width: stat.color === 'orange' 
+                            ? `${((100 - stat.value) / 100) * 100}%`
+                            : `${(stat.value / (stat.label.includes('Uptime') ? 99.95 : stat.label.includes('Students') ? 100 : 250)) * 100}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* System Architecture Section - Updated for Dark Mode */}
+      <section id="system-overview" className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium mb-4 ${
+              darkMode 
+                ? 'bg-green-500/10 border-green-400/20 text-green-300' 
+                : 'bg-gradient-to-r from-green-100 to-emerald-100 border-green-200 text-green-700'
+            }`}>
+              <Cpu className={`${darkMode ? 'text-green-400' : 'text-green-600'}`} size={14} />
+              Three-Layer Architecture
+            </div>
+            
+            <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Complete System Architecture
+            </h2>
+            <p className={`text-xl max-w-3xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Integrated hardware, backend, and frontend layers for reliable attendance management
+            </p>
+          </div>
+          
+          {/* Interactive System Cards - Updated for Dark Mode */}
+          <div className="space-y-4">
+              {systemArchitectureData.map((section, idx) => (
+                <FeatureCard 
+                  key={idx}
+                  feature={section}
+                  idx={idx}
+                  darkMode={darkMode}
+                  activeSystemSection={activeSystemSection}
+                  setActiveSystemSection={setActiveSystemSection}
+                />
+              ))}
+            </div>
+        </div>
+      </section>
+
+      {/* Features Section - Updated for Dark Mode */}
+      <section className={`py-16 px-4 sm:px-6 lg:px-8 ${darkMode ? 'bg-gray-900/50' : 'bg-gradient-to-b from-blue-50/50 to-transparent'}`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Key Features & Capabilities
+            </h2>
+            <p className={`text-xl max-w-3xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Everything you need for modern, efficient attendance management
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuresData.map((feature, idx) => (
+                <SystemCard 
+                  key={idx}
+                  feature={feature}
+                  idx={idx}
+                  darkMode={darkMode}
+                />
+              ))}
+            </div>
+        </div>
+      </section>
+
+      {/* Data Flow Visualization - Updated for Dark Mode */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className={`bg-gradient-to-br backdrop-blur-sm rounded-2xl p-8 border shadow-lg ${
+            darkMode 
+              ? 'from-gray-800 to-gray-900 border-gray-700' 
+              : 'from-white to-gray-50 border-gray-200'
+          }`}>
+            <h3 className={`text-2xl font-bold mb-8 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>Real-time Data Flow</h3>
+            
+            <div className="relative">
+              {/* Connection line */}
+              <div className="hidden md:block absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-400 via-green-400 to-purple-400 -z-10"></div>
+              
+              <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-4">
+                {[
+                  { icon: Radio, color: 'blue', text: '1. Card Scan', subtext: 'Student taps RFID' },
+                  { icon: Wifi, color: 'green', text: '2. Data Transmission', subtext: 'WiFi to cloud' },
+                  { icon: Database, color: 'purple', text: '3. Processing', subtext: 'Secure validation' },
+                  { icon: BarChart3, color: 'orange', text: '4. Dashboard', subtext: 'Live updates' }
+                ].map((step, idx) => {
+                  const stepColor = step.color === 'blue' ? (darkMode ? 'bg-blue-500/20' : 'bg-blue-100') :
+                                  step.color === 'green' ? (darkMode ? 'bg-green-500/20' : 'bg-green-100') :
+                                  step.color === 'purple' ? (darkMode ? 'bg-purple-500/20' : 'bg-purple-100') :
+                                  (darkMode ? 'bg-orange-500/20' : 'bg-orange-100');
+                  
+                  const iconColor = step.color === 'blue' ? (darkMode ? 'text-blue-400' : 'text-blue-600') :
+                                 step.color === 'green' ? (darkMode ? 'text-green-400' : 'text-green-600') :
+                                 step.color === 'purple' ? (darkMode ? 'text-purple-400' : 'text-purple-600') :
+                                 (darkMode ? 'text-orange-400' : 'text-orange-600');
+                  
+                  return (
+                    <div key={idx} className="relative flex flex-col items-center text-center">
+                      <div className={`p-4 rounded-full ${stepColor} mb-3 shadow-md hover:scale-110 transition-transform duration-300`}>
+                        <step.icon className={iconColor} size={24} />
+                      </div>
+                      
+                      <div className={`rounded-lg p-3 border shadow-sm min-w-[150px] ${
+                        darkMode 
+                          ? 'bg-gray-800 border-gray-700' 
+                          : 'bg-white border-gray-200'
+                      }`}>
+                        <div className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{step.text}</div>
+                        <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{step.subtext}</div>
+                      </div>
+                      
+                      {/* Arrow for mobile */}
+                      {idx < 3 && (
+                        <>
+                          <div className="md:hidden mt-4 mb-2">
+                            <ChevronDown className={darkMode ? 'text-gray-500' : 'text-gray-400'} size={20} />
+                          </div>
+                          <div className="hidden md:block absolute top-1/2 left-full -translate-y-1/2 -translate-x-1/2">
+                            <ChevronRight className={darkMode ? 'text-gray-500' : 'text-gray-400'} size={20} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section - Updated for Dark Mode */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className={`bg-gradient-to-br backdrop-blur-sm rounded-2xl p-8 md:p-12 border shadow-xl ${
+            darkMode 
+              ? 'from-gray-800 to-gray-900 border-gray-700' 
+              : 'from-white to-gray-50 border-gray-200'
+          }`}>
+            <h2 className={`text-2xl md:text-3xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Start Your Digital Transformation Today
+            </h2>
+            <p className={`mb-8 max-w-2xl mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              Join educational institutions using our RFID system for efficient, secure, and real-time attendance tracking.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium py-3 px-8 rounded-lg transition-all transform hover:scale-105 shadow-md hover:shadow-lg"
+              >
+                Get Started Free
+              </button>
+              
+              <button
+                onClick={() => document.getElementById('system-overview')?.scrollIntoView({ behavior: 'smooth' })}
+                className={`border-2 font-medium py-3 px-8 rounded-lg transition-all ${
+                  darkMode 
+                    ? 'border-blue-500/30 hover:border-blue-400 text-blue-300 hover:bg-blue-500/10' 
+                    : 'border-blue-200 hover:border-blue-500 text-blue-600 hover:bg-blue-50'
+                }`}
+              >
+                View Live Demo
+              </button>
+            </div>
+            
+            <div className="mt-8 flex flex-wrap justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="text-green-500" size={16} />
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>256-bit Encryption</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Cloud className="text-blue-500" size={16} />
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>99.95% Uptime</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="text-purple-500" size={16} />
+                <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Multi-role Access</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - Updated for Dark Mode */}
+      <footer className={`py-8 px-4 sm:px-6 lg:px-8 border-t ${darkMode ? 'border-gray-700 bg-gray-900/50' : 'border-gray-200 bg-white/50'}`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${darkMode ? 'bg-gradient-to-br from-blue-600 to-indigo-600' : 'bg-gradient-to-br from-blue-500 to-indigo-500'}`}>
+                <RadioTower className="text-white" size={20} />
+              </div>
+              <div>
+                <div className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance Portal</div>
+                <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Enterprise Edition</div>
+              </div>
+            </div>
+            
+            <p className={`text-sm text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              © {new Date().getFullYear()} All rights reserved.
+            </p>
+            
+            <div className="flex items-center gap-4">
+              <button className={`text-sm transition-colors ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'}`}>
+                Support
+              </button>
+              <button className={`text-sm transition-colors ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-900'}`}>
+                Contact
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Login Modal - Updated for Dark Mode */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div 
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setShowLoginModal(false)}
+          />
+          
+          <div className={`relative rounded-2xl shadow-2xl w-full max-w-md animate-modal-in border ${
+            darkMode 
+              ? 'bg-gray-800 border-gray-700' 
+              : 'bg-white border-gray-200'
+          }`}>
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className={`absolute right-4 top-4 p-2 rounded-full transition-colors ${
+                darkMode 
+                  ? 'hover:bg-gray-700 text-gray-400' 
+                  : 'hover:bg-gray-100 text-gray-600'
+              }`}
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <div className={`inline-flex p-4 rounded-2xl mb-4 shadow-inner ${
+                  darkMode 
+                    ? 'bg-gradient-to-br from-blue-500/10 to-indigo-500/10' 
+                    : 'bg-gradient-to-br from-blue-100 to-indigo-100'
+                }`}>
+                  <Shield className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`} size={32} />
+                </div>
+                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Secure Portal Login</h2>
+                <p className={`mt-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Enter your credentials to access the system
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-6">
+                <div className="space-y-2">
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300'
+                    }`}
+                    placeholder="Enter your username"
+                    required
+                    disabled={loggingIn}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full px-4 py-3 rounded-lg border text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm pr-12 ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white' 
+                          : 'bg-white border-gray-300'
+                      }`}
+                      placeholder="Enter your password"
+                      required
+                      disabled={loggingIn}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={`absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors ${
+                        darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                      disabled={loggingIn}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+
+                {loginError && (
+                  <div className={`px-4 py-3 rounded-lg text-sm animate-shake flex items-center gap-2 ${
+                    darkMode 
+                      ? 'bg-red-500/20 border border-red-500/30 text-red-300' 
+                      : 'bg-red-50 border border-red-200 text-red-600'
+                  }`}>
+                    <AlertCircle size={16} />
+                    {loginError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loggingIn}
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-3"
+                >
+                  {loggingIn ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      Authenticating...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={18} />
+                      Access Portal
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx global>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slide-up {
+          from { 
+            opacity: 0; 
+            transform: translateY(10px); 
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0); 
+          }
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(1deg); }
+        }
+        
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-30px) rotate(2deg); }
+        }
+        
+        @keyframes float-reverse {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(20px) rotate(-1deg); }
+        }
+        
+        @keyframes modal-in {
+          from { 
+            opacity: 0; 
+            transform: scale(0.95) translateY(-20px); 
+          }
+          to { 
+            opacity: 1; 
+            transform: scale(1) translateY(0); 
+          }
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .animate-fade-in { 
+          animation: fade-in 0.5s ease-out; 
+        }
+        
+        .animate-slide-up { 
+          animation: slide-up 0.3s ease-out forwards; 
+          opacity: 0;
+        }
+        
+        .animate-float { 
+          animation: float 6s ease-in-out infinite; 
+        }
+        
+        .animate-float-slow { 
+          animation: float-slow 8s ease-in-out infinite; 
+        }
+        
+        .animate-float-reverse { 
+          animation: float-reverse 7s ease-in-out infinite; 
+        }
+        
+        .animate-modal-in { 
+          animation: modal-in 0.3s ease-out forwards; 
+        }
+        
+        .animate-shake { 
+          animation: shake 0.5s ease-in-out; 
+        }
+        
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        ::-webkit-scrollbar {
+          width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: ${darkMode ? 'rgba(31, 41, 55, 0.5)' : 'rgba(219, 234, 254, 0.5)'};
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: ${darkMode ? 'rgba(59, 130, 246, 0.5)' : 'rgba(59, 130, 246, 0.5)'};
+          border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: ${darkMode ? 'rgba(37, 99, 235, 0.7)' : 'rgba(37, 99, 235, 0.7)'};
+        }
+      `}</style>
+    </div>
+  );
+}
 
   // Main Dashboard View
   return (
