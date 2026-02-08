@@ -1886,7 +1886,7 @@ const ParentLogsTab = ({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
               <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'} truncate`}>
-                Welcome, {userInfo?.fullName?.split(' ')[0] || 'Parent'}!
+                Welcome, {userInfo?.fullName || 'Parent'}!
               </h2>
               <p className={`${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-1 md:mt-2 text-sm md:text-base truncate`}>
                 {childInfo 
@@ -3733,7 +3733,7 @@ const SystemCard = ({ feature, idx, darkMode }) => {
                 <div className="pt-3 border-t border-gray-700/50">
                   <div className="px-4 py-2">
                     <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} truncate`}>
-                      {getGreeting()}, <span className="font-semibold">{userInfo?.fullName?.split(' ')[0] || username}</span>
+                      {getGreeting()}, <span className="font-semibold">{userInfo?.fullName || username}</span>
                     </p>
                     {userType === 'parent' && childInfo && (
                       <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'} truncate`}>
