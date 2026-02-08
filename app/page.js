@@ -267,96 +267,83 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
 }, [logs, students]);
 
 const weeklyData = useMemo(() => {
-  console.log("[weekly avg] Starting calculation...");
-  console.log("[weekly avg] Logs count:", logs?.length || 0);
-  console.log("[weekly avg] Students count:", students?.length || 0);
+  console.log("[weekly stats] Starting...");
+  console.log("[weekly stats] Logs:", logs?.length || 0, "Students:", students?.length || 0);
 
   if (!logs?.length || !students?.length) {
-    console.log("[weekly avg] No logs or students → returning empty weeks");
     return Array(8).fill().map((_, i) => ({
-      name: `Week ${i + 1}`,
+      name: `W${i + 1}`,
+      present: 0,
+      absent: 0,
       avgRate: 0,
-      daysWithData: 0,
-      tooltip: "No data",
+      tooltip: "No data"
     }));
   }
 
   const totalStudents = students.length;
 
-  // Super simple week key: YYYY-Www (ISO-like)
+  // Helper: get ISO week key (stable across years)
   const getWeekKey = (timestamp) => {
     if (!timestamp) return null;
     try {
       const d = new Date(timestamp);
       if (isNaN(d.getTime())) return null;
-      
-      // ISO week calculation (handles year rollover correctly)
       const year = d.getFullYear();
       const startOfYear = new Date(year, 0, 1);
       const pastDays = Math.floor((d - startOfYear) / 86400000);
-      const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7); // +6 to make week 1 start near Jan 1-4
-      
+      const weekNum = Math.floor((pastDays + startOfYear.getDay() + 6) / 7);
       return `${year}-W${String(weekNum).padStart(2, '0')}`;
-    } catch (e) {
-      console.warn("Bad timestamp:", timestamp, e);
+    } catch {
       return null;
     }
   };
 
-  // Group: weekKey → total unique presents in that week
-  // We'll approximate average later
-  const weekPresents = new Map();
+  // Group by week → collect unique present students per week
+  const weekMap = new Map(); // weekKey → Set of studentIds present that week
 
   logs.forEach(log => {
     if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
-    
     const weekKey = getWeekKey(log.timestamp);
     if (!weekKey) return;
-
-    if (!weekPresents.has(weekKey)) {
-      weekPresents.set(weekKey, new Set());
-    }
-    weekPresents.get(weekKey).add(log.studentId);
+    if (!weekMap.has(weekKey)) weekMap.set(weekKey, new Set());
+    weekMap.get(weekKey).add(log.studentId);
   });
 
-  console.log("[weekly avg] Found weeks:", [...weekPresents.keys()]);
+  console.log("[weekly stats] Found weeks:", [...weekMap.keys()]);
 
-  // Sort weeks newest → oldest, take last 8–10
-  const sortedWeeks = [...weekPresents.entries()]
-    .sort((a, b) => b[0].localeCompare(a[0])) // newest first
-    .slice(0, 10);
+  // Convert to chart data (oldest → newest)
+  const chartData = [...weekMap.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0])) // oldest first
+    .slice(-10) // last 10 weeks max
+    .map(([weekKey, presentSet]) => {
+      const presentUnique = presentSet.size;
+      const absent = totalStudents - presentUnique;
+      const rate = totalStudents > 0 ? Math.round((presentUnique / totalStudents) * 100) : 0;
 
-  // Build chart data — oldest to newest
-  const chartData = sortedWeeks
-    .reverse()
-    .map(([weekKey, presentSet], index) => {
-      const present = presentSet.size;
-      const rate = totalStudents > 0 ? Math.round((present / totalStudents) * 100) : 0;
-
-      // Very simple label
       const weekNum = weekKey.split('-W')[1];
       const label = `W${weekNum}`;
 
       return {
         name: label,
-        weekKey,
+        present: presentUnique,
+        absent: absent,
         avgRate: rate,
-        presentUnique: present,
-        tooltip: `${rate}% • ${present} unique students this week`,
+        tooltip: `${rate}% • ${presentUnique} present / ${absent} absent`
       };
     });
 
-  // If very few weeks, pad with zeros at the beginning
+  // Pad older weeks if fewer than 8
   while (chartData.length < 8) {
     chartData.unshift({
       name: `W${chartData.length + 1}`,
+      present: 0,
+      absent: 0,
       avgRate: 0,
-      presentUnique: 0,
-      tooltip: "No attendance recorded",
+      tooltip: "No data"
     });
   }
 
-  console.log("[weekly avg] Final chart data:", chartData);
+  console.log("[weekly stats] Final data:", chartData);
 
   return chartData;
 }, [logs, students]);
@@ -575,65 +562,64 @@ const weeklyData = useMemo(() => {
             <div className="w-full" style={{ height: isMobile ? 260 : 300 }}>
               {weeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart 
+                  <BarChart
                     data={weeklyData}
-                    margin={{
-                      top: 10,
-                      right: isMobile ? 8 : 20,
-                      left: isMobile ? 0 : 0,
-                      bottom: isMobile ? 40 : 20
-                    }}
+                    margin={{ top: 10, right: isMobile ? 8 : 20, left: 0, bottom: isMobile ? 40 : 20 }}
+                    stackOffset="sign" // optional: makes positive/negative stacking clearer if you want
                   >
-                    <CartesianGrid 
-                      strokeDasharray="3 3" 
-                      stroke={darkMode ? '#374151' : '#e5e7eb'} 
-                      vertical={false}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} vertical={false} />
                     <XAxis 
                       dataKey="name" 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      tickLine={false}
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
+                      tick={{ fontSize: isMobile ? 10 : 12 }} 
+                      tickLine={false} 
                     />
                     <YAxis 
-                      stroke={darkMode ? '#9ca3af' : '#6b7280'}
-                      tick={{ fontSize: isMobile ? 10 : 12 }}
-                      tickLine={false}
-                      width={isMobile ? 30 : 60}
+                      stroke={darkMode ? '#9ca3af' : '#6b7280'} 
+                      tick={{ fontSize: isMobile ? 10 : 12 }} 
+                      tickLine={false} 
+                      width={isMobile ? 30 : 60} 
                     />
                     <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: darkMode ? '#1f2937' : '#ffffff', 
-                        border: 'none', 
-                        borderRadius: '12px', 
+                      contentStyle={{
+                        backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+                        border: 'none',
+                        borderRadius: '12px',
                         boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                         color: darkMode ? '#ffffff' : '#000000',
                         fontSize: isMobile ? 11 : 14
                       }}
                     />
-                    <Legend 
-                      wrapperStyle={{ fontSize: isMobile ? 11 : 14 }}
-                      iconSize={isMobile ? 10 : 14}
-                    />
-                    <Area 
-                      type="monotone" 
+                    <Legend wrapperStyle={{ fontSize: isMobile ? 11 : 14 }} iconSize={isMobile ? 10 : 14} />
+                
+                    {/* Present and Absent bars – side by side or stacked */}
+                    <Bar 
                       dataKey="present" 
                       name="Present" 
-                      stroke="#10b981" 
                       fill="#10b981" 
-                      fillOpacity={0.6}
-                      strokeWidth={isMobile ? 1.5 : 2}
+                      radius={[4, 4, 0, 0]} 
+                      maxBarSize={isMobile ? 40 : 60} 
                     />
-                    <Area 
-                      type="monotone" 
+                    <Bar 
                       dataKey="absent" 
                       name="Absent" 
-                      stroke="#ef4444" 
                       fill="#ef4444" 
-                      fillOpacity={0.6}
-                      strokeWidth={isMobile ? 1.5 : 2}
+                      radius={[4, 4, 0, 0]} 
+                      maxBarSize={isMobile ? 40 : 60} 
                     />
-                  </AreaChart>
+                
+                    {/* Optional: add average rate as line */}
+                    <Line 
+                      type="monotone" 
+                      dataKey="avgRate" 
+                      name="Attendance %" 
+                      stroke="#6366f1" 
+                      strokeWidth={2.5} 
+                      dot={{ r: 4 }} 
+                      yAxisId="right"
+                    />
+                    <YAxis yAxisId="right" orientation="right" stroke="#6366f1" />
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
