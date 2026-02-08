@@ -46,19 +46,25 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// 1. Safe parser for your exact log format: "07/02/2026 11:38:41"
+// Safe parser for "YYYY-MM-DD HH:mm:ss" format
 const parseLogTimestamp = (str) => {
   if (!str) return null;
-  // Match MM/DD/YYYY HH:mm:ss
-  const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+
+  // Match YYYY-MM-DD HH:mm:ss (with optional .SSS or timezone)
+  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[+-]\d{2}:\d{2})?$/);
   if (!match) {
-    console.warn("Invalid timestamp:", str);
+    console.warn("Invalid timestamp format:", str);
     return null;
   }
-  const [, m, d, y, hh, mm, ss] = match;
-  // JavaScript months are 0-based → month-1
-  const date = new Date(+y, +m - 1, +d, +hh, +mm, +ss);
-  if (isNaN(date.getTime())) return null;
+
+  const [, year, month, day, hour, min, sec] = match;
+  const date = new Date(+year, +month - 1, +day, +hour, +min, +sec);
+
+  if (isNaN(date.getTime())) {
+    console.warn("Parsed invalid date from:", str);
+    return null;
+  }
+
   return date;
 };
 
@@ -189,73 +195,73 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes }) =>
   const isMobile = useIsMobile();
   
   const dailyData = useMemo(() => {
-    const days = [];
-    const today = new Date();
-  
-    // Safety fallback
-    if (!logs?.length || !students?.length) {
-      console.log('⚠️ No data → zero days');
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        days.push({
-          name: date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Manila' }),
-          fullDate: getUTCDateString(date),
-          present: 0,
-          absent: 0,
-          attendanceRate: 0
-        });
-      }
-      return days;
-    }
-  
-    // Real calculation
+  const days = [];
+  const today = new Date();
+
+  // Safety fallback
+  if (!logs?.length || !students?.length) {
+    console.log('⚠️ No data → zero days');
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-  
-      const dateString = getUTCDateString(date);           // UTC YYYY-MM-DD
-      const dayName = date.toLocaleDateString('en-US', {   // PH weekday name
-        weekday: 'short',
-        timeZone: 'Asia/Manila'
-      });
-  
-      // Filter logs using correct UTC date string
-      const dayLogs = logs.filter(log => {
-        const logDay = getUTCDateString(log.timestamp);
-        return logDay === dateString;
-      });
-  
-      const presentStudents = new Set(
-        dayLogs
-          .filter(log => log.status === 'IN' && log.studentId)
-          .map(log => log.studentId)
-      );
-  
-      const present = presentStudents.size;
-      const absent = Math.max(0, students.length - present);
-      const rate = students.length > 0 ? Math.round((present / students.length) * 100) : 0;
-  
       days.push({
-        name: dayName,
-        fullDate: dateString,
-        present,
-        absent,
-        attendanceRate: rate
+        name: date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'Asia/Manila' }),
+        fullDate: date.toISOString().split('T')[0],
+        present: 0,
+        absent: 0,
+        attendanceRate: 0
       });
     }
-  
-    // Debug print — remove later if you want
-    console.log("dailyData (PH fixed):", days.map(d => ({
-      day: d.name,
-      date: d.fullDate,
-      present: d.present,
-      rate: `${d.attendanceRate}%`
-    })));
-  
     return days;
-  }, [logs, students]);
+  }
+
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+
+    const dateString = date.toISOString().split('T')[0];
+    const dayName = date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      timeZone: 'Asia/Manila' // show correct PH weekday name
+    });
+
+    // Use safe parser for log timestamps
+    const dayLogs = logs.filter(log => {
+      if (!log.timestamp) return false;
+      const logDate = parseLogTimestamp(log.timestamp);
+      if (!logDate) return false;
+      return logDate.toISOString().split('T')[0] === dateString;
+    });
+
+    const presentStudents = new Set(
+      dayLogs
+        .filter(log => log.status === 'IN' && log.studentId)
+        .map(log => log.studentId)
+    );
+
+    const present = presentStudents.size;
+    const absent = Math.max(0, students.length - present);
+    const rate = students.length > 0 ? Math.round((present / students.length) * 100) : 0;
+
+    days.push({
+      name: dayName,
+      fullDate: dateString,
+      present,
+      absent,
+      attendanceRate: rate
+    });
+  }
+
+  console.log("dailyData (fixed):", days.map(d => ({
+    day: d.name,
+    date: d.fullDate,
+    present: d.present,
+    rate: `${d.attendanceRate}%`
+  })));
+
+  return days;
+}, [logs, students]);
 
 const weeklyData = useMemo(() => {
   console.log("[weekly avg] Starting calculation...");
@@ -2668,17 +2674,18 @@ const fetchData = async () => {
   }
 };
 
-  const getStudentStatus = (studentId) => {
-    const todayUTC = getUTCDateString(new Date());
-    const studentLogs = logs.filter(log =>
-      log.studentId === studentId &&
-      getUTCDateString(log.timestamp) === todayUTC
-    );
-  
-    if (studentLogs.length === 0) return 'no-logs';
-    const lastLog = studentLogs[studentLogs.length - 1];
-    return lastLog.status === 'IN' ? 'present' : 'absent';
-  };
+const getStudentStatus = (studentId) => {
+  const todayString = new Date().toISOString().split('T')[0];
+  const studentLogs = logs.filter(log => {
+    if (!log.timestamp || log.studentId !== studentId) return false;
+    const logDate = parseLogTimestamp(log.timestamp);
+    return logDate && logDate.toISOString().split('T')[0] === todayString;
+  });
+
+  if (studentLogs.length === 0) return 'no-logs';
+  const lastLog = studentLogs[studentLogs.length - 1];
+  return lastLog.status === 'IN' ? 'present' : 'absent';
+};
 
   const exportToCSV = (logsToExport = logs) => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
@@ -3238,6 +3245,10 @@ const fetchData = async () => {
           /* Fix chart label overflow */
           .recharts-cartesian-axis-tick text {
             font-size: 10px !important;
+          }
+
+          .recharts-wrapper {
+            min-height: 220px !important;
           }
         
           /* Make sure nothing causes horizontal scroll */
