@@ -304,6 +304,36 @@ const advanceWeeklyData = useMemo(() => {
   });
 }, [logs, students]);
 
+  // Calculate attendance by time of day
+  const hourlyData = useMemo(() => {
+    const hours = Array.from({ length: 12 }, (_, i) => {
+      const hour = i + 7;
+      return {
+        name: isMobile ? `${hour}` : `${hour}:00`,
+        count: 0
+      };
+    });
+    
+    if (!logs || logs.length === 0) return hours;
+    
+    logs.forEach(log => {
+      if (log.status === 'IN' && log.timestamp) {
+        try {
+          const hour = new Date(log.timestamp).getHours();
+          if (hour >= 7 && hour <= 18) {
+            const index = hour - 7;
+            if (hours[index]) {
+              hours[index].count++;
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing timestamp for hourly data:', e);
+        }
+      }
+    });
+    
+    return hours;
+  }, [logs, isMobile]);
   // Calculate monthly attendance trend
   const monthlyData = useMemo(() => {
     const months = [];
