@@ -2790,6 +2790,29 @@ const getStudentStatus = (studentId) => {
   });
 
   if (studentLogs.length === 0) return 'no-logs';
+  
+  // Sort logs by timestamp to get chronological order
+  const sortedLogs = studentLogs.sort((a, b) => 
+    new Date(a.timestamp) - new Date(b.timestamp)
+  );
+  
+  // Check if student has an IN log today
+  const hasInLog = sortedLogs.some(log => log.status === 'IN');
+  
+  // Get the last log status
+  const lastLog = sortedLogs[sortedLogs.length - 1];
+  
+  // If student has an IN log and last status is IN, they're present
+  // If student has an IN log but last status is OUT, they're absent (checked out)
+  // If no IN logs at all, they're absent
+  if (hasInLog) {
+    return lastLog.status === 'IN' ? 'present' : 'absent';
+  } else {
+    return 'absent';
+  }
+};
+
+  if (studentLogs.length === 0) return 'no-logs';
   const lastLog = studentLogs[studentLogs.length - 1];
   return lastLog.status === 'IN' ? 'present' : 'absent';
 };
