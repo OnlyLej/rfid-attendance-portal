@@ -2812,11 +2812,6 @@ const getStudentStatus = (studentId) => {
   }
 };
 
-  if (studentLogs.length === 0) return 'no-logs';
-  const lastLog = studentLogs[studentLogs.length - 1];
-  return lastLog.status === 'IN' ? 'present' : 'absent';
-};
-
   const exportToCSV = (logsToExport = logs) => {
     const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
     const csvContent = [
