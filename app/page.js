@@ -13,6 +13,7 @@ import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+import ExcelJS from 'exceljs';
 
 const API_ENDPOINT = '/api/proxy';
 const AUTH_ENDPOINT = '/api/auth';
@@ -2812,21 +2813,151 @@ const getStudentStatus = (studentId) => {
   }
 };
 
-  const exportToCSV = (logsToExport = logs) => {
-    const headers = ['Timestamp', 'Student ID', 'Name', 'Class', 'Status'];
-    const csvContent = [
-      headers.join(','),
-      ...logsToExport.map(log => 
-        [log.timestamp, log.studentId, `"${log.name}"`, log.class, log.status].join(',')
-      )
-    ].join('\n');
+const exportToExcel = async (logsToExport = []) => {
+  // Create a new workbook and worksheet
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Attendance Records');
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+  // Set workbook properties
+  workbook.creator = 'Attendance System';
+  workbook.created = new Date();
+  workbook.title = 'Attendance Report';
+
+  // Define columns with widths
+  worksheet.columns = [
+    { header: 'Timestamp', key: 'timestamp', width: 25 },
+    { header: 'Student ID', key: 'studentId', width: 18 },
+    { header: 'Name', key: 'name', width: 35 },
+    { header: 'Class', key: 'class', width: 18 },
+    { header: 'Status', key: 'status', width: 15 }
+  ];
+
+  // Style header row with gradient colors
+  const headerColors = ['1E3A8A', '1E40AF', '2563EB', '3B82F6', '60A5FA'];
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 30;
+
+  headerRow.eachCell((cell, colNumber) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF' + headerColors[colNumber - 1] }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+      size: 13,
+      name: 'Arial'
+    };
+    cell.alignment = {
+      vertical: 'middle',
+      horizontal: 'center'
+    };
+    cell.border = {
+      top: { style: 'medium', color: { argb: 'FF1E3A8A' } },
+      bottom: { style: 'medium', color: { argb: 'FF1E3A8A' } },
+      left: { style: 'thin', color: { argb: 'FF3B82F6' } },
+      right: { style: 'thin', color: { argb: 'FF3B82F6' } }
+    };
+  });
+
+  // Add data rows
+  logsToExport.forEach((log) => {
+    worksheet.addRow({
+      timestamp: log.timestamp,
+      studentId: log.studentId,
+      name: log.name,
+      class: log.class,
+      status: log.status
+    });
+  });
+
+  // Style data rows
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header
+
+    const isEven = rowNumber % 2 === 0;
+
+    row.eachCell((cell, colNumber) => {
+      const cellValue = cell.value;
+      let fillColor = isEven ? 'FFFFFFFF' : 'FFF0F9FF'; // White / Light blue
+      let fontColor = 'FF1F2937';
+      let isBold = false;
+
+      // Status column (column 5) - bright colors!
+      if (colNumber === 5) {
+        if (cellValue === 'Present') {
+          fillColor = 'FFD1FAE5'; // Green
+          fontColor = 'FF065F46';
+          isBold = true;
+        } else if (cellValue === 'Absent') {
+          fillColor = 'FFFEE2E2'; // Red
+          fontColor = 'FF991B1B';
+          isBold = true;
+        } else if (cellValue === 'Late') {
+          fillColor = 'FFFEF3C7'; // Yellow
+          fontColor = 'FF92400E';
+          isBold = true;
+        }
+      }
+
+      // Student ID column (column 2) - highlighted blue
+      if (colNumber === 2) {
+        fillColor = isEven ? 'FFEFF6FF' : 'FFDBEAFE';
+        fontColor = 'FF1E40AF';
+        isBold = true;
+      }
+
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: fillColor }
+      };
+
+      cell.font = {
+        size: 11,
+        color: { argb: fontColor },
+        bold: isBold,
+        name: 'Arial'
+      };
+
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: colNumber === 3 ? 'left' : 'center' // Name left-aligned
+      };
+
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+      };
+    });
+  });
+
+  // Add autofilter
+  worksheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: worksheet.rowCount, column: 5 }
+  };
+
+  // Generate file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  // Download file
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+};
+
+  const exportToCSV = () => {
+    exportToExcel(logs);
   };
 
   const filteredStudents = useMemo(() => {
