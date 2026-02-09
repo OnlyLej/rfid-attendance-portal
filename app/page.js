@@ -1224,8 +1224,8 @@ const ClassroomMonitorTab = ({
             const classStudents = students.filter(s => s.class === className);
             const filteredStudents = getFilteredClassStudents(className);
             const presentCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'present').length;
-            const absentCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'absent').length;
             const noLogsCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'no-logs').length;
+            const absentCount = filteredStudents.filter(s => getStudentStatus(s.studentId) === 'absent').length + noLogsCount;
             const isExpanded = selectedClass === className;
             
             return (
