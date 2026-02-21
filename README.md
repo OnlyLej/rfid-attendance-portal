@@ -162,12 +162,18 @@ No UTC offset is included. The portal handles this by appending `+08:00` at pars
 ```
 ├── app/
 │   ├── api/
-│   │   ├── auth/route.ts      # Login — validates credentials, issues session token
-│   │   └── proxy/route.ts     # Forwards authenticated requests to the GAS backend
-│   └── page.tsx               # All UI components (dashboard, logs, monitor, parent view)
+│   │   ├── auth/route.ts #  Login        
+│   │   │  validates credentials, issues 
+│   │   │   session token
+│   │   └── proxy/route.ts     # Forwards 
+│   │   authenticated requests to the GAS 
+│   │   backend
+│   └── page.tsx               # All UI 
+│   │       components (dashboard, logs, 
+│   │       monitor, parent view)
 ├── public/
 │   └── favicon.ico
-└── .env.local                 # Local environment variables (not committed)
+└── .env.local    # Local environment variables (not committed)
 ```
 
 ---
