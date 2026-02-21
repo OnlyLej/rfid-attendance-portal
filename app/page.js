@@ -101,8 +101,18 @@ const AppLogo = ({ size = 'md', className = '' }) => {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const parseLogTimestamp = (str) => {
   if (!str) return null;
-  const d = new Date(str);
+  // Handle "YYYY-MM-DD HH:MM:SS" format (space instead of T)
+  const normalized = typeof str === 'string' ? str.replace(' ', 'T') : str;
+  const d = new Date(normalized);
   return isNaN(d.getTime()) ? null : d;
+};
+
+// Returns YYYY-MM-DD in Asia/Manila timezone for reliable date comparisons
+const getPhLocalDate = (str) => {
+  if (!str) return '';
+  const d = parseLogTimestamp(str);
+  if (!d) return '';
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' }); // en-CA = YYYY-MM-DD
 };
 
 const getColorClasses = (color, darkMode, type = 'bg') => {
@@ -836,7 +846,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
   const [showFilters, setShowFilters] = useState(!isMobile);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
   const uniqueClasses = useMemo(() => [...new Set(allLogs.map(l => l.class))].sort(), [allLogs]);
 
   const filteredLogs = useMemo(() => {
@@ -845,11 +855,21 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
       const q = search.toLowerCase();
       f = f.filter(l => l.studentId?.toLowerCase().includes(q) || l.name?.toLowerCase().includes(q) || l.class?.toLowerCase().includes(q));
     }
-    if (dateStart) f = f.filter(l => l.timestamp && l.timestamp.split('T')[0] >= dateStart);
-    if (dateEnd) f = f.filter(l => l.timestamp && l.timestamp.split('T')[0] <= dateEnd);
+    if (dateStart) f = f.filter(l => {
+      const d = getPhLocalDate(l.timestamp);
+      return d >= dateStart;
+    });
+    if (dateEnd) f = f.filter(l => {
+      const d = getPhLocalDate(l.timestamp);
+      return d <= dateEnd;
+    });
     if (statusFilter !== 'all') f = f.filter(l => l.status === statusFilter);
     if (classFilter !== 'all') f = f.filter(l => l.class === classFilter);
-    f.sort((a, b) => sortOrder === 'newest' ? new Date(b.timestamp) - new Date(a.timestamp) : new Date(a.timestamp) - new Date(b.timestamp));
+    f.sort((a, b) => {
+      const da = parseLogTimestamp(a.timestamp);
+      const db = parseLogTimestamp(b.timestamp);
+      return sortOrder === 'newest' ? db - da : da - db;
+    });
     return f;
   }, [allLogs, search, dateStart, dateEnd, statusFilter, classFilter, sortOrder]);
 
@@ -937,7 +957,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
                 <button onClick={() => { setDateStart(today); setDateEnd(today); }} className={`w-full px-3 py-2.5 rounded-xl text-xs border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Today</button>
               </div>
               <div className="flex items-end">
-                <button onClick={() => { setDateStart(new Date(Date.now() - 7*86400000).toISOString().split('T')[0]); setDateEnd(today); }} className={`w-full px-3 py-2.5 rounded-xl text-xs border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Last 7 days</button>
+                <button onClick={() => { setDateStart(new Date(Date.now() - 7*86400000).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })); setDateEnd(today); }} className={`w-full px-3 py-2.5 rounded-xl text-xs border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Last 7 days</button>
               </div>
             </div>
           </div>
@@ -966,7 +986,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
                   <span className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>{log.status}</span>
                 </div>
                 <p className={`text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{log.studentId} · {log.class}</p>
-                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{new Date(log.timestamp).toLocaleString()}</p>
+                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{parseLogTimestamp(log.timestamp)?.toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || '—'}</p>
               </div>
             ))}
           </div>
@@ -983,7 +1003,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
               <tbody className={`divide-y ${darkMode ? 'divide-gray-700/50' : 'divide-gray-100'}`}>
                 {pagedLogs.map((log, i) => (
                   <tr key={i} className={`transition-colors duration-150 ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/80'} group`}>
-                    <td className={`px-5 py-3.5 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{new Date(log.timestamp).toLocaleString()}</td>
+                    <td className={`px-5 py-3.5 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{parseLogTimestamp(log.timestamp)?.toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || '—'}</td>
                     <td className={`px-5 py-3.5 text-sm font-mono ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{log.studentId}</td>
                     <td className={`px-5 py-3.5 text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{log.name}</td>
                     <td className={`px-5 py-3.5 text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{log.class}</td>
@@ -1021,7 +1041,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const [dateEnd, setDateEnd] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
   const childLogs = useMemo(() => {
     if (!parentChildId) return [];
@@ -1031,10 +1051,20 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const filteredLogs = useMemo(() => {
     let f = [...childLogs];
     if (search) { const q = search.toLowerCase(); f = f.filter(l => l.name?.toLowerCase().includes(q) || l.class?.toLowerCase().includes(q) || l.studentId?.toLowerCase().includes(q)); }
-    if (dateStart) f = f.filter(l => l.timestamp && l.timestamp.split('T')[0] >= dateStart);
-    if (dateEnd) f = f.filter(l => l.timestamp && l.timestamp.split('T')[0] <= dateEnd);
+    if (dateStart) f = f.filter(l => {
+      const d = getPhLocalDate(l.timestamp);
+      return d >= dateStart;
+    });
+    if (dateEnd) f = f.filter(l => {
+      const d = getPhLocalDate(l.timestamp);
+      return d <= dateEnd;
+    });
     if (statusFilter !== 'all') f = f.filter(l => l.status === statusFilter);
-    f.sort((a, b) => sortOrder === 'newest' ? new Date(b.timestamp) - new Date(a.timestamp) : new Date(a.timestamp) - new Date(b.timestamp));
+    f.sort((a, b) => {
+      const da = parseLogTimestamp(a.timestamp);
+      const db = parseLogTimestamp(b.timestamp);
+      return sortOrder === 'newest' ? db - da : da - db;
+    });
     return f;
   }, [childLogs, search, dateStart, dateEnd, statusFilter, sortOrder]);
 
@@ -1132,10 +1162,10 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                 <div key={i} className={`px-5 py-4 flex items-center gap-4 transition-colors duration-150 ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-slate-50'} group`}>
                   <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium transition-all duration-200 group-hover:scale-105 ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>{log.status}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{new Date(log.timestamp).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                    <p className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-800'}`}>{parseLogTimestamp(log.timestamp)?.toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', weekday: 'short', month: 'short', day: 'numeric' }) || '—'}</p>
                     <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{log.class}</p>
                   </div>
-                  <p className={`text-sm flex-shrink-0 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className={`text-sm flex-shrink-0 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{parseLogTimestamp(log.timestamp)?.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' }) || '—'}</p>
                 </div>
               ))}
             </div>
