@@ -1,62 +1,165 @@
 # 📡 RFID Attendance Portal
 
-A Next.js web dashboard for real-time school attendance tracking. Connects to an RFID hardware system and Google Apps Script backend to give teachers, admins, and parents live visibility into student attendance.
+A Next.js web dashboard for real-time school attendance tracking powered by a Google Apps Script backend.
 
 ---
 
-## ✨ Features
-
-- **Live dashboard** — animated stat cards, 7-day trends, monthly charts, and per-class attendance rankings
-- **Classroom monitor** — real-time IN / OUT / Absent status for every student, grouped by class
-- **Attendance logs** — searchable, filterable, paginated log table with date-range selection
-- **Excel export** — formatted `.xlsx` download with colour-coded statuses and PH-timezone timestamps
-- **Parent portal** — read-only view scoped to a parent's linked child, with attendance rate stats
-- **Dark / light mode** — persisted across sessions
-- **Mobile responsive** — bottom tab-bar navigation on small screens
-- **Session security** — 30-minute inactivity timeout with automatic logout
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- A deployed Google Apps Script backend (provides the API and data storage)
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Configure environment variables
+## ⚙️ Environment Setup
 
 Create a `.env.local` file in the project root:
 
 ```env
-# URL of your deployed Google Apps Script web app
-GAS_API_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
-
-# Secret used to sign session tokens (generate with: openssl rand -hex 32)
-SESSION_SECRET=your_session_secret_here
+GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 ```
 
-### 3. Run locally
+That's the only environment variable the portal needs. Both API routes read from it.
 
-```bash
-npm run dev
+---
+
+## 🔌 API Routes
+
+### `POST /api/auth`
+
+Authenticates a user against Google Apps Script and returns a session token.
+
+**Request body:**
+```json
+{
+  "username": "teacher01",
+  "password": "yourpassword"
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### 4. Build for production
-
-```bash
-npm run build
-npm start
+**Success `200`:**
+```json
+{
+  "success": true,
+  "sessionToken": "abc123...",
+  "userType": "teacher",
+  "fullName": "Juan dela Cruz",
+  "username": "teacher01"
+}
 ```
 
+**Failure `401`:**
+```json
+{
+  "success": false,
+  "message": "Invalid credentials"
+}
+```
+
+---
+
+### `GET /api/proxy`
+
+Forwards authenticated requests to Google Apps Script.
+
+**Required header:**
+```
+X-Session-Token: abc123...
+```
+
+**Query parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `action` | ✅ | GAS function to call (see actions below) |
+| `sessionToken` | ✅ | Session token from login |
+| `startDate` | ➖ | Filter start date — `yyyy-MM-dd` |
+| `endDate` | ➖ | Filter end date — `yyyy-MM-dd` |
+
+---
+
+## 📋 Available Actions
+
+Pass as the `action` query parameter to `/api/proxy`.
+
+---
+
+### `getDashboardStats`
+
+Returns students, attendance logs, and computed stats for a date range.
+
+```
+GET /api/proxy?action=getDashboardStats&sessionToken=abc123&startDate=2025-01-01&endDate=2025-02-21
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "students": [
+    { "studentId": "2024-001", "name": "Maria Santos", "class": "Grade 6 - Rizal" }
+  ],
+  "logs": [
+    {
+      "timestamp": "2025-02-21 08:14:00",
+      "studentId": "2024-001",
+      "name": "Maria Santos",
+      "class": "Grade 6 - Rizal",
+      "status": "IN"
+    }
+  ],
+  "stats": {
+    "totalStudents": 124,
+    "presentToday": 108,
+    "absentToday": 16,
+    "attendanceRate": 87
+  }
+}
+```
+
+---
+
+### `getClasses`
+
+Returns a list of all class/section names.
+
+```
+GET /api/proxy?action=getClasses&sessionToken=abc123
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "classes": ["Grade 6 - Rizal", "Grade 6 - Bonifacio", "Grade 5 - Luna"]
+}
+```
+
+---
+
+## 🔐 How Authentication Works
+
+```
+1. Client POSTs credentials  →  /api/auth
+2. /api/auth forwards        →  Google Apps Script (GAS validates, creates token)
+3. Token returned            →  stored in client sessionStorage
+4. Client sends token in X-Session-Token header on every request
+5. /api/proxy forwards       →  GAS (validates token before returning data)
+6. Token expires after 30 minutes of inactivity
+```
+
+The session token is created and validated entirely by Google Apps Script. The Next.js proxy never generates or stores tokens — it only checks that one exists before forwarding.
+
+---
+
+## 📝 Timestamp Format
+
+All timestamps from the API are Philippine Standard Time (UTC+8), formatted as:
+
+```
+"2025-02-21 08:14:00"
+```
+
+No UTC offset is included. The portal handles this by appending `+08:00` at parse time.
+
+---
+
+## 📄 License
+
+MIT © 2025 RFID Attendance Portal
 ---
 
 ## 📁 Project Structure
@@ -117,4 +220,4 @@ All data is displayed in **Philippine Standard Time (UTC+8)**. Timestamps from t
 
 ## 📄 License
 
-MIT © 2025 RFID Attendance Portal
+MIT © 2026 RFID Attendance Portal
