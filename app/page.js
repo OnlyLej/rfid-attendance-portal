@@ -1082,9 +1082,9 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
           <div className={`divide-y ${darkMode ? 'divide-gray-700/50' : 'divide-gray-100'}`}>
             {pagedLogs.map((log, i) => (
               <div key={i} className={`p-4 transition-colors duration-150 ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}`}>
-                <div className="flex items-start justify-between mb-1">
-                  <p className={`text-sm font-semibold truncate mr-2 ${darkMode ? 'text-white' : 'text-gray-800'}`} title={log.name}>{log.name}</p>
-                  <span className={`ml-2 flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>{log.status}</span>
+                <div className="flex items-start justify-between mb-1 gap-2">
+                  <p className={`text-sm font-semibold truncate flex-1 min-w-0 ${darkMode ? 'text-white' : 'text-gray-800'}`} title={log.name}>{log.name}</p>
+                  <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>{log.status}</span>
                 </div>
                 <p className={`text-xs mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{log.studentId} · {log.class}</p>
                 <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{formatTs(log.timestamp)}</p>
@@ -2206,4 +2206,4 @@ export default function AttendancePortal() {
       `}</style>
     </div>
   );
-    }
+      }
