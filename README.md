@@ -155,12 +155,7 @@ All timestamps from the API are Philippine Standard Time (UTC+8), formatted as:
 
 No UTC offset is included. The portal handles this by appending `+08:00` at parse time.
 
----
 
-## 📄 License
-
-MIT © 2025 RFID Attendance Portal
----
 
 ## 📁 Project Structure
 
