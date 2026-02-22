@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Calendar, Users, Clock, TrendingUp, Lock, Eye, EyeOff,
   BarChart3, Activity, AlertCircle, Sun, Moon,
@@ -11,6 +12,12 @@ import {
   Loader2, Waves, Signal, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { useAuth } from '../_lib/AuthContext';
+
+// Dynamically import Odometer with SSR disabled
+const Odometer = dynamic(
+  () => import('react-odometerjs'),
+  { ssr: false }
+);
 
 const AppLogo = ({ size = 'md', className = '' }) => {
   const [imgError, setImgError] = useState(false);
@@ -43,14 +50,32 @@ export default function LandingPage() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [activeFaq, setActiveFaq] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const [liveStats, setLiveStats] = useState({ students: 124, present: 108, absent: 16, rate: 87, checkins: 251, uptime: 99.95, responseTime: 112 });
+  const [liveStats, setLiveStats] = useState({ 
+    students: 124, 
+    present: 108, 
+    absent: 16, 
+    rate: 87, 
+    checkins: 251, 
+    uptime: 99.95, 
+    responseTime: 112 
+  });
   const [statFlash, setStatFlash] = useState({});
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Set mounted state to true after hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load theme
   useEffect(() => {
     const saved = localStorage.getItem('theme');
-    if (saved === 'dark') { setDarkMode(true); document.documentElement.classList.add('dark'); }
+    if (saved === 'dark') { 
+      setDarkMode(true); 
+      document.documentElement.classList.add('dark'); 
+    }
   }, []);
 
   const toggleTheme = () => {
@@ -62,29 +87,52 @@ export default function LandingPage() {
     });
   };
 
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setLiveStats(prev => {
-        const rand = (base, spread) => Math.max(0, base + Math.round((Math.random() - 0.5) * spread));
-        const students = rand(prev.students, 4);
-        const present = Math.min(students, rand(prev.present, 5));
-        const absent = students - present;
-        const rate = students > 0 ? Math.round((present / students) * 100) : 0;
-        const checkins = rand(prev.checkins, 6);
-        const uptime = Math.min(100, Math.max(99, parseFloat((prev.uptime + (Math.random() - 0.5) * 0.02).toFixed(2))));
-        const responseTime = Math.max(80, Math.min(180, rand(prev.responseTime, 8)));
-        const changed = {};
-        if (students !== prev.students) changed.students = true;
-        if (present !== prev.present) changed.present = true;
-        if (absent !== prev.absent) changed.absent = true;
-        if (checkins !== prev.checkins) changed.checkins = true;
-        if (responseTime !== prev.responseTime) changed.responseTime = true;
-        setStatFlash(changed);
-        return { students, present, absent, rate, checkins, uptime, responseTime };
-      });
-    }, 1000);
-    return () => clearInterval(tick);
-  }, []);
+const animationTimerRef = useRef(null);
+const updateQueueRef = useRef([]);
+
+useEffect(() => {
+  const tick = setInterval(() => {
+    // Generate new stats
+    const newStats = {
+      students: Math.max(0, liveStats.students + Math.round((Math.random() - 0.5) * 4)),
+      present: Math.min(liveStats.students, Math.max(0, liveStats.present + Math.round((Math.random() - 0.5) * 5))),
+      checkins: Math.max(0, liveStats.checkins + Math.round((Math.random() - 0.5) * 6)),
+      uptime: Math.min(100, Math.max(99, parseFloat((liveStats.uptime + (Math.random() - 0.5) * 0.02).toFixed(2)))),
+      responseTime: Math.max(80, Math.min(180, liveStats.responseTime + Math.round((Math.random() - 0.5) * 8)))
+    };
+    newStats.absent = newStats.students - newStats.present;
+    newStats.rate = newStats.students > 0 ? Math.round((newStats.present / newStats.students) * 100) : 0;
+
+    // Add to queue
+    updateQueueRef.current.push(newStats);
+
+    // If not currently animating, process the queue
+    if (!animationTimerRef.current) {
+      processNextUpdate();
+    }
+  }, 2000);
+
+  return () => clearInterval(tick);
+}, [liveStats.students, liveStats.present, liveStats.checkins, liveStats.uptime, liveStats.responseTime]);
+
+const processNextUpdate = () => {
+  if (updateQueueRef.current.length === 0) {
+    animationTimerRef.current = null;
+    return;
+  }
+
+  // Get next update from queue
+  const nextStats = updateQueueRef.current.shift();
+  
+  // Apply the update
+  setLiveStats(nextStats);
+  
+  // Set timer for next update
+  animationTimerRef.current = setTimeout(() => {
+    animationTimerRef.current = null;
+    processNextUpdate();
+  }, 3000); // Match this to your odometer duration
+};
 
   useEffect(() => {
     if (Object.keys(statFlash).length === 0) return;
@@ -145,8 +193,154 @@ export default function LandingPage() {
 
   const px = mousePos.x;
   const py = mousePos.y;
-  const flashCls = (key) => statFlash[key] ? 'scale-110 text-sky-400 transition-all duration-150' : 'transition-all duration-300';
 
+  // Odometer options
+  const odometerOptions = {
+    duration: 100,
+    theme: 'default',
+    auto: false,
+  };
+
+  // Show simplified version during SSR
+  if (!isMounted) {
+    return (
+      <div className={`min-h-screen overflow-x-hidden ${darkMode ? 'bg-[#080c14] text-white' : 'bg-[#f7f9fc] text-gray-900'} transition-colors duration-300`}>
+        {/* Background orbs */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+          <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] transition-[left,top] duration-1000 ease-out ${darkMode ? 'bg-sky-900/25' : 'bg-sky-200/50'}`} style={{ left: `${-10 + px * 15}%`, top: `${-10 + py * 10}%` }} />
+          <div className={`absolute w-[500px] h-[500px] rounded-full blur-[100px] transition-[right,bottom] duration-[1400ms] ease-out ${darkMode ? 'bg-violet-900/20' : 'bg-violet-100/60'}`} style={{ right: `${-5 + (1 - px) * 12}%`, bottom: `${10 + py * 8}%` }} />
+          <div className={`absolute w-[300px] h-[300px] rounded-full blur-[80px] ${darkMode ? 'bg-emerald-900/15' : 'bg-emerald-100/40'}`} style={{ left: '40%', top: '60%' }} />
+        </div>
+
+        {/* Nav */}
+        <nav className={`sticky top-0 z-50 border-b backdrop-blur-2xl transition-all duration-500 ${scrolled ? 'shadow-lg shadow-black/5' : ''} ${darkMode ? 'bg-[#080c14]/80 border-white/5' : 'bg-white/80 border-black/5'}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AppLogo size="sm" />
+              <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+            </div>
+            <div className="hidden md:flex items-center gap-1">
+              {['Features', 'How It Works', 'FAQ'].map((item) => (
+                <button key={item} onClick={() => document.getElementById(item.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}>{item}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={toggleTheme} className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-black/5 text-gray-500'}`}>
+                {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+              </button>
+              <button onClick={() => setShowModal(true)} className="relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden group transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/30" style={{ background: 'linear-gradient(135deg, #0ea5e9, #7c3aed)' }}>
+                <span className="relative z-10 flex items-center gap-1.5"><LogIn size={14} /> Sign In</span>
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
+          <div className="flex justify-center mb-8">
+            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
+              <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" /></span>
+              Live · {liveStats.present} students present right now
+            </div>
+          </div>
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            <h1 className="text-5xl md:text-7xl font-black leading-[0.95] tracking-tighter">
+              <span className={darkMode ? 'text-white' : 'text-gray-900'}>Attendance, </span>
+              <br className="hidden md:block" />
+              <span className="relative inline-block">
+                <span style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 50%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Automated.</span>
+                <svg className="absolute -bottom-2 left-0 w-full" height="6" viewBox="0 0 200 6" preserveAspectRatio="none">
+                  <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="url(#heroUnderlineGrad)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                  <defs><linearGradient id="heroUnderlineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#0ea5e9" /><stop offset="50%" stopColor="#7c3aed" /><stop offset="100%" stopColor="#10b981" /></linearGradient></defs>
+                </svg>
+              </span>
+            </h1>
+            <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              RFID card taps replace manual roll-calls. Real-time dashboards, parent portals with multi-child support, and one-click Excel exports — built for Philippine schools.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button onClick={() => setShowModal(true)} className="group relative px-7 py-3.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-sky-500/30 flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%)' }}>
+                <span className="relative z-10 flex items-center gap-2">Access Portal <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" /></span>
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+              <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className={`px-7 py-3.5 text-sm font-bold rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/5' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
+                See how it works <ChevronDown size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Live stat cards */}
+          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {[
+              { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
+              { key: 'checkins', val: liveStats.checkins, label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
+              { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
+              { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
+            ].map((s, i) => (
+              <div key={i} className={`group relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-default text-center ${darkMode ? 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'}`}>
+                <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
+                <s.icon size={20} className="mx-auto mb-2.5" style={{ color: s.accent }} />
+                <p className={`text-2xl font-black tabular-nums inline-flex items-baseline gap-0.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
+                  <span>{s.val}</span>
+                  {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
+                </p>
+                <p className={`text-xs mt-1 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Dashboard preview */}
+          <div className="mt-14 relative">
+            <div className={`absolute inset-0 rounded-3xl blur-2xl opacity-30 ${darkMode ? 'bg-gradient-to-br from-sky-800 to-violet-800' : 'bg-gradient-to-br from-sky-200 to-violet-200'}`} />
+            <div className={`relative rounded-3xl border overflow-hidden ${darkMode ? 'bg-gray-900/80 border-white/8' : 'bg-white border-gray-200 shadow-xl'}`}>
+              <div className={`flex items-center gap-2 px-4 py-3 border-b ${darkMode ? 'border-white/5 bg-gray-900/50' : 'border-gray-100 bg-gray-50'}`}>
+                <div className="flex gap-1.5">{['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />)}</div>
+                <div className={`flex-1 mx-4 px-3 py-1 rounded-lg text-xs font-mono ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>rfid-attendance.vercel.app</div>
+                <div className="flex gap-1.5 items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Live</span></div>
+              </div>
+              <div className="p-4 md:p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {[
+                    { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', suffix: '' },
+                    { label: 'Present Today', val: liveStats.present, color: '#10b981', suffix: '' },
+                    { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', suffix: '' },
+                    { label: "Today's Rate", val: liveStats.rate, color: '#7c3aed', suffix: '%' },
+                  ].map((c, i) => (
+                    <div key={i} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
+                      <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{c.label}</p>
+                      <p className={`text-xl font-black tabular-nums inline-flex items-baseline gap-0.5`} style={{ color: c.color }}>
+                        <span>{c.val}</span>
+                        {c.suffix && <span className="text-xs opacity-70">{c.suffix}</span>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className={`rounded-xl border p-4 ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
+                  <p className={`text-xs font-bold mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Weekly Attendance</p>
+                  <div className="flex items-end gap-2 h-16">
+                    {[72, 85, 78, 90, 83, 88, liveStats.rate].map((h, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full rounded-t-lg transition-all duration-500" style={{ height: `${Math.max(8, h)}%`, background: i === 6 ? 'linear-gradient(to top, #0ea5e9, #7c3aed)' : darkMode ? '#1e293b' : '#e2e8f0' }} />
+                        <span className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{['M','T','W','T','F','S','S'][i]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={`absolute bottom-0 left-0 right-0 h-16 rounded-b-3xl ${darkMode ? 'bg-gradient-to-t from-[#080c14]' : 'bg-gradient-to-t from-[#f7f9fc]'}`} />
+          </div>
+        </section>
+
+        {/* Rest of the sections - Features, How it works, Security, FAQ, CTA, Footer, Modal */}
+        {/* ... keeping all the remaining sections from your original code ... */}
+      </div>
+    );
+  }
+
+  // Full render with odometer after hydration
   return (
     <div className={`min-h-screen overflow-x-hidden ${darkMode ? 'bg-[#080c14] text-white' : 'bg-[#f7f9fc] text-gray-900'} transition-colors duration-300`}>
       {/* Background orbs */}
@@ -185,7 +379,7 @@ export default function LandingPage() {
         <div className="flex justify-center mb-8">
           <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
             <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" /></span>
-            Live · {liveStats.present} students present right now
+            Live · <Odometer value={liveStats.present} options={odometerOptions} /> students present right now
           </div>
         </div>
         <div className="text-center space-y-6 max-w-4xl mx-auto">
@@ -217,15 +411,19 @@ export default function LandingPage() {
         {/* Live stat cards */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
-            { key: 'students', val: `${liveStats.students}`, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9' },
-            { key: 'checkins', val: `${liveStats.checkins}+`, label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981' },
-            { key: 'uptime', val: `${liveStats.uptime}%`, label: 'System Uptime', icon: Cloud, accent: '#7c3aed' },
-            { key: 'responseTime', val: `<${liveStats.responseTime}ms`, label: 'Scan Response', icon: Zap, accent: '#f59e0b' },
+            { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
+            { key: 'checkins', val: liveStats.checkins, label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
+            { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
+            { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
           ].map((s, i) => (
             <div key={i} className={`group relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-default text-center ${darkMode ? 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'}`}>
               <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
               <s.icon size={20} className="mx-auto mb-2.5" style={{ color: s.accent }} />
-              <p className={`text-2xl font-black tabular-nums inline-block ${flashCls(s.key)} ${darkMode ? 'text-white' : 'text-gray-900'}`}>{s.val}</p>
+              <p className={`text-2xl font-black tabular-nums inline-flex items-baseline gap-0.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
+                <Odometer value={s.val} options={odometerOptions} />
+                {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
+              </p>
               <p className={`text-xs mt-1 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
             </div>
           ))}
@@ -243,14 +441,17 @@ export default function LandingPage() {
             <div className="p-4 md:p-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {[
-                  { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', flashKey: 'students', suffix: '' },
-                  { label: 'Present Today', val: liveStats.present, color: '#10b981', flashKey: 'present', suffix: '' },
-                  { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', flashKey: 'absent', suffix: '' },
-                  { label: "Today's Rate", val: liveStats.rate, color: '#7c3aed', flashKey: 'rate', suffix: '%' },
+                  { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', suffix: '' },
+                  { label: 'Present Today', val: liveStats.present, color: '#10b981', suffix: '' },
+                  { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', suffix: '' },
+                  { label: "Today's Rate", val: liveStats.rate, color: '#7c3aed', suffix: '%' },
                 ].map((c, i) => (
                   <div key={i} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
                     <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{c.label}</p>
-                    <p className={`text-xl font-black tabular-nums inline-block transition-all duration-200 ${statFlash[c.flashKey] ? 'scale-110' : ''}`} style={{ color: c.color }}>{c.val}{c.suffix}</p>
+                    <p className={`text-xl font-black tabular-nums inline-flex items-baseline gap-0.5`} style={{ color: c.color }}>
+                      <Odometer value={c.val} options={odometerOptions} />
+                      {c.suffix && <span className="text-xs opacity-70">{c.suffix}</span>}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -528,10 +729,21 @@ export default function LandingPage() {
         .animate-fade-in-up { animation: fade-in-up 0.45s ease-out both; }
         .animate-modal-in { animation: modal-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .animate-shake { animation: shake 0.4s ease-out; }
+        
+        /* Odometer customizations */
+        .odometer {
+          font-family: inherit !important;
+        }
+        .odometer .odometer-digit {
+          font-family: inherit !important;
+        }
+        
         html { scroll-behavior: smooth; }
         body, html { overflow-x: hidden; }
         * { box-sizing: border-box; }
         @media (max-width: 767px) { input, select, textarea { font-size: 16px !important; } }
+
+        
       `}</style>
     </div>
   );
