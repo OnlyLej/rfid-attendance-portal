@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Sun, Moon, RefreshCw, LogOut, Home, Users, FileText, RadioTower } from 'lucide-react';
-import { useAuth } from '../_lib/AuthContext';
+import { useApp } from '../_lib/AppContext';
 import { useState } from 'react';
 
 const PH_TZ = 'Asia/Manila';
@@ -32,7 +32,7 @@ function getGreeting() {
 }
 
 export default function AppHeader({ darkMode, toggleTheme, loading, onRefresh, isMobile }) {
-  const { userType, userInfo, handleLogout } = useAuth();
+  const { userType, userInfo, handleLogout } = useApp();
   const pathname = usePathname();
 
   const teacherTabs = [
