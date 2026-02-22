@@ -1911,20 +1911,10 @@ export default function AttendancePortal() {
   };
 
   const handleLogout = useCallback(async () => {
-    // Tell the server to delete the session row — fire-and-forget, don't block the UI
     const token = sessionStorage.getItem('sessionToken');
-    if (token) {
-      try {
-        await fetch(API_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'logout', sessionToken: token }),
-        });
-      } catch { /* ignore network errors — session will expire on its own */ }
-    }
-    // Clear all session data from the browser
+  
+    // Clear client state immediately
     sessionStorage.clear();
-    // Reset every piece of dashboard state so nothing leaks after logout
     setAuthenticated(false);
     setUserType(null);
     setUserInfo(null);
@@ -1935,6 +1925,15 @@ export default function AttendancePortal() {
     setWeeklyData([]);
     setChildrenInfo([]);
     setSelectedChildId('all');
+  
+    // Tell the server to delete the session row
+    if (token) {
+      fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout', sessionToken: token }),
+      }).catch(() => {});
+    }
   }, []);
 
   const calculateWeeklyData = (logData, studentsList) => {
