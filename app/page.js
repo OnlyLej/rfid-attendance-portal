@@ -1910,7 +1910,18 @@ export default function AttendancePortal() {
     } catch { setError('Login failed. Please try again.'); }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(async () => {
+    // Tell the server to delete the session row — fire-and-forget, don't block the UI
+    const token = sessionStorage.getItem('sessionToken');
+    if (token) {
+      try {
+        await fetch(API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'logout', sessionToken: token }),
+        });
+      } catch { /* ignore network errors — session will expire on its own */ }
+    }
     // Clear all session data from the browser
     sessionStorage.clear();
     // Reset every piece of dashboard state so nothing leaks after logout
@@ -1924,7 +1935,7 @@ export default function AttendancePortal() {
     setWeeklyData([]);
     setChildrenInfo([]);
     setSelectedChildId('all');
-  };
+  }, []);
 
   const calculateWeeklyData = (logData, studentsList) => {
     if (!logData?.length || !studentsList?.length) return [];
