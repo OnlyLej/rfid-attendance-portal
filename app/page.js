@@ -23,7 +23,6 @@ const LOGS_PER_PAGE = 20;
 const PH_TZ = 'Asia/Manila';
 
 // ─── ID normalization helper ─────────────────────────────────────────────────
-// Trims whitespace and lowercases for safe comparison across all student/log matching
 const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
 
 // ─── Hooks ───────────────────────────────────────────────────────────────────
@@ -310,17 +309,12 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
       targetDate.setDate(targetDate.getDate() - i);
       const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
       const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: PH_TZ });
-
       const dayLogs = logs.filter(log => {
         if (!log.timestamp) return false;
         return getPhLocalDate(log.timestamp) === targetPhStr;
       });
-
-      // Use normalized IDs to count unique present students
       const presentStudents = new Set(
-        dayLogs
-          .filter(l => l.status === 'IN' && l.studentId)
-          .map(l => normalizeId(l.studentId))
+        dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId))
       );
       const present = presentStudents.size;
       const absent = Math.max(0, students.length - present);
@@ -333,35 +327,27 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
   const weeklyData = useMemo(() => {
     if (!students?.length) return [];
     const totalStudents = students.length;
-
     const nowPh = new Date(new Date().toLocaleString('en-US', { timeZone: PH_TZ }));
     const currentYear = nowPh.getFullYear();
     const currentMonth = nowPh.getMonth();
-
     const getWeekOfMonth = (date) => {
       const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
       return Math.ceil((date.getDate() + firstDay.getDay()) / 7);
     };
-
     const totalWeeks = getWeekOfMonth(new Date(currentYear, currentMonth + 1, 0));
     const weekMap = new Map();
-
     logs?.forEach(log => {
       if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
       const logDate = parsePhTimestamp(log.timestamp);
       if (!logDate) return;
-
       const logPhStr = toPhDateStr(logDate);
       const [ly, lm] = logPhStr.split('-').map(Number);
       if (ly !== currentYear || lm - 1 !== currentMonth) return;
-
       const phLocal = new Date(logDate.toLocaleString('en-US', { timeZone: PH_TZ }));
       const week = getWeekOfMonth(phLocal);
       if (!weekMap.has(week)) weekMap.set(week, new Set());
-      // Normalize ID before storing
       weekMap.get(week).add(normalizeId(log.studentId));
     });
-
     return Array.from({ length: totalWeeks }, (_, wi) => {
       const week = wi + 1;
       const presentSet = weekMap.get(week) || new Set();
@@ -378,46 +364,31 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
   const monthlyData = useMemo(() => {
     const months = [];
     const nowPh = new Date(new Date().toLocaleString('en-US', { timeZone: PH_TZ }));
-
     for (let i = 5; i >= 0; i--) {
       const targetDate = new Date(nowPh.getFullYear(), nowPh.getMonth() - i, 1);
       const targetYear = targetDate.getFullYear();
       const targetMonth = targetDate.getMonth();
       const monthName = targetDate.toLocaleDateString('en-US', { month: 'short' });
       const yearShort = targetYear.toString().slice(-2);
-
       const dayStudentMap = new Map();
-
       logs.forEach(log => {
         if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
         const logDate = parsePhTimestamp(log.timestamp);
         if (!logDate) return;
-
         const phLocal = new Date(logDate.toLocaleString('en-US', { timeZone: PH_TZ }));
         if (phLocal.getFullYear() !== targetYear || phLocal.getMonth() !== targetMonth) return;
-
         const dow = phLocal.getDay();
         if (dow === 0 || dow === 6) return;
-
         const dateStr = toPhDateStr(logDate);
         if (!dayStudentMap.has(dateStr)) dayStudentMap.set(dateStr, new Set());
-        // Normalize ID before storing
         dayStudentMap.get(dateStr).add(normalizeId(log.studentId));
       });
-
       const schoolDayCount = dayStudentMap.size;
       const totalPresent = [...dayStudentMap.values()].reduce((s, set) => s + set.size, 0);
       const avgPresent = schoolDayCount > 0 ? Math.round(totalPresent / schoolDayCount) : 0;
       const avgRate = schoolDayCount > 0 && students.length > 0 ? Math.round((avgPresent / students.length) * 100) : 0;
       const isFuture = targetDate > nowPh;
-
-      months.push({
-        name: `${monthName} '${yearShort}`,
-        avgPresent: isFuture ? null : avgPresent,
-        avgRate: isFuture ? null : avgRate,
-        days: schoolDayCount,
-        month: monthName,
-      });
+      months.push({ name: `${monthName} '${yearShort}`, avgPresent: isFuture ? null : avgPresent, avgRate: isFuture ? null : avgRate, days: schoolDayCount, month: monthName });
     }
     return months;
   }, [logs, students]);
@@ -425,9 +396,6 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
   const classComparisonData = useMemo(() => {
     if (!classes?.length || !students?.length) return [];
     const todayPhStr = getPhTodayStr();
-
-    // Build a lookup of all today's logs keyed by normalized studentId
-    // This avoids matching by log.class which can differ from student.class
     const todayLogsByStudent = new Map();
     logs.forEach(log => {
       if (!log.timestamp || !log.studentId) return;
@@ -436,54 +404,32 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
       if (!todayLogsByStudent.has(nid)) todayLogsByStudent.set(nid, []);
       todayLogsByStudent.get(nid).push(log);
     });
-
     return classes.map(cls => {
       const classStudents = students.filter(s => s.class === cls);
       const totalCount = classStudents.length;
       if (!totalCount) return null;
-
       let presentCount = 0, absentCount = 0, noLogCount = 0;
       classStudents.forEach(student => {
         const nid = normalizeId(student.studentId);
-        const studentLogs = (todayLogsByStudent.get(nid) || [])
-          .slice()
-          .sort((a, b) => {
-            const da = parsePhTimestamp(a.timestamp);
-            const db = parsePhTimestamp(b.timestamp);
-            return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
-          });
-
-        if (!studentLogs.length) {
-          noLogCount++;
-        } else {
-          const lastStatus = studentLogs[studentLogs.length - 1].status;
-          lastStatus === 'IN' ? presentCount++ : absentCount++;
-        }
+        const studentLogs = (todayLogsByStudent.get(nid) || []).slice().sort((a, b) => {
+          const da = parsePhTimestamp(a.timestamp);
+          const db = parsePhTimestamp(b.timestamp);
+          return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
+        });
+        if (!studentLogs.length) { noLogCount++; }
+        else { studentLogs[studentLogs.length - 1].status === 'IN' ? presentCount++ : absentCount++; }
       });
-
       const rate = Math.round((presentCount / totalCount) * 100);
-      // Truncate class name for chart display; keep full name for tooltip
       const displayName = cls.length > 16 ? `${cls.substring(0, 14)}…` : cls;
-      return {
-        name: displayName,
-        fullName: cls,
-        attendanceRate: rate,
-        present: presentCount,
-        absent: absentCount,
-        noLog: noLogCount,
-        total: totalCount,
-      };
+      return { name: displayName, fullName: cls, attendanceRate: rate, present: presentCount, absent: absentCount, noLog: noLogCount, total: totalCount };
     }).filter(Boolean).filter(c => c.total > 0).sort((a, b) => b.attendanceRate - a.attendanceRate);
   }, [classes, students, logs]);
 
   const tooltipStyle = {
     backgroundColor: darkMode ? '#1e293b' : '#ffffff',
     border: `1px solid ${darkMode ? '#334155' : '#f1f5f9'}`,
-    borderRadius: '12px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-    color: darkMode ? '#e2e8f0' : '#1e293b',
-    fontSize: 12,
-    padding: '10px 14px',
+    borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+    color: darkMode ? '#e2e8f0' : '#1e293b', fontSize: 12, padding: '10px 14px',
   };
   const gridColor = darkMode ? '#1e293b' : '#f1f5f9';
   const axisColor = darkMode ? '#475569' : '#94a3b8';
@@ -502,22 +448,17 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
           <Loader2 size={14} className="animate-spin ml-auto opacity-60" />
         </div>
       )}
-
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {[
-          { label: 'Total Students',  value: `${stats.totalStudents}`,  numericValue: stats.totalStudents,  icon: Users,    color: 'blue',   delay: 0   },
-          { label: 'Present Today',   value: `${stats.presentToday}`,   numericValue: stats.presentToday,   icon: UserCheck, color: 'green',  delay: 60  },
-          { label: 'Absent Today',    value: `${stats.absentToday}`,    numericValue: stats.absentToday,    icon: UserX,    color: 'red',    delay: 120 },
-          { label: "Today's Rate",    value: `${stats.attendanceRate}%`, numericValue: stats.attendanceRate, icon: TrendingUp, color: 'purple', delay: 180 },
-          { label: 'Week Average',    value: `${weekAvg}%`,             numericValue: weekAvg,              icon: Calendar,  color: 'indigo', delay: 240 },
+          { label: 'Total Students', value: `${stats.totalStudents}`, numericValue: stats.totalStudents, icon: Users, color: 'blue', delay: 0 },
+          { label: 'Present Today', value: `${stats.presentToday}`, numericValue: stats.presentToday, icon: UserCheck, color: 'green', delay: 60 },
+          { label: 'Absent Today', value: `${stats.absentToday}`, numericValue: stats.absentToday, icon: UserX, color: 'red', delay: 120 },
+          { label: "Today's Rate", value: `${stats.attendanceRate}%`, numericValue: stats.attendanceRate, icon: TrendingUp, color: 'purple', delay: 180 },
+          { label: 'Week Average', value: `${weekAvg}%`, numericValue: weekAvg, icon: Calendar, color: 'indigo', delay: 240 },
         ].map((s, i) => <StatCard key={i} {...s} darkMode={darkMode} />)}
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* Weekly Bar Chart */}
         <Card darkMode={darkMode} delay={100} hover>
           <div className="p-5">
             <ChartHeader icon={BarChart3} title={`Weekly — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric', timeZone: PH_TZ })}`} color="sky" darkMode={darkMode} />
@@ -539,7 +480,7 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
                     <Tooltip contentStyle={tooltipStyle} cursor={{ fill: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', radius: 8 }} />
                     <Legend wrapperStyle={{ fontSize: 12, paddingTop: '8px' }} />
                     <Bar dataKey="present" name="Present" fill="url(#presentGrad)" radius={[6,6,0,0]} maxBarSize={44} animationDuration={800} animationEasing="ease-out" />
-                    <Bar dataKey="absent"  name="Absent"  fill="url(#absentGrad)"  radius={[6,6,0,0]} maxBarSize={44} animationDuration={800} animationEasing="ease-out" />
+                    <Bar dataKey="absent" name="Absent" fill="url(#absentGrad)" radius={[6,6,0,0]} maxBarSize={44} animationDuration={800} animationEasing="ease-out" />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -552,7 +493,6 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
           </div>
         </Card>
 
-        {/* Daily 7-Day Area Chart */}
         <Card darkMode={darkMode} delay={150} hover>
           <div className="p-5">
             <ChartHeader icon={Activity} title="Last 7 Days" badge="Daily attendance" color="emerald" darkMode={darkMode} />
@@ -574,7 +514,7 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
                     <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: '#10b981', strokeWidth: 1, strokeDasharray: '4 4' }} />
                     <Legend wrapperStyle={{ fontSize: 12, paddingTop: '8px' }} />
                     <Area type="monotone" dataKey="present" name="Present" stroke="#10b981" strokeWidth={2.5} fill="url(#dailyPresentGrad)" dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} animationDuration={900} />
-                    <Area type="monotone" dataKey="absent"  name="Absent"  stroke="#f43f5e" strokeWidth={2}   fill="url(#dailyAbsentGrad)"  dot={{ fill: '#f43f5e', r: 3, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 5 }} animationDuration={900} />
+                    <Area type="monotone" dataKey="absent" name="Absent" stroke="#f43f5e" strokeWidth={2} fill="url(#dailyAbsentGrad)" dot={{ fill: '#f43f5e', r: 3, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 5 }} animationDuration={900} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -587,7 +527,6 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
           </div>
         </Card>
 
-        {/* Monthly Trend */}
         <Card darkMode={darkMode} delay={200} hover>
           <div className="p-5">
             <ChartHeader icon={TrendingUp} title="Monthly Trend" badge="6 months" color="violet" darkMode={darkMode} />
@@ -605,16 +544,12 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
                     <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 10, fontWeight: 500 }} tickLine={false} axisLine={false} />
-                    <YAxis yAxisId="left"  stroke={axisColor} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                    <YAxis yAxisId="left" stroke={axisColor} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
                     <YAxis yAxisId="right" orientation="right" stroke={axisColor} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '4 4' }}
-                      formatter={(v, name) => [v === null ? '—' : name === 'Avg Rate' ? `${v}%` : `${v} students`, name]}
-                    />
+                    <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '4 4' }} formatter={(v, name) => [v === null ? '—' : name === 'Avg Rate' ? `${v}%` : `${v} students`, name]} />
                     <Legend wrapperStyle={{ fontSize: 12, paddingTop: '8px' }} />
-                    <Area yAxisId="left"  type="monotone" dataKey="avgPresent" name="Avg Present" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#monthlyGrad)"     dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} animationDuration={1000} connectNulls={false} />
-                    <Area yAxisId="right" type="monotone" dataKey="avgRate"    name="Avg Rate"    stroke="#06b6d4" strokeWidth={2}   fill="url(#monthlyRateGrad)" dot={{ fill: '#06b6d4', r: 3, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 5 }} animationDuration={1000} connectNulls={false} />
+                    <Area yAxisId="left" type="monotone" dataKey="avgPresent" name="Avg Present" stroke="#8b5cf6" strokeWidth={2.5} fill="url(#monthlyGrad)" dot={{ fill: '#8b5cf6', r: 4, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} animationDuration={1000} connectNulls={false} />
+                    <Area yAxisId="right" type="monotone" dataKey="avgRate" name="Avg Rate" stroke="#06b6d4" strokeWidth={2} fill="url(#monthlyRateGrad)" dot={{ fill: '#06b6d4', r: 3, strokeWidth: 2, stroke: darkMode ? '#1e293b' : '#fff' }} activeDot={{ r: 5 }} animationDuration={1000} connectNulls={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -627,7 +562,6 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
           </div>
         </Card>
 
-        {/* Class Performance */}
         <Card darkMode={darkMode} delay={250} hover>
           <div className="p-5">
             <ChartHeader icon={Target} title="Class Performance Today" color="indigo" darkMode={darkMode} />
@@ -643,16 +577,8 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
                     <XAxis type="number" domain={[0, 100]} stroke={axisColor} tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
                     <YAxis type="category" dataKey="name" stroke={axisColor} tick={{ fontSize: 11, fontWeight: 500 }} tickLine={false} axisLine={false} width={100} />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      cursor={{ fill: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }}
-                      formatter={(v, name, props) => {
-                        const d = props.payload;
-                        return [`${v}% — ${d.present} IN / ${d.absent} OUT / ${d.noLog} no log`, d.fullName];
-                      }}
-                    />
-                    <Bar dataKey="attendanceRate" name="Rate" fill="url(#classGrad)" radius={[0,6,6,0]} maxBarSize={20} animationDuration={900} animationEasing="ease-out"
-                      label={{ position: 'right', fontSize: 11, fontWeight: 600, fill: darkMode ? '#94a3b8' : '#64748b', formatter: v => `${v}%` }} />
+                    <Tooltip contentStyle={tooltipStyle} cursor={{ fill: darkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)' }} formatter={(v, name, props) => { const d = props.payload; return [`${v}% — ${d.present} IN / ${d.absent} OUT / ${d.noLog} no log`, d.fullName]; }} />
+                    <Bar dataKey="attendanceRate" name="Rate" fill="url(#classGrad)" radius={[0,6,6,0]} maxBarSize={20} animationDuration={900} animationEasing="ease-out" label={{ position: 'right', fontSize: 11, fontWeight: 600, fill: darkMode ? '#94a3b8' : '#64748b', formatter: v => `${v}%` }} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -666,7 +592,6 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
         </Card>
       </div>
 
-      {/* Summary Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           {
@@ -674,9 +599,9 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
             content: (
               <div className="space-y-3">
                 {[
-                  { label: 'Check-ins (IN)',   value: stats.presentToday },
+                  { label: 'Check-ins (IN)', value: stats.presentToday },
                   { label: 'Checked Out (OUT)', value: stats.absentToday, red: true },
-                  { label: 'Attendance Rate',  value: `${stats.attendanceRate}%`, green: true },
+                  { label: 'Attendance Rate', value: `${stats.attendanceRate}%`, green: true },
                 ].map((r, i) => (
                   <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
                     <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.label}</span>
@@ -692,8 +617,8 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
               <div className="space-y-3">
                 {[
                   { label: 'Avg Daily Present', value: dailyData.length > 0 ? Math.round(dailyData.reduce((s,d) => s+d.present, 0) / dailyData.length) : 0 },
-                  { label: 'Avg Rate',           value: `${weekAvg}%`, purple: true },
-                  { label: 'Best Day',           value: dailyData.length > 0 && dailyData.some(d => d.present > 0) ? dailyData.reduce((m,d) => d.present > m.present ? d : m, dailyData[0]).name : '—', green: true },
+                  { label: 'Avg Rate', value: `${weekAvg}%`, purple: true },
+                  { label: 'Best Day', value: dailyData.length > 0 && dailyData.some(d => d.present > 0) ? dailyData.reduce((m,d) => d.present > m.present ? d : m, dailyData[0]).name : '—', green: true },
                 ].map((r, i) => (
                   <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${darkMode ? 'border-gray-700/50' : 'border-gray-100'}`}>
                     <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.label}</span>
@@ -709,22 +634,16 @@ const DashboardTab = ({ darkMode, stats, weekData, students, logs, classes, load
               <div>
                 <div className="flex items-start justify-between mb-3">
                   <div className="min-w-0 flex-1 pr-3">
-                    <p className={`font-bold text-xl truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={classComparisonData[0].fullName}>
-                      {classComparisonData[0].fullName}
-                    </p>
+                    <p className={`font-bold text-xl truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={classComparisonData[0].fullName}>{classComparisonData[0].fullName}</p>
                     <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{classComparisonData[0].present} present / {classComparisonData[0].total} total</p>
                   </div>
-                  <span className={`text-2xl font-black flex-shrink-0 ${classComparisonData[0].attendanceRate >= 90 ? 'text-emerald-500' : classComparisonData[0].attendanceRate >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>
-                    {classComparisonData[0].attendanceRate}%
-                  </span>
+                  <span className={`text-2xl font-black flex-shrink-0 ${classComparisonData[0].attendanceRate >= 90 ? 'text-emerald-500' : classComparisonData[0].attendanceRate >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>{classComparisonData[0].attendanceRate}%</span>
                 </div>
                 <div className={`h-2 rounded-full overflow-hidden mb-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
                   <div className="h-full bg-gradient-to-r from-amber-400 to-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${classComparisonData[0].attendanceRate}%` }} />
                 </div>
                 {classComparisonData.length > 1 && (
-                  <p className={`text-xs truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} title={classComparisonData[1].fullName}>
-                    2nd: {classComparisonData[1].fullName} — {classComparisonData[1].attendanceRate}%
-                  </p>
+                  <p className={`text-xs truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} title={classComparisonData[1].fullName}>2nd: {classComparisonData[1].fullName} — {classComparisonData[1].attendanceRate}%</p>
                 )}
               </div>
             ) : <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No data yet</p>,
@@ -755,11 +674,9 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
   const getStudentTodayStatus = useCallback((studentId) => {
     const todayPhStr = getPhTodayStr();
     const nid = normalizeId(studentId);
-
     const todayLogs = logs
       .filter(l => {
         if (!l.timestamp || !l.studentId) return false;
-        // Normalize both sides before comparing
         if (normalizeId(l.studentId) !== nid) return false;
         return getPhLocalDate(l.timestamp) === todayPhStr;
       })
@@ -769,7 +686,6 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
         const db = parsePhTimestamp(b.timestamp);
         return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
       });
-
     if (!todayLogs.length) return 'no-log';
     return todayLogs[todayLogs.length - 1].status === 'IN' ? 'in' : 'out';
   }, [logs]);
@@ -793,8 +709,8 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
   };
 
   const statusConfig = {
-    'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-100', label: 'IN',     pulse: true  },
-    'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20'           : 'bg-rose-50 text-rose-700 border border-rose-100',           label: 'OUT',    pulse: false },
+    'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border border-emerald-100', label: 'IN', pulse: true },
+    'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20'           : 'bg-rose-50 text-rose-700 border border-rose-100',           label: 'OUT', pulse: false },
     'no-log': { dot: 'bg-gray-400',    badge: darkMode ? 'bg-gray-700/60 text-gray-400 border border-gray-600/30'           : 'bg-gray-50 text-gray-500 border border-gray-200',            label: 'Absent', pulse: false },
   };
 
@@ -815,9 +731,9 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
       <div className="flex items-center gap-4 flex-wrap">
         <span className={`text-xs font-semibold uppercase tracking-wider ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Legend:</span>
         {[
-          { label: 'IN (Present)',     color: 'bg-emerald-500', pulse: true  },
-          { label: 'OUT (Left)',       color: 'bg-rose-500',    pulse: false },
-          { label: 'Absent (No log)', color: 'bg-gray-400',    pulse: false },
+          { label: 'IN (Present)', color: 'bg-emerald-500', pulse: true },
+          { label: 'OUT (Left)', color: 'bg-rose-500', pulse: false },
+          { label: 'Absent (No log)', color: 'bg-gray-400', pulse: false },
         ].map((l, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full ${l.color} relative`}>
@@ -841,20 +757,13 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
           filteredSt.forEach(s => { const st = getStudentTodayStatus(s.studentId); statusCounts[st]++; });
           const rate = filteredSt.length > 0 ? Math.round((statusCounts.in / filteredSt.length) * 100) : 0;
           const isExpanded = selectedClass === cn;
-
           return (
             <div key={idx} className={`border rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5
               ${darkMode ? 'bg-gray-800/80 border-gray-700/60 hover:border-gray-500 hover:bg-gray-800' : 'bg-white border-gray-200/80 hover:border-gray-300 shadow-sm hover:shadow-md'}`}>
               <button onClick={() => setSelectedClass(isExpanded ? null : cn)} className="w-full p-5 text-left group">
                 <div className="flex items-start justify-between mb-4">
                   <div className="min-w-0 flex-1 pr-2">
-                    {/* Full class name, truncated with tooltip on hover */}
-                    <h3
-                      className={`font-bold text-base truncate ${darkMode ? 'text-white' : 'text-gray-800'}`}
-                      title={cn}
-                    >
-                      {cn}
-                    </h3>
+                    <h3 className={`font-bold text-base truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={cn}>{cn}</h3>
                     <p className={`text-xs mt-0.5 font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{filteredSt.length} students</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -864,9 +773,9 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
                 </div>
                 <div className="grid grid-cols-3 gap-2 mb-4">
                   {[
-                    { label: 'IN',     count: statusCounts.in,        bg: darkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100', text: 'text-emerald-500' },
-                    { label: 'OUT',    count: statusCounts.out,       bg: darkMode ? 'bg-rose-500/10 border-rose-500/20'       : 'bg-rose-50 border-rose-100',       text: 'text-rose-500' },
-                    { label: 'Absent', count: statusCounts['no-log'], bg: darkMode ? 'bg-gray-700/60 border-gray-600/30'       : 'bg-gray-50 border-gray-100',        text: darkMode ? 'text-gray-400' : 'text-gray-500' },
+                    { label: 'IN', count: statusCounts.in, bg: darkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100', text: 'text-emerald-500' },
+                    { label: 'OUT', count: statusCounts.out, bg: darkMode ? 'bg-rose-500/10 border-rose-500/20' : 'bg-rose-50 border-rose-100', text: 'text-rose-500' },
+                    { label: 'Absent', count: statusCounts['no-log'], bg: darkMode ? 'bg-gray-700/60 border-gray-600/30' : 'bg-gray-50 border-gray-100', text: darkMode ? 'text-gray-400' : 'text-gray-500' },
                   ].map((s, i) => (
                     <div key={i} className={`${s.bg} border rounded-xl p-2.5 text-center`}>
                       <p className={`text-xl font-black ${s.text}`}>{s.count}</p>
@@ -875,11 +784,9 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
                   ))}
                 </div>
                 <div className={`h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                  <div className={`h-full rounded-full transition-all duration-700 ease-out ${rate >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : rate >= 60 ? 'bg-gradient-to-r from-amber-400 to-amber-600' : 'bg-gradient-to-r from-rose-400 to-rose-600'}`}
-                    style={{ width: `${rate}%` }} />
+                  <div className={`h-full rounded-full transition-all duration-700 ease-out ${rate >= 80 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : rate >= 60 ? 'bg-gradient-to-r from-amber-400 to-amber-600' : 'bg-gradient-to-r from-rose-400 to-rose-600'}`} style={{ width: `${rate}%` }} />
                 </div>
               </button>
-
               {isExpanded && (
                 <div className={`border-t max-h-80 overflow-y-auto ${darkMode ? 'border-gray-700/60' : 'border-gray-100'}`}>
                   <div className={`px-5 py-2 flex items-center gap-2 ${darkMode ? 'bg-gray-900/30' : 'bg-gray-50/80'}`}>
@@ -896,19 +803,8 @@ const ClassroomMonitorTab = ({ darkMode, students, classes, searchQuery, setSear
                           {status === 'in' && <div className={`absolute inset-0 rounded-full ${cfg.dot} animate-ping opacity-50`} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* Student name — truncate with tooltip */}
-                          <p
-                            className={`text-sm font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`}
-                            title={student.name}
-                          >
-                            {student.name}
-                          </p>
-                          <p
-                            className={`text-xs font-mono truncate mt-0.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}
-                            title={student.studentId}
-                          >
-                            {student.studentId}
-                          </p>
+                          <p className={`text-sm font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={student.name}>{student.name}</p>
+                          <p className={`text-xs font-mono truncate mt-0.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`} title={student.studentId}>{student.studentId}</p>
                         </div>
                         <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${cfg.badge}`}>{cfg.label}</span>
                       </div>
@@ -943,11 +839,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
     let f = [...allLogs];
     if (search) {
       const q = search.toLowerCase();
-      f = f.filter(l =>
-        normalizeId(l.studentId).includes(q) ||
-        l.name?.toLowerCase().includes(q) ||
-        l.class?.toLowerCase().includes(q)
-      );
+      f = f.filter(l => normalizeId(l.studentId).includes(q) || l.name?.toLowerCase().includes(q) || l.class?.toLowerCase().includes(q));
     }
     if (dateStart) f = f.filter(l => getPhLocalDate(l.timestamp) >= dateStart);
     if (dateEnd)   f = f.filter(l => getPhLocalDate(l.timestamp) <= dateEnd);
@@ -956,9 +848,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
     f.sort((a, b) => {
       const da = parsePhTimestamp(a.timestamp);
       const db = parsePhTimestamp(b.timestamp);
-      return sortOrder === 'newest'
-        ? (db?.getTime() ?? 0) - (da?.getTime() ?? 0)
-        : (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
+      return sortOrder === 'newest' ? (db?.getTime() ?? 0) - (da?.getTime() ?? 0) : (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
     });
     return f;
   }, [allLogs, search, dateStart, dateEnd, statusFilter, classFilter, sortOrder]);
@@ -974,11 +864,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
   const formatTs = (ts) => {
     const d = parsePhTimestamp(ts);
     if (!d) return '—';
-    return d.toLocaleString('en-PH', {
-      timeZone: PH_TZ,
-      year: 'numeric', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
+    return d.toLocaleString('en-PH', { timeZone: PH_TZ, year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -989,19 +875,14 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
           <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{filteredLogs.length.toLocaleString()} of {allLogs.length.toLocaleString()} records</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all duration-200 hover:scale-105 active:scale-95
-              ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}>
+          <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}>
             <Filter size={15} className={showFilters ? 'rotate-180 transition-transform duration-200' : 'transition-transform duration-200'} />
             {!isMobile && 'Filters'}
           </button>
-          <button onClick={reset}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all duration-200 hover:scale-105 active:scale-95
-              ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}>
+          <button onClick={reset} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm'}`}>
             <X size={15} />{!isMobile && 'Reset'}
           </button>
-          <button onClick={() => exportToCSV(filteredLogs)} disabled={filteredLogs.length === 0}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white transition-all duration-200 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 shadow-sm shadow-emerald-500/25">
+          <button onClick={() => exportToCSV(filteredLogs)} disabled={filteredLogs.length === 0} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white transition-all duration-200 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 shadow-sm shadow-emerald-500/25">
             <Download size={15} />{!isMobile && 'Export'}
           </button>
         </div>
@@ -1051,18 +932,10 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
                 <input type="date" value={dateEnd} min={dateStart} max={today} onChange={e => setDateEnd(e.target.value)} className={selectCls} />
               </div>
               <div className="flex items-end">
-                <button onClick={() => { setDateStart(today); setDateEnd(today); }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 hover:scale-105 active:scale-95
-                    ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Today</button>
+                <button onClick={() => { setDateStart(today); setDateEnd(today); }} className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Today</button>
               </div>
               <div className="flex items-end">
-                <button onClick={() => {
-                  const d = new Date(); d.setDate(d.getDate() - 7);
-                  setDateStart(d.toLocaleDateString('en-CA', { timeZone: PH_TZ }));
-                  setDateEnd(today);
-                }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 hover:scale-105 active:scale-95
-                    ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Last 7 days</button>
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate() - 7); setDateStart(d.toLocaleDateString('en-CA', { timeZone: PH_TZ })); setDateEnd(today); }} className={`w-full px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all duration-200 hover:scale-105 active:scale-95 ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Last 7 days</button>
               </div>
             </div>
           </div>
@@ -1095,11 +968,8 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
           <div className="overflow-x-auto">
             <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '22%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '30%' }} />
-                <col style={{ width: '22%' }} />
-                <col style={{ width: '12%' }} />
+                <col style={{ width: '22%' }} /><col style={{ width: '14%' }} />
+                <col style={{ width: '30%' }} /><col style={{ width: '22%' }} /><col style={{ width: '12%' }} />
               </colgroup>
               <thead>
                 <tr className={`border-b ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
@@ -1111,18 +981,10 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
               <tbody className={`divide-y ${darkMode ? 'divide-gray-700/40' : 'divide-gray-50'}`}>
                 {pagedLogs.map((log, i) => (
                   <tr key={i} className={`transition-colors duration-100 group ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-slate-50/80'}`}>
-                    <td className={`px-5 py-3.5 text-sm overflow-hidden ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      <span className="block truncate">{formatTs(log.timestamp)}</span>
-                    </td>
-                    <td className={`px-5 py-3.5 text-sm font-mono overflow-hidden ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <span className="block truncate" title={log.studentId}>{log.studentId}</span>
-                    </td>
-                    <td className={`px-5 py-3.5 text-sm font-semibold overflow-hidden`}>
-                      <span className={`block truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={log.name}>{log.name}</span>
-                    </td>
-                    <td className={`px-5 py-3.5 text-sm overflow-hidden`}>
-                      <span className={`block truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title={log.class}>{log.class}</span>
-                    </td>
+                    <td className={`px-5 py-3.5 text-sm overflow-hidden ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}><span className="block truncate">{formatTs(log.timestamp)}</span></td>
+                    <td className={`px-5 py-3.5 text-sm font-mono overflow-hidden ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}><span className="block truncate" title={log.studentId}>{log.studentId}</span></td>
+                    <td className={`px-5 py-3.5 text-sm font-semibold overflow-hidden`}><span className={`block truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={log.name}>{log.name}</span></td>
+                    <td className={`px-5 py-3.5 text-sm overflow-hidden`}><span className={`block truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} title={log.class}>{log.class}</span></td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>{log.status}</span>
                     </td>
@@ -1134,9 +996,7 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
         )}
         {filteredLogs.length > 0 && (
           <div className={`border-t ${darkMode ? 'border-gray-700/50' : 'border-gray-100'} px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3`}>
-            <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-              Showing {((currentPage-1)*LOGS_PER_PAGE)+1}–{Math.min(currentPage*LOGS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length}
-            </p>
+            <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Showing {((currentPage-1)*LOGS_PER_PAGE)+1}–{Math.min(currentPage*LOGS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length}</p>
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} darkMode={darkMode} />
           </div>
         )}
@@ -1146,7 +1006,9 @@ const LogsTab = ({ darkMode, loading, logs: allLogs, exportToCSV }) => {
 };
 
 // ─── Parent Logs Tab ──────────────────────────────────────────────────────────
-const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV, childInfo, childStats, parentChildId }) => {
+// Supports multiple children. Shows a child-selector pill row when >1 child is linked.
+// 'all' pseudo-ID shows combined logs across all children.
+const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, exportToCSV, childrenInfo, selectedChildId, setSelectedChildId }) => {
   const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
@@ -1156,22 +1018,48 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
   const [currentPage, setCurrentPage] = useState(1);
 
   const today = getPhTodayStr();
+  const hasMultipleChildren = childrenInfo.length > 1;
 
+  // The child(ren) whose logs we want to show
+  const activeChildIds = useMemo(() => {
+    if (!hasMultipleChildren || selectedChildId === 'all') {
+      return childrenInfo.map(c => normalizeId(c.studentId));
+    }
+    return [normalizeId(selectedChildId)];
+  }, [childrenInfo, selectedChildId, hasMultipleChildren]);
+
+  // Current child info for header display (null when 'all')
+  const activeChildInfo = useMemo(() => {
+    if (!hasMultipleChildren || selectedChildId === 'all') return null;
+    return childrenInfo.find(c => normalizeId(c.studentId) === normalizeId(selectedChildId)) || null;
+  }, [childrenInfo, selectedChildId, hasMultipleChildren]);
+
+  // Logs scoped to active child(ren)
   const childLogs = useMemo(() => {
-    if (!parentChildId) return [];
-    const nid = normalizeId(parentChildId);
-    return allLogs.filter(l => normalizeId(l.studentId) === nid);
-  }, [allLogs, parentChildId]);
+    if (!activeChildIds.length) return [];
+    return allLogs.filter(l => l.studentId && activeChildIds.includes(normalizeId(l.studentId)));
+  }, [allLogs, activeChildIds]);
+
+  // Per-child stats (for the stat cards row)
+  const activeStats = useMemo(() => {
+    const todayPhStr = getPhTodayStr();
+    const todayCl = childLogs.filter(l => getPhLocalDate(l.timestamp) === todayPhStr);
+    const uniqueDays = new Set(childLogs.map(l => getPhLocalDate(l.timestamp)).filter(Boolean));
+    const daysIn = new Set(
+      childLogs.filter(l => l.status === 'IN').map(l => getPhLocalDate(l.timestamp)).filter(Boolean)
+    );
+    return {
+      totalLogs: childLogs.length,
+      todayLogs: todayCl.length,
+      attendanceRate: uniqueDays.size > 0 ? Math.round((daysIn.size / uniqueDays.size) * 100) : 0,
+    };
+  }, [childLogs]);
 
   const filteredLogs = useMemo(() => {
     let f = [...childLogs];
     if (search) {
       const q = search.toLowerCase();
-      f = f.filter(l =>
-        l.name?.toLowerCase().includes(q) ||
-        l.class?.toLowerCase().includes(q) ||
-        normalizeId(l.studentId).includes(q)
-      );
+      f = f.filter(l => l.name?.toLowerCase().includes(q) || l.class?.toLowerCase().includes(q) || normalizeId(l.studentId).includes(q));
     }
     if (dateStart) f = f.filter(l => getPhLocalDate(l.timestamp) >= dateStart);
     if (dateEnd)   f = f.filter(l => getPhLocalDate(l.timestamp) <= dateEnd);
@@ -1179,16 +1067,14 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
     f.sort((a, b) => {
       const da = parsePhTimestamp(a.timestamp);
       const db = parsePhTimestamp(b.timestamp);
-      return sortOrder === 'newest'
-        ? (db?.getTime() ?? 0) - (da?.getTime() ?? 0)
-        : (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
+      return sortOrder === 'newest' ? (db?.getTime() ?? 0) - (da?.getTime() ?? 0) : (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
     });
     return f;
   }, [childLogs, search, dateStart, dateEnd, statusFilter, sortOrder]);
 
   const totalPages = Math.ceil(filteredLogs.length / LOGS_PER_PAGE);
   const pagedLogs = filteredLogs.slice((currentPage-1)*LOGS_PER_PAGE, currentPage*LOGS_PER_PAGE);
-  useEffect(() => setCurrentPage(1), [search, dateStart, dateEnd, statusFilter, sortOrder]);
+  useEffect(() => setCurrentPage(1), [search, dateStart, dateEnd, statusFilter, sortOrder, selectedChildId]);
 
   const selectCls = `w-full px-3 py-2.5 rounded-xl text-sm border outline-none transition-all duration-200
     ${darkMode ? 'bg-gray-700/60 border-gray-600 text-white focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20' : 'bg-white border-gray-200 text-gray-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15'}`;
@@ -1206,33 +1092,110 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
     return d ? d.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' }) : '—';
   };
 
+  // Export filename uses active child name(s)
+  const handleExport = () => {
+    const suffix = activeChildInfo ? `_${activeChildInfo.name.replace(/\s+/g, '_')}` : '_all_children';
+    exportToCSV(filteredLogs, suffix);
+  };
+
   return (
     <div className="space-y-5">
+
+      {/* ── Welcome / header card ── */}
       <Card darkMode={darkMode} delay={0}>
         <div className="p-5">
-          <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
             <div className="min-w-0">
               <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                 {userInfo?.fullName ? `Welcome, ${userInfo.fullName.split(' ')[0]}!` : 'Parent Portal'}
               </h2>
-              {childInfo && (
+              {childrenInfo.length > 0 && (
                 <p className={`text-sm mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Tracking: <span className={`font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={childInfo.name}>{childInfo.name}</span> · {childInfo.class}
+                  {hasMultipleChildren
+                    ? `Tracking ${childrenInfo.length} children`
+                    : <>Tracking: <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`} title={childrenInfo[0]?.name}>{childrenInfo[0]?.name}</span> · {childrenInfo[0]?.class}</>}
                 </p>
               )}
             </div>
-            <button onClick={() => exportToCSV(filteredLogs)} disabled={filteredLogs.length === 0}
+            <button onClick={handleExport} disabled={filteredLogs.length === 0}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm bg-emerald-500 hover:bg-emerald-600 text-white transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-40 flex-shrink-0 shadow-sm shadow-emerald-500/25">
               <Download size={15} />{!isMobile && 'Export'}
             </button>
           </div>
-          {childInfo && (
+
+          {/* ── Child selector pills (multi-child only) ── */}
+          {hasMultipleChildren && (
+            <div className="mb-4">
+              <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>View records for:</p>
+              <div className="flex flex-wrap gap-2">
+                {/* "All children" pill */}
+                <button
+                  onClick={() => setSelectedChildId('all')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 hover:scale-105 active:scale-95
+                    ${selectedChildId === 'all'
+                      ? 'bg-sky-500 border-sky-500 text-white shadow-sm shadow-sky-500/25'
+                      : darkMode ? 'border-gray-600 text-gray-300 hover:border-sky-500 hover:text-sky-400' : 'border-gray-200 text-gray-600 hover:border-sky-400 hover:text-sky-600'
+                    }`}
+                >
+                  <Users size={12} />
+                  All Children
+                </button>
+                {/* Per-child pills */}
+                {childrenInfo.map((child, i) => {
+                  const isActive = normalizeId(selectedChildId) === normalizeId(child.studentId);
+                  const colors = ['from-emerald-400 to-teal-500', 'from-violet-400 to-purple-500', 'from-amber-400 to-orange-500', 'from-rose-400 to-pink-500'];
+                  const gradient = colors[i % colors.length];
+                  return (
+                    <button
+                      key={child.studentId}
+                      onClick={() => setSelectedChildId(child.studentId)}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all duration-200 hover:scale-105 active:scale-95
+                        ${isActive
+                          ? 'text-white border-transparent shadow-sm'
+                          : darkMode ? 'border-gray-600 text-gray-300 hover:border-gray-400 bg-transparent' : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                        }`}
+                      style={isActive ? { background: `linear-gradient(135deg, ${gradient.split(' ')[0].replace('from-','')}, ${gradient.split(' ')[2].replace('to-','')})` } : {}}
+                    >
+                      <User size={12} />
+                      <span className="max-w-[120px] truncate" title={child.name}>{child.name.split(' ')[0]}</span>
+                      {isActive && (
+                        <span className="bg-white/25 px-1.5 py-0.5 rounded-full text-[10px]">{child.class}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Child info row (single child or selected specific child) ── */}
+          {(activeChildInfo || (!hasMultipleChildren && childrenInfo[0])) && (() => {
+            const child = activeChildInfo || childrenInfo[0];
+            return (
+              <div className={`rounded-xl p-3.5 border mb-4 ${darkMode ? 'bg-gray-700/40 border-gray-600/40' : 'bg-slate-50 border-gray-100'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center flex-shrink-0`}>
+                    <User size={16} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`} title={child.name}>{child.name}</p>
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <span className="font-mono">{child.studentId}</span> · {child.class}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Stats grid ── */}
+          {childrenInfo.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'Student ID',      value: childInfo.studentId,          color: 'blue' },
-                { label: "Today's Logs",    value: childStats.todayLogs,         color: 'green' },
-                { label: 'Total Records',   value: childStats.totalLogs,         color: 'purple' },
-                { label: 'Attendance Rate', value: `${childStats.attendanceRate}%`, color: 'orange' },
+                { label: hasMultipleChildren && selectedChildId === 'all' ? 'Children Tracked' : 'Student ID', value: hasMultipleChildren && selectedChildId === 'all' ? childrenInfo.length : (activeChildInfo || childrenInfo[0])?.studentId, color: 'blue' },
+                { label: "Today's Logs",    value: activeStats.todayLogs,         color: 'green'  },
+                { label: 'Total Records',   value: activeStats.totalLogs,         color: 'purple' },
+                { label: 'Attendance Rate', value: `${activeStats.attendanceRate}%`, color: 'orange' },
               ].map((s, i) => (
                 <div key={i} className={`${getColorClasses(s.color, darkMode, 'bg')} border ${getColorClasses(s.color, darkMode, 'border')} rounded-xl p-3.5 transition-all duration-200 hover:scale-105 cursor-default`}>
                   <p className={`text-xs font-semibold uppercase tracking-wider ${getColorClasses(s.color, darkMode, 'text')} mb-1`}>{s.label}</p>
@@ -1244,6 +1207,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
         </div>
       </Card>
 
+      {/* ── Filters ── */}
       <Card darkMode={darkMode} delay={100}>
         <div className="p-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1251,7 +1215,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
               <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Search</label>
               <div className="relative">
                 <Search size={13} className={`absolute left-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, ID…" className={`${selectCls} pl-8`} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, ID, class…" className={`${selectCls} pl-8`} />
               </div>
             </div>
             <div>
@@ -1274,13 +1238,14 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
         </div>
       </Card>
 
+      {/* ── Logs list ── */}
       <Card darkMode={darkMode} delay={150}>
         {loading ? (
           <div className="p-12 text-center"><PulseLoader darkMode={darkMode} size="lg" /></div>
-        ) : !parentChildId ? (
+        ) : childrenInfo.length === 0 ? (
           <div className="p-12 text-center">
             <User size={28} className={`mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No child linked to this account</p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No children linked to this account</p>
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="p-12 text-center">
@@ -1294,7 +1259,18 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                 <div key={i} className={`px-5 py-4 flex items-center gap-4 transition-colors duration-150 ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-slate-50'} group`}>
                   <span className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold ${log.status === 'IN' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'}`}>{log.status}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{formatDate(log.timestamp)}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{formatDate(log.timestamp)}</p>
+                      {/* Show child name badge when viewing 'all' in multi-child mode */}
+                      {hasMultipleChildren && selectedChildId === 'all' && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`} title={log.studentId}>
+                          {(() => {
+                            const child = childrenInfo.find(c => normalizeId(c.studentId) === normalizeId(log.studentId));
+                            return child ? child.name.split(' ')[0] : log.studentId;
+                          })()}
+                        </span>
+                      )}
+                    </div>
                     <p className={`text-xs mt-0.5 truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{log.class}</p>
                   </div>
                   <p className={`text-sm font-medium flex-shrink-0 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{formatTime(log.timestamp)}</p>
@@ -1326,10 +1302,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
   const [activeFaq, setActiveFaq] = useState(null);
   const heroRef = useRef(null);
 
-  const [liveStats, setLiveStats] = useState({
-    students: 124, present: 108, absent: 16, rate: 87,
-    checkins: 251, uptime: 99.95, responseTime: 112,
-  });
+  const [liveStats, setLiveStats] = useState({ students: 124, present: 108, absent: 16, rate: 87, checkins: 251, uptime: 99.95, responseTime: 112 });
   const [statFlash, setStatFlash] = useState({});
 
   useEffect(() => {
@@ -1389,45 +1362,26 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
     ${darkMode ? 'bg-gray-700/60 border-gray-600 text-white placeholder-gray-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20' : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15'}`;
 
   const features = [
-    {
-      icon: Cpu, label: 'Hardware Layer', color: 'sky', gradient: 'from-sky-500 to-cyan-400',
-      title: 'ESP8266 RFID Readers',
-      desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.',
-      bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'],
-    },
-    {
-      icon: Database, label: 'Secure Backend', color: 'violet', gradient: 'from-violet-500 to-purple-400',
-      title: 'Google Apps Script API',
-      desc: 'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.',
-      bullets: ['Session token auth', 'Role-based access control', 'Real-time processing', 'GDPR compliant logging'],
-    },
-    {
-      icon: BarChart3, label: 'Analytics', color: 'emerald', gradient: 'from-emerald-500 to-teal-400',
-      title: 'Live Dashboard Analytics',
-      desc: 'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.',
-      bullets: ['7-day & monthly trends', 'Class performance ranking', 'Export to Excel/CSV', 'Mobile-responsive'],
-    },
-    {
-      icon: Bell, label: 'Parent Portal', color: 'amber', gradient: 'from-amber-500 to-orange-400',
-      title: 'Real-Time Parent Visibility',
-      desc: "Parents see their child's check-in and check-out in real time. A dedicated portal means full transparency without sharing admin credentials.",
-      bullets: ['Per-child attendance log', 'Historical records', 'Attendance rate tracking', 'Exportable history'],
-    },
+    { icon: Cpu, label: 'Hardware Layer', color: 'sky', gradient: 'from-sky-500 to-cyan-400', title: 'ESP8266 RFID Readers', desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'] },
+    { icon: Database, label: 'Secure Backend', color: 'violet', gradient: 'from-violet-500 to-purple-400', title: 'Google Apps Script API', desc: 'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.', bullets: ['Session token auth', 'Role-based access control', 'Real-time processing', 'GDPR compliant logging'] },
+    { icon: BarChart3, label: 'Analytics', color: 'emerald', gradient: 'from-emerald-500 to-teal-400', title: 'Live Dashboard Analytics', desc: 'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.', bullets: ['7-day & monthly trends', 'Class performance ranking', 'Export to Excel/CSV', 'Mobile-responsive'] },
+    { icon: Bell, label: 'Parent Portal', color: 'amber', gradient: 'from-amber-500 to-orange-400', title: 'Real-Time Parent Visibility', desc: "Parents see their child's check-in and check-out in real time. Supports multiple children per account with per-child or combined views.", bullets: ['Multi-child support', 'Per-child attendance log', 'Historical records', 'Exportable history'] },
   ];
 
   const faqs = [
     { q: 'What RFID hardware is required?', a: 'Any standard 125kHz or 13.56MHz RFID card/fob works. The reader units run on ESP8266 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.' },
     { q: 'How is student data protected?', a: 'All data is encrypted in transit (TLS 1.3) and at rest. Session tokens expire after 30 minutes of inactivity. No personally identifiable data is stored on the hardware itself.' },
-    { q: 'Can parents access admin features?', a: "No. The parent portal is strictly read-only, scoped to their own child's records. Teachers and administrators have separate credential tiers." },
+    { q: 'Can parents access admin features?', a: "No. The parent portal is strictly read-only, scoped to their own children's records. Teachers and administrators have separate credential tiers." },
+    { q: 'Can one parent account track multiple children?', a: 'Yes. A parent account can be linked to multiple students. The portal shows a child-selector to switch between individual views or see all records combined.' },
     { q: 'What happens if the WiFi goes down?', a: 'The ESP8266 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.' },
     { q: 'How do I export attendance records?', a: 'Click Export on any filtered view in the Logs tab. Records download as a formatted Excel (.xlsx) file with color-coded statuses and auto-filters pre-applied.' },
   ];
 
   const steps = [
-    { step: '01', icon: Wifi,     title: 'Student taps RFID card',   desc: 'The ESP8266 reader at the classroom door instantly detects the card and reads the unique UID in under 50ms. An OLED screen and buzzer confirm the scan.',        gradient: 'from-sky-500 to-cyan-400',     accent: '#0ea5e9' },
-    { step: '02', icon: CloudCog, title: 'WiFi transmission to API',  desc: 'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS. The backend validates the session and resolves the student record.', gradient: 'from-violet-500 to-purple-400', accent: '#7c3aed' },
-    { step: '03', icon: Database, title: 'Data stored & classified',  desc: 'The log is written to Google Sheets in real time with the student name, class, IN/OUT status, and a PH-timezone timestamp. Duplicate scans are de-duplicated automatically.', gradient: 'from-indigo-500 to-blue-400',  accent: '#6366f1' },
-    { step: '04', icon: Monitor,  title: 'Dashboard updates live',    desc: 'Teachers see the attendance count update in real time. Charts, class comparisons, and parent portals all reflect the new data on the next page load.',             gradient: 'from-emerald-500 to-teal-400', accent: '#10b981' },
+    { step: '01', icon: Wifi,     title: 'Student taps RFID card',   desc: 'The ESP8266 reader at the classroom door instantly detects the card and reads the unique UID in under 50ms.', gradient: 'from-sky-500 to-cyan-400',     accent: '#0ea5e9' },
+    { step: '02', icon: CloudCog, title: 'WiFi transmission to API',  desc: 'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.',          gradient: 'from-violet-500 to-purple-400', accent: '#7c3aed' },
+    { step: '03', icon: Database, title: 'Data stored & classified',  desc: 'The log is written to Google Sheets in real time with the student name, class, IN/OUT status, and PH-timezone timestamp.', gradient: 'from-indigo-500 to-blue-400', accent: '#6366f1' },
+    { step: '04', icon: Monitor,  title: 'Dashboard updates live',    desc: 'Teachers see the attendance count update in real time. Charts, class comparisons, and parent portals all reflect the new data.', gradient: 'from-emerald-500 to-teal-400', accent: '#10b981' },
   ];
 
   const px = mousePos.x;
@@ -1436,14 +1390,12 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
 
   return (
     <div className={`min-h-screen overflow-x-hidden ${darkMode ? 'bg-[#080c14] text-white' : 'bg-[#f7f9fc] text-gray-900'} transition-colors duration-300`}>
-
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
         <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] transition-[left,top] duration-1000 ease-out ${darkMode ? 'bg-sky-900/25' : 'bg-sky-200/50'}`} style={{ left: `${-10 + px * 15}%`, top: `${-10 + py * 10}%` }} />
         <div className={`absolute w-[500px] h-[500px] rounded-full blur-[100px] transition-[right,bottom] duration-[1400ms] ease-out ${darkMode ? 'bg-violet-900/20' : 'bg-violet-100/60'}`} style={{ right: `${-5 + (1 - px) * 12}%`, bottom: `${10 + py * 8}%` }} />
         <div className={`absolute w-[300px] h-[300px] rounded-full blur-[80px] ${darkMode ? 'bg-emerald-900/15' : 'bg-emerald-100/40'}`} style={{ left: '40%', top: '60%' }} />
       </div>
 
-      {/* NAV */}
       <nav className={`sticky top-0 z-50 border-b backdrop-blur-2xl transition-all duration-500 ${scrolled ? 'shadow-lg shadow-black/5' : ''} ${darkMode ? 'bg-[#080c14]/80 border-white/5' : 'bg-white/80 border-black/5'}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1452,11 +1404,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
           </div>
           <div className="hidden md:flex items-center gap-1">
             {['Features', 'How It Works', 'FAQ'].map((item) => (
-              <button key={item}
-                onClick={() => document.getElementById(item.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}>
-                {item}
-              </button>
+              <button key={item} onClick={() => document.getElementById(item.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}>{item}</button>
             ))}
           </div>
           <div className="flex items-center gap-2">
@@ -1471,7 +1419,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </nav>
 
-      {/* HERO */}
       <section ref={heroRef} className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
         <div className="flex justify-center mb-8">
           <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm animate-fade-in-up ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
@@ -1482,7 +1429,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
             Live · {liveStats.present} students present right now
           </div>
         </div>
-
         <div className="text-center space-y-6 max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-7xl font-black leading-[0.95] tracking-tighter animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <span className={darkMode ? 'text-white' : 'text-gray-900'}>Attendance, </span>
@@ -1491,16 +1437,12 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
               <span style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 50%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Automated.</span>
               <svg className="absolute -bottom-2 left-0 w-full" height="6" viewBox="0 0 200 6" preserveAspectRatio="none">
                 <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="url(#heroUnderlineGrad)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="heroUnderlineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#0ea5e9" /><stop offset="50%" stopColor="#7c3aed" /><stop offset="100%" stopColor="#10b981" />
-                  </linearGradient>
-                </defs>
+                <defs><linearGradient id="heroUnderlineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#0ea5e9" /><stop offset="50%" stopColor="#7c3aed" /><stop offset="100%" stopColor="#10b981" /></linearGradient></defs>
               </svg>
             </span>
           </h1>
           <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium animate-fade-in-up ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} style={{ animationDelay: '0.2s' }}>
-            RFID card taps replace manual roll-calls. Real-time dashboards, parent portals, and one-click Excel exports — built for Philippine schools.
+            RFID card taps replace manual roll-calls. Real-time dashboards, parent portals with multi-child support, and one-click Excel exports — built for Philippine schools.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <button onClick={() => setShowModal(true)} className="group relative px-7 py-3.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-sky-500/30 flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%)' }}>
@@ -1515,10 +1457,10 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
 
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 animate-fade-in-up" style={{ animationDelay: '0.45s' }}>
           {[
-            { key: 'students',     val: `${liveStats.students}`,        label: 'Students Enrolled',  icon: Users,       accent: '#0ea5e9' },
-            { key: 'checkins',     val: `${liveStats.checkins}+`,       label: "Today's Check-ins",  icon: CheckCircle, accent: '#10b981' },
-            { key: 'uptime',       val: `${liveStats.uptime}%`,         label: 'System Uptime',      icon: Cloud,       accent: '#7c3aed' },
-            { key: 'responseTime', val: `<${liveStats.responseTime}ms`, label: 'Scan Response',      icon: Zap,         accent: '#f59e0b' },
+            { key: 'students',     val: `${liveStats.students}`,        label: 'Students Enrolled', icon: Users,       accent: '#0ea5e9' },
+            { key: 'checkins',     val: `${liveStats.checkins}+`,       label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981' },
+            { key: 'uptime',       val: `${liveStats.uptime}%`,         label: 'System Uptime',     icon: Cloud,       accent: '#7c3aed' },
+            { key: 'responseTime', val: `<${liveStats.responseTime}ms`, label: 'Scan Response',     icon: Zap,         accent: '#f59e0b' },
           ].map((s, i) => (
             <div key={i} className={`group relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-default text-center ${darkMode ? 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'}`}>
               <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
@@ -1529,14 +1471,11 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
           ))}
         </div>
 
-        {/* Mock dashboard */}
         <div className="mt-14 relative animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
           <div className={`absolute inset-0 rounded-3xl blur-2xl opacity-30 ${darkMode ? 'bg-gradient-to-br from-sky-800 to-violet-800' : 'bg-gradient-to-br from-sky-200 to-violet-200'}`} />
           <div className={`relative rounded-3xl border overflow-hidden ${darkMode ? 'bg-gray-900/80 border-white/8' : 'bg-white border-gray-200 shadow-xl'}`}>
             <div className={`flex items-center gap-2 px-4 py-3 border-b ${darkMode ? 'border-white/5 bg-gray-900/50' : 'border-gray-100 bg-gray-50'}`}>
-              <div className="flex gap-1.5">
-                {['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />)}
-              </div>
+              <div className="flex gap-1.5">{['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />)}</div>
               <div className={`flex-1 mx-4 px-3 py-1 rounded-lg text-xs font-mono ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>rfid-attendance.vercel.app</div>
               <div className="flex gap-1.5 items-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -1574,7 +1513,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </section>
 
-      {/* FEATURES */}
       <section id="features" className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20" style={{ zIndex: 1 }}>
         <div className="text-center mb-12">
           <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>Platform Features</p>
@@ -1614,17 +1552,13 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
               <div key={i} className={`transition-all duration-500 ${activeFeature === i ? 'opacity-100 relative' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
                 <div className={`h-2 w-full bg-gradient-to-r ${f.gradient}`} />
                 <div className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gradient-to-br ${f.gradient}`}>
-                    <f.icon size={26} className="text-white" />
-                  </div>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gradient-to-br ${f.gradient}`}><f.icon size={26} className="text-white" /></div>
                   <h3 className={`text-xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{f.title}</h3>
                   <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
                   <div className="grid grid-cols-1 gap-2">
                     {f.bullets.map((b, bi) => (
                       <div key={bi} className={`flex items-center gap-3 p-3 rounded-xl border ${darkMode ? 'border-white/5 bg-white/3' : 'border-gray-100 bg-slate-50'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${f.gradient}`}>
-                          <CheckCircle size={12} className="text-white" />
-                        </div>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${f.gradient}`}><CheckCircle size={12} className="text-white" /></div>
                         <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{b}</span>
                       </div>
                     ))}
@@ -1636,7 +1570,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
       <section id="how-it-works" className={`relative py-20 ${darkMode ? 'bg-white/2' : 'bg-white'}`} style={{ zIndex: 1 }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
@@ -1664,7 +1597,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </section>
 
-      {/* SECURITY STRIP */}
       <section className={`relative py-14 overflow-hidden ${darkMode ? 'bg-white/2' : 'bg-white'}`} style={{ zIndex: 1 }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className={`p-8 md:p-10 rounded-3xl border overflow-hidden relative ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-white/8' : 'bg-gradient-to-br from-slate-900 to-gray-800 border-transparent'}`}>
@@ -1672,10 +1604,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
             <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full opacity-10 blur-2xl bg-violet-400" />
             <div className="grid md:grid-cols-2 gap-8 items-center relative z-10">
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Shield size={20} className="text-sky-400" />
-                  <span className="text-sky-400 text-xs font-bold uppercase tracking-widest">Enterprise Security</span>
-                </div>
+                <div className="flex items-center gap-2 mb-4"><Shield size={20} className="text-sky-400" /><span className="text-sky-400 text-xs font-bold uppercase tracking-widest">Enterprise Security</span></div>
                 <h3 className="text-2xl md:text-3xl font-black text-white mb-3">Your data stays yours.</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">Every request is authenticated with a rotating session token. Connections use TLS 1.3. No attendance data is stored on the hardware itself — only the school's backend holds student records.</p>
               </div>
@@ -1698,7 +1627,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </section>
 
-      {/* FAQ */}
       <section id="faq" className="relative max-w-3xl mx-auto px-4 sm:px-6 py-20" style={{ zIndex: 1 }}>
         <div className="text-center mb-12">
           <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>FAQ</p>
@@ -1721,7 +1649,6 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="relative max-w-4xl mx-auto px-4 sm:px-6 py-16 text-center" style={{ zIndex: 1 }}>
         <div className={`relative p-10 md:p-14 rounded-3xl overflow-hidden border ${darkMode ? 'border-white/8' : 'border-transparent'}`} style={{ background: darkMode ? 'linear-gradient(135deg, rgba(14,165,233,0.08), rgba(124,58,237,0.08))' : 'linear-gradient(135deg, #eff6ff, #f5f3ff)' }}>
           <div className="absolute inset-0 pointer-events-none">
@@ -1738,29 +1665,19 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
               Access Portal <ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-1" />
             </button>
             <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm">
-              {[
-                { icon: ShieldCheck, label: 'Secure by default' },
-                { icon: Cloud,       label: '99.95% uptime'     },
-                { icon: Globe,       label: 'PH timezone native' },
-              ].map((t, i) => (
-                <div key={i} className={`flex items-center gap-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <t.icon size={15} className="text-emerald-500" /><span className="font-medium">{t.label}</span>
-                </div>
+              {[{ icon: ShieldCheck, label: 'Secure by default' }, { icon: Cloud, label: '99.95% uptime' }, { icon: Globe, label: 'PH timezone native' }].map((t, i) => (
+                <div key={i} className={`flex items-center gap-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}><t.icon size={15} className="text-emerald-500" /><span className="font-medium">{t.label}</span></div>
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className={`relative border-t py-10 ${darkMode ? 'border-white/5 bg-black/20' : 'border-gray-100 bg-white'}`} style={{ zIndex: 1 }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2.5 mb-3">
-                <AppLogo size="sm" />
-                <span className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
-              </div>
+              <div className="flex items-center gap-2.5 mb-3"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span></div>
               <p className={`text-xs leading-relaxed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Modern attendance management for Philippine schools. Built on proven hardware and cloud infrastructure.</p>
             </div>
             <div>
@@ -1783,17 +1700,13 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
           <div className={`border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs ${darkMode ? 'border-white/5 text-gray-600' : 'border-gray-100 text-gray-400'}`}>
             <p>© {new Date().getFullYear()} RFID Attendance Portal. All rights reserved.</p>
             <p className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
+              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" /></span>
               All systems operational
             </p>
           </div>
         </div>
       </footer>
 
-      {/* SIGN IN MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowModal(false)} />
@@ -1808,9 +1721,7 @@ const LandingPage = ({ darkMode, toggleTheme, onLogin, animatedNumbers }) => {
                     <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sign in to your portal</p>
                   </div>
                 </div>
-                <button onClick={() => setShowModal(false)} className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-95 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}>
-                  <X size={18} />
-                </button>
+                <button onClick={() => setShowModal(false)} className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-95 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}><X size={18} /></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -1865,10 +1776,13 @@ export default function AttendancePortal() {
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState({ totalStudents: 0, presentToday: 0, absentToday: 0, attendanceRate: 0 });
   const [weeklyData, setWeeklyData] = useState([]);
-  const [parentChildId, setParentChildId] = useState(null);
-  const [childInfo, setChildInfo] = useState(null);
-  const [childStats, setChildStats] = useState({ totalLogs: 0, todayLogs: 0, attendanceRate: 0 });
   const [animatedNumbers, setAnimatedNumbers] = useState({ students: 0, checkins: 0, uptime: 0, responseTime: 150 });
+
+  // ── Multi-child parent state ──────────────────────────────────────────────
+  // childrenInfo: array of { studentId, name, class } for all linked children
+  // selectedChildId: 'all' | specific studentId string
+  const [childrenInfo, setChildrenInfo] = useState([]);
+  const [selectedChildId, setSelectedChildId] = useState('all');
 
   const isMobile = useIsMobile();
 
@@ -1899,37 +1813,34 @@ export default function AttendancePortal() {
     }
   }, []);
 
+  // ── Resolve childrenInfo from students list + userInfo.studentIds ──────────
   useEffect(() => {
-    if (userType === 'parent' && userInfo && students.length > 0) {
-      let childId = userInfo?.studentId || userInfo?.child?.studentId || userInfo?.children?.[0]?.studentId;
-      if (!childId && students.length === 1) childId = students[0].studentId;
-      setParentChildId(childId);
-      if (childId) {
-        const nid = normalizeId(childId);
-        const cs = students.find(s => normalizeId(s.studentId) === nid);
-        setChildInfo(cs
-          ? { studentId: cs.studentId, name: cs.name, class: cs.class }
-          : { studentId: childId, name: userInfo?.child?.name || 'My Child', class: 'Unknown' }
-        );
-      }
-    }
-  }, [userType, userInfo, students]);
+    if (userType !== 'parent' || !userInfo || !students.length) return;
 
-  useEffect(() => {
-    if (userType === 'parent' && parentChildId) {
-      const nid = normalizeId(parentChildId);
-      const cl = logs.filter(l => normalizeId(l.studentId) === nid);
-      const todayPhStr = getPhTodayStr();
-      const todayCl = cl.filter(l => getPhLocalDate(l.timestamp) === todayPhStr);
-      const uniqueDays = new Set(cl.map(l => getPhLocalDate(l.timestamp)).filter(Boolean));
-      const daysIn   = new Set(cl.filter(l => l.status === 'IN').map(l => getPhLocalDate(l.timestamp)).filter(Boolean));
-      setChildStats({
-        totalLogs: cl.length,
-        todayLogs: todayCl.length,
-        attendanceRate: uniqueDays.size > 0 ? Math.round((daysIn.size / uniqueDays.size) * 100) : 0
-      });
+    // Collect all linked student IDs from the session (already an array from API)
+    let linkedIds = [];
+    if (Array.isArray(userInfo.studentIds) && userInfo.studentIds.length > 0) {
+      linkedIds = userInfo.studentIds.map(id => id.toString().trim());
+    } else if (userInfo.studentId) {
+      // Legacy single-id fallback
+      linkedIds = [userInfo.studentId.toString().trim()];
+    } else if (students.length === 1) {
+      // If only one student returned by the API, that's their child
+      linkedIds = [students[0].studentId.toString().trim()];
     }
-  }, [userType, parentChildId, logs]);
+
+    const resolved = linkedIds.map(id => {
+      const nid = normalizeId(id);
+      const match = students.find(s => normalizeId(s.studentId) === nid);
+      return match
+        ? { studentId: match.studentId, name: match.name, class: match.class }
+        : { studentId: id, name: userInfo?.child?.name || `Child (${id})`, class: 'Unknown' };
+    }).filter(Boolean);
+
+    setChildrenInfo(resolved);
+    // Default selection: 'all' when multiple, first child when single
+    setSelectedChildId(resolved.length === 1 ? resolved[0].studentId : 'all');
+  }, [userType, userInfo, students]);
 
   useEffect(() => {
     if (!authenticated) return;
@@ -1987,8 +1898,7 @@ export default function AttendancePortal() {
   const handleLogout = () => {
     sessionStorage.clear();
     setAuthenticated(false); setUserType(null); setUserInfo(null); setLogs([]);
-    setChildInfo(null); setParentChildId(null);
-    setChildStats({ totalLogs: 0, todayLogs: 0, attendanceRate: 0 });
+    setChildrenInfo([]); setSelectedChildId('all');
   };
 
   const calculateWeeklyData = (logData, studentsList) => {
@@ -1998,20 +1908,9 @@ export default function AttendancePortal() {
       targetDate.setDate(targetDate.getDate() - (6 - i));
       const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
       const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: PH_TZ });
-
       const dayLogs = logData.filter(l => getPhLocalDate(l.timestamp) === targetPhStr);
-      // Count unique present students using normalized IDs
-      const present = new Set(
-        dayLogs
-          .filter(l => l.status === 'IN' && l.studentId)
-          .map(l => normalizeId(l.studentId))
-      ).size;
-      return {
-        name: dayName,
-        present,
-        absent: Math.max(0, studentsList.length - present),
-        attendanceRate: studentsList.length > 0 ? Math.round((present / studentsList.length) * 100) : 0
-      };
+      const present = new Set(dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId))).size;
+      return { name: dayName, present, absent: Math.max(0, studentsList.length - present), attendanceRate: studentsList.length > 0 ? Math.round((present / studentsList.length) * 100) : 0 };
     });
   };
 
@@ -2022,7 +1921,6 @@ export default function AttendancePortal() {
       startDate.setDate(startDate.getDate() - 180);
       const startStr = startDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
       const endStr   = getPhTodayStr();
-
       const data = await secureApiCall('getDashboardStats', { startDate: startStr, endDate: endStr });
       if (data.success) {
         const sortedLogs = (data.logs || []).sort((a, b) => {
@@ -2034,7 +1932,6 @@ export default function AttendancePortal() {
         setLogs(sortedLogs);
         setStats(data.stats || { totalStudents: 0, presentToday: 0, absentToday: 0, attendanceRate: 0 });
         setWeeklyData(calculateWeeklyData(sortedLogs, data.students || []));
-
         if (userType === 'teacher') {
           try { const cd = await secureApiCall('getClasses'); if (cd.success) setClasses(cd.classes || []); }
           catch { setClasses([...new Set((data.students || []).map(s => s.class))].filter(Boolean)); }
@@ -2046,7 +1943,7 @@ export default function AttendancePortal() {
     finally { setLoading(false); }
   };
 
-  const exportToExcel = async (logsToExport = []) => {
+  const exportToExcel = async (logsToExport = [], filenameSuffix = '') => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Records');
     worksheet.columns = [
@@ -2063,23 +1960,14 @@ export default function AttendancePortal() {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
       cell.alignment = { vertical: 'middle', horizontal: 'center' };
     });
-    logsToExport.forEach(log => worksheet.addRow({
-      timestamp: log.timestamp,
-      studentId: log.studentId,
-      name: log.name,
-      class: log.class,
-      status: log.status
-    }));
+    logsToExport.forEach(log => worksheet.addRow({ timestamp: log.timestamp, studentId: log.studentId, name: log.name, class: log.class, status: log.status }));
     worksheet.eachRow((row, rn) => {
       if (rn === 1) return;
       row.eachCell((cell, cn) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rn % 2 === 0 ? 'FFF0F9FF' : 'FFFFFFFF' } };
         cell.font = { size: 11 };
         cell.alignment = { vertical: 'middle', horizontal: cn === 3 ? 'left' : 'center' };
-        cell.border = {
-          top: { style: 'thin', color: { argb: 'FFE5E7EB' } }, bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-          left: { style: 'thin', color: { argb: 'FFE5E7EB' } }, right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
-        };
+        cell.border = { top: { style: 'thin', color: { argb: 'FFE5E7EB' } }, bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } }, left: { style: 'thin', color: { argb: 'FFE5E7EB' } }, right: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
         if (cn === 5) { cell.font = { ...cell.font, bold: true, color: { argb: cell.value === 'IN' ? 'FF059669' : 'FFE11D48' } }; }
       });
     });
@@ -2087,11 +1975,15 @@ export default function AttendancePortal() {
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `attendance_${getPhTodayStr()}.xlsx`; a.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance_${getPhTodayStr()}${filenameSuffix}.xlsx`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const exportToCSV = (logsToExport) => exportToExcel(logsToExport || logs);
+  // exportToCSV signature now accepts optional filenameSuffix for parent portal
+  const exportToCSV = (logsToExport, filenameSuffix = '') => exportToExcel(logsToExport || logs, filenameSuffix);
 
   useEffect(() => { if (authenticated) fetchData(); }, [authenticated]);
 
@@ -2162,7 +2054,17 @@ export default function AttendancePortal() {
               {activeTab === 2 && <LogsTab darkMode={darkMode} loading={loading} logs={logs} exportToCSV={exportToCSV} />}
             </>
           ) : (
-            <ParentLogsTab darkMode={darkMode} loading={loading} logs={logs} userInfo={userInfo} students={students} exportToCSV={exportToCSV} childInfo={childInfo} childStats={childStats} parentChildId={parentChildId} />
+            <ParentLogsTab
+              darkMode={darkMode}
+              loading={loading}
+              logs={logs}
+              userInfo={userInfo}
+              students={students}
+              exportToCSV={exportToCSV}
+              childrenInfo={childrenInfo}
+              selectedChildId={selectedChildId}
+              setSelectedChildId={setSelectedChildId}
+            />
           )}
         </div>
       </main>
@@ -2206,4 +2108,4 @@ export default function AttendancePortal() {
       `}</style>
     </div>
   );
-      }
+}
