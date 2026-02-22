@@ -17,9 +17,9 @@ export function RouteGuard({ children, allowedRoles }) {
   useEffect(() => {
     if (!mounted) return;
     if (!authenticated) {
-      if (allowedRoles && allowedRoles.length > 0) {
-        alert('You must be logged in to access this page');
-      }
+      //if (allowedRoles && allowedRoles.length > 0) {
+        //alert('You must be logged in to access this page');
+      //}
       router.replace('/');
     }
   }, [mounted, authenticated, router]);
