@@ -1143,8 +1143,13 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                 {/* Per-child pills */}
                 {childrenInfo.map((child, i) => {
                   const isActive = normalizeId(selectedChildId) === normalizeId(child.studentId);
-                  const colors = ['from-emerald-400 to-teal-500', 'from-violet-400 to-purple-500', 'from-amber-400 to-orange-500', 'from-rose-400 to-pink-500'];
-                  const gradient = colors[i % colors.length];
+                  const gradients = [
+                    ['#34d399','#14b8a6'], // emerald→teal
+                    ['#a78bfa','#a855f7'], // violet→purple
+                    ['#fbbf24','#f97316'], // amber→orange
+                    ['#fb7185','#ec4899'], // rose→pink
+                  ];
+                  const [c1, c2] = gradients[i % gradients.length];
                   return (
                     <button
                       key={child.studentId}
@@ -1154,7 +1159,7 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
                           ? 'text-white border-transparent shadow-sm'
                           : darkMode ? 'border-gray-600 text-gray-300 hover:border-gray-400 bg-transparent' : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
                         }`}
-                      style={isActive ? { background: `linear-gradient(135deg, ${gradient.split(' ')[0].replace('from-','')}, ${gradient.split(' ')[2].replace('to-','')})` } : {}}
+                      style={isActive ? { background: `linear-gradient(135deg, ${c1}, ${c2})` } : {}}
                     >
                       <User size={12} />
                       <span className="max-w-[120px] truncate" title={child.name}>{child.name.split(' ')[0]}</span>
@@ -1240,12 +1245,13 @@ const ParentLogsTab = ({ darkMode, loading, logs: allLogs, userInfo, students, e
 
       {/* ── Logs list ── */}
       <Card darkMode={darkMode} delay={150}>
-        {loading ? (
+        {(loading || (!childrenInfo.length && !students.length)) ? (
           <div className="p-12 text-center"><PulseLoader darkMode={darkMode} size="lg" /></div>
         ) : childrenInfo.length === 0 ? (
           <div className="p-12 text-center">
             <User size={28} className={`mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No children linked to this account</p>
+            <p className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No children linked to this account</p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Contact your administrator to link students to your account.</p>
           </div>
         ) : filteredLogs.length === 0 ? (
           <div className="p-12 text-center">
@@ -1815,18 +1821,26 @@ export default function AttendancePortal() {
 
   // ── Resolve childrenInfo from students list + userInfo.studentIds ──────────
   useEffect(() => {
-    if (userType !== 'parent' || !userInfo || !students.length) return;
+    if (userType !== 'parent' || !userInfo) return;
+    // Wait for students to load; don't wipe childrenInfo while still loading
+    if (!students.length) return;
 
-    // Collect all linked student IDs from the session (already an array from API)
-    let linkedIds = [];
-    if (Array.isArray(userInfo.studentIds) && userInfo.studentIds.length > 0) {
-      linkedIds = userInfo.studentIds.map(id => id.toString().trim());
-    } else if (userInfo.studentId) {
-      // Legacy single-id fallback
+    // Parse studentIds robustly — handles array, JSON string, or legacy single string
+    let rawIds = userInfo.studentIds;
+    if (typeof rawIds === 'string') {
+      try { rawIds = JSON.parse(rawIds); } catch { rawIds = rawIds ? [rawIds] : []; }
+    }
+    let linkedIds = Array.isArray(rawIds) ? rawIds.map(id => id.toString().trim()).filter(Boolean) : [];
+
+    // Legacy single-id fallback
+    if (!linkedIds.length && userInfo.studentId) {
       linkedIds = [userInfo.studentId.toString().trim()];
-    } else if (students.length === 1) {
-      // If only one student returned by the API, that's their child
-      linkedIds = [students[0].studentId.toString().trim()];
+    }
+
+    // Ultimate fallback: the API already pre-filters students to this parent's children,
+    // so if we still have no IDs, just use whatever students came back from the server.
+    if (!linkedIds.length) {
+      linkedIds = students.map(s => s.studentId.toString().trim());
     }
 
     const resolved = linkedIds.map(id => {
@@ -1834,11 +1848,12 @@ export default function AttendancePortal() {
       const match = students.find(s => normalizeId(s.studentId) === nid);
       return match
         ? { studentId: match.studentId, name: match.name, class: match.class }
-        : { studentId: id, name: userInfo?.child?.name || `Child (${id})`, class: 'Unknown' };
+        : { studentId: id, name: `Child (${id})`, class: '' };
     }).filter(Boolean);
 
     setChildrenInfo(resolved);
-    // Default selection: 'all' when multiple, first child when single
+    // 1 child  → select directly (no selector pill row shown)
+    // 2+ children → default to 'all' combined view
     setSelectedChildId(resolved.length === 1 ? resolved[0].studentId : 'all');
   }, [userType, userInfo, students]);
 
