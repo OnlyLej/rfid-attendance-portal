@@ -1911,9 +1911,19 @@ export default function AttendancePortal() {
   };
 
   const handleLogout = () => {
+    // Clear all session data from the browser
     sessionStorage.clear();
-    setAuthenticated(false); setUserType(null); setUserInfo(null); setLogs([]);
-    setChildrenInfo([]); setSelectedChildId('all');
+    // Reset every piece of dashboard state so nothing leaks after logout
+    setAuthenticated(false);
+    setUserType(null);
+    setUserInfo(null);
+    setLogs([]);
+    setStudents([]);
+    setClasses([]);
+    setStats({ totalStudents: 0, presentToday: 0, absentToday: 0, attendanceRate: 0 });
+    setWeeklyData([]);
+    setChildrenInfo([]);
+    setSelectedChildId('all');
   };
 
   const calculateWeeklyData = (logData, studentsList) => {
