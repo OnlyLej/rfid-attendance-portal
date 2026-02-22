@@ -11,7 +11,7 @@ import {
   Monitor, Wifi, Radio, ChevronDown, ChevronUp, ChevronLeft,
   Loader2, Waves, Signal, ArrowUp, ArrowDown
 } from 'lucide-react';
-import { useAuth } from '../_lib/AuthContext';
+import { useApp } from '../_lib/AppContext';
 
 // Dynamically import Odometer with SSR disabled
 const Odometer = dynamic(
@@ -38,7 +38,7 @@ const AppLogo = ({ size = 'md', className = '' }) => {
 };
 
 export default function LandingPage() {
-  const { handleLogin } = useAuth();
+  const { handleLogin } = useApp();
   const [darkMode, setDarkMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [username, setUsername] = useState('');

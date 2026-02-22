@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from './_lib/AuthContext';
+import { useApp } from './_lib/AppContext';
 import { RadioTower, ArrowLeft, Home, Shield, WifiOff, Zap, AlertCircle } from 'lucide-react';
 
 export default function NotFound() {
-  const { authenticated, userType, mounted } = useAuth();
+  const { authenticated, userType, mounted } = useApp();
   const [darkMode, setDarkMode] = useState(false);
   const [glitch, setGlitch] = useState(false);
   const [pulseAnim, setPulseAnim] = useState(false);

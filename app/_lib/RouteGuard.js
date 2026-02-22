@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './AuthContext';
+import { useApp } from './AppContext';
 import { notFound } from 'next/navigation';
 
 /**
@@ -11,15 +11,12 @@ import { notFound } from 'next/navigation';
  * If authenticated but wrong role → trigger 404
  */
 export function RouteGuard({ children, allowedRoles }) {
-  const { authenticated, userType, mounted } = useAuth();
+  const { authenticated, userType, mounted } = useApp();
   const router = useRouter();
 
   useEffect(() => {
     if (!mounted) return;
     if (!authenticated) {
-      //if (allowedRoles && allowedRoles.length > 0) {
-        //alert('You must be logged in to access this page');
-      //}
       router.replace('/');
     }
   }, [mounted, authenticated, router]);
