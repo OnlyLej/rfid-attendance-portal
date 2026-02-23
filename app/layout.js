@@ -10,6 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
+    url: 'https://rfid-attendance-portal.vercel.app',
     images: [{ url: '/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
