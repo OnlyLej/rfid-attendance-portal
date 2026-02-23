@@ -11,6 +11,10 @@ export const metadata = {
   keywords: ['attendance', 'RFID', 'school', 'Philippines', 'dashboard', 'parent portal'],
   authors: [{ name: 'RFID Attendance Portal' }],
 
+  verification: {
+    google: 'bwU531pILK45GW9ojO9_GsjUBfbZCuiwO6xYAW_dXsE',  // ← add this
+  },
+  
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
