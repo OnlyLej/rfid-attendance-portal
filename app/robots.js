@@ -5,5 +5,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/dashboard', '/classroom', '/logs', '/parent'],
     },
+    sitemap: 'https://rfid-attendance-portal.vercel.app/sitemap.xml',
   };
 }
