@@ -677,7 +677,6 @@ const processNextUpdate = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowModal(false)} />
           <div className={`relative w-full max-w-md rounded-3xl animate-modal-in overflow-hidden ${darkMode ? 'bg-gray-900 border border-white/10 shadow-2xl' : 'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.18)]'}`}>
-            <div className="h-1.5 w-full" style={{ background: 'linear-gradient(90deg, #0ea5e9, #7c3aed, #10b981)' }} />
             <div className="p-8">
               <div className="flex items-center justify-between mb-7">
                 <div className="flex items-center gap-3">
@@ -717,7 +716,7 @@ const processNextUpdate = () => {
                   <div key={i} className="flex items-center gap-1"><Icon size={11} className="text-emerald-500" /><span>{['Encrypted','PH Timezone','Fast'][i]}</span></div>
                 ))}
               </div>
-            </div>
+            
           </div>
         </div>
       )}
