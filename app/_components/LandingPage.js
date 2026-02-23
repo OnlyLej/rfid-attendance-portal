@@ -435,7 +435,7 @@ const processNextUpdate = () => {
           <div className={`relative rounded-3xl border overflow-hidden ${darkMode ? 'bg-gray-900/80 border-white/8' : 'bg-white border-gray-200 shadow-xl'}`}>
             <div className={`flex items-center gap-2 px-4 py-3 border-b ${darkMode ? 'border-white/5 bg-gray-900/50' : 'border-gray-100 bg-gray-50'}`}>
               <div className="flex gap-1.5">{['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />)}</div>
-              <div className={`flex-1 mx-4 px-3 py-1 rounded-lg text-xs font-mono ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>rfid-attendance.vercel.app</div>
+              <div className={`flex-1 mx-4 px-3 py-1 rounded-lg text-xs font-mono ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>rfid-attendance-portal.vercel.app</div>
               <div className="flex gap-1.5 items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Live</span></div>
             </div>
             <div className="p-4 md:p-6">
