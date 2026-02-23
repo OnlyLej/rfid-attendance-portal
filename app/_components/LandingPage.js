@@ -716,7 +716,7 @@ const processNextUpdate = () => {
                   <div key={i} className="flex items-center gap-1"><Icon size={11} className="text-emerald-500" /><span>{['Encrypted','PH Timezone','Fast'][i]}</span></div>
                 ))}
               </div>
-            
+            </div>
           </div>
         </div>
       )}
