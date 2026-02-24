@@ -33,10 +33,19 @@ export const metadata = {
       follow: true,
     },
   },
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
-  },
+  icons: [
+    {
+      rel: 'icon',
+      type: 'image/ico',
+      sizes: '128x128',
+      url: '/favicon.ico',
+    },
+    {
+      rel: 'apple-touch-icon',
+      sizes: '4000x4000',
+      url: '/apple-touch-icon.png',
+    },
+  ],
 };
 
 export default function RootLayout({ children }) {
