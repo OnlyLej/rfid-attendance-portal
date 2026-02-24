@@ -46,6 +46,17 @@ export const metadata = {
       url: '/apple-touch-icon.png',
     },
   ],
+
+  alternates: {
+    canonical: '/',
+  },
+  
+  links: [
+    {
+      rel: 'canonical',
+      url: 'https://rfid-attendance-portal.vercel.app',
+    },
+  ],
 };
 
 export default function RootLayout({ children }) {
