@@ -19,6 +19,24 @@ const Odometer = dynamic(
   { ssr: false }
 );
 
+// ─── Bot detection helper ────────────────────────────────────────────────────
+function useIsBot() {
+  const [isBot, setIsBot] = useState(false);
+  useEffect(() => {
+    const ua = navigator.userAgent || '';
+    const botPattern = /Googlebot|bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|facebookexternalhit|Twitterbot|LinkedInBot|Applebot|AhrefsBot|SemrushBot|MJ12bot|DotBot|crawler|spider|bot/i;
+    setIsBot(botPattern.test(ua));
+  }, []);
+  return isBot;
+}
+
+// ─── Static number display (for bots) ───────────────────────────────────────
+const StaticNum = ({ value, prefix, suffix }) => (
+  <span>
+    {prefix}<span>{value}</span>{suffix}
+  </span>
+);
+
 const AppLogo = ({ size = 'md', className = '' }) => {
   const [imgError, setImgError] = useState(false);
   const sz = size === 'sm' ? 'w-7 h-7' : size === 'lg' ? 'w-11 h-11' : 'w-9 h-9';
@@ -51,6 +69,8 @@ export default function LandingPage() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [activeFaq, setActiveFaq] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  const isBot = useIsBot();
 
   const [liveStats, setLiveStats] = useState({ 
     students: 124, 
@@ -91,8 +111,10 @@ const animationTimerRef = useRef(null);
 const updateQueueRef = useRef([]);
 
 useEffect(() => {
+  // Don't run live updates for bots
+  if (isBot) return;
+
   const tick = setInterval(() => {
-    // Generate new stats
     const newStats = {
       students: Math.max(0, liveStats.students + Math.round((Math.random() - 0.5) * 4)),
       present: Math.min(liveStats.students, Math.max(0, liveStats.present + Math.round((Math.random() - 0.5) * 5))),
@@ -103,17 +125,15 @@ useEffect(() => {
     newStats.absent = newStats.students - newStats.present;
     newStats.rate = newStats.students > 0 ? Math.round((newStats.present / newStats.students) * 100) : 0;
 
-    // Add to queue
     updateQueueRef.current.push(newStats);
 
-    // If not currently animating, process the queue
     if (!animationTimerRef.current) {
       processNextUpdate();
     }
   }, 2000);
 
   return () => clearInterval(tick);
-}, [liveStats.students, liveStats.present, liveStats.checkins, liveStats.uptime, liveStats.responseTime]);
+}, [isBot, liveStats.students, liveStats.present, liveStats.checkins, liveStats.uptime, liveStats.responseTime]);
 
 const processNextUpdate = () => {
   if (updateQueueRef.current.length === 0) {
@@ -121,17 +141,13 @@ const processNextUpdate = () => {
     return;
   }
 
-  // Get next update from queue
   const nextStats = updateQueueRef.current.shift();
-  
-  // Apply the update
   setLiveStats(nextStats);
   
-  // Set timer for next update
   animationTimerRef.current = setTimeout(() => {
     animationTimerRef.current = null;
     processNextUpdate();
-  }, 3000); // Match this to your odometer duration
+  }, 3000);
 };
 
   useEffect(() => {
@@ -194,11 +210,24 @@ const processNextUpdate = () => {
   const px = mousePos.x;
   const py = mousePos.y;
 
-  // Odometer options
   const odometerOptions = {
     duration: 100,
     theme: 'default',
     auto: false,
+  };
+
+  // ─── Stat card value renderer: static for bots, animated for humans ────────
+  const renderVal = (val, { format, prefix, suffix } = {}) => {
+    if (isBot || !isMounted) {
+      return <StaticNum value={format === 'float' ? val : val} prefix={prefix} suffix={suffix} />;
+    }
+    return (
+      <>
+        {prefix && <span className="text-sm opacity-70">{prefix}</span>}
+        <Odometer value={val} options={odometerOptions} />
+        {suffix && <span className="text-sm opacity-70">{suffix}</span>}
+      </>
+    );
   };
 
   // Show simplified version during SSR
@@ -238,10 +267,14 @@ const processNextUpdate = () => {
 
         {/* Hero */}
         <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
+          {/* ── CHANGE 1 & 2: icon-only pulse dot (no "Live" text), "students active" ── */}
           <div className="flex justify-center mb-8">
             <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
-              <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" /></span>
-              Live · {liveStats.present} students present right now
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+              </span>
+              {liveStats.present} students active
             </div>
           </div>
           <div className="text-center space-y-6 max-w-4xl mx-auto">
@@ -270,11 +303,12 @@ const processNextUpdate = () => {
             </div>
           </div>
 
-          {/* Live stat cards */}
+          {/* Live stat cards — static numbers for SSR */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {[
               { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
-              { key: 'checkins', val: liveStats.checkins, label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
+              /* ── CHANGE 3: "Today's Check-ins" → "Daily Check-ins" ── */
+              { key: 'checkins', val: liveStats.checkins, label: 'Daily Check-ins', icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
               { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
               { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
             ].map((s, i) => (
@@ -306,7 +340,8 @@ const processNextUpdate = () => {
                     { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', suffix: '' },
                     { label: 'Present Today', val: liveStats.present, color: '#10b981', suffix: '' },
                     { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', suffix: '' },
-                    { label: "Today's Rate", val: liveStats.rate, color: '#7c3aed', suffix: '%' },
+                    /* ── CHANGE 4: "Today's Rate" → "Attendance Rate" in dashboard preview ── */
+                    { label: 'Attendance Rate', val: liveStats.rate, color: '#7c3aed', suffix: '%' },
                   ].map((c, i) => (
                     <div key={i} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
                       <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{c.label}</p>
@@ -333,9 +368,6 @@ const processNextUpdate = () => {
             <div className={`absolute bottom-0 left-0 right-0 h-16 rounded-b-3xl ${darkMode ? 'bg-gradient-to-t from-[#080c14]' : 'bg-gradient-to-t from-[#f7f9fc]'}`} />
           </div>
         </section>
-
-        {/* Rest of the sections - Features, How it works, Security, FAQ, CTA, Footer, Modal */}
-        {/* ... keeping all the remaining sections from your original code ... */}
       </div>
     );
   }
@@ -376,10 +408,17 @@ const processNextUpdate = () => {
 
       {/* Hero */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
+        {/* ── CHANGE 1 & 2: icon-only pulse dot, "students active", Odometer for humans ── */}
         <div className="flex justify-center mb-8">
           <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
-            <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" /></span>
-            Live · <Odometer value={liveStats.present} options={odometerOptions} /> students present right now
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+            </span>
+            {isBot
+              ? <>{liveStats.present} students active</>
+              : <><Odometer value={liveStats.present} options={odometerOptions} /> students active</>
+            }
           </div>
         </div>
         <div className="text-center space-y-6 max-w-4xl mx-auto">
@@ -408,11 +447,12 @@ const processNextUpdate = () => {
           </div>
         </div>
 
-        {/* Live stat cards */}
+        {/* Stat cards — Odometer for humans, plain number for bots */}
         <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {[
             { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
-            { key: 'checkins', val: liveStats.checkins, label: "Today's Check-ins", icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
+            /* ── CHANGE 3: "Today's Check-ins" → "Daily Check-ins" ── */
+            { key: 'checkins', val: liveStats.checkins, label: 'Daily Check-ins', icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
             { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
             { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
           ].map((s, i) => (
@@ -420,9 +460,15 @@ const processNextUpdate = () => {
               <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
               <s.icon size={20} className="mx-auto mb-2.5" style={{ color: s.accent }} />
               <p className={`text-2xl font-black tabular-nums inline-flex items-baseline gap-0.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
-                <Odometer value={s.val} options={odometerOptions} />
-                {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
+                {isBot ? (
+                  <StaticNum value={s.val} prefix={s.prefix} suffix={s.suffix} />
+                ) : (
+                  <>
+                    {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
+                    <Odometer value={s.val} options={odometerOptions} />
+                    {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
+                  </>
+                )}
               </p>
               <p className={`text-xs mt-1 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
             </div>
@@ -444,13 +490,20 @@ const processNextUpdate = () => {
                   { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', suffix: '' },
                   { label: 'Present Today', val: liveStats.present, color: '#10b981', suffix: '' },
                   { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', suffix: '' },
-                  { label: "Today's Rate", val: liveStats.rate, color: '#7c3aed', suffix: '%' },
+                  /* ── CHANGE 4: "Today's Rate" → "Attendance Rate" ── */
+                  { label: 'Attendance Rate', val: liveStats.rate, color: '#7c3aed', suffix: '%' },
                 ].map((c, i) => (
                   <div key={i} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
                     <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{c.label}</p>
                     <p className={`text-xl font-black tabular-nums inline-flex items-baseline gap-0.5`} style={{ color: c.color }}>
-                      <Odometer value={c.val} options={odometerOptions} />
-                      {c.suffix && <span className="text-xs opacity-70">{c.suffix}</span>}
+                      {isBot ? (
+                        <StaticNum value={c.val} suffix={c.suffix} />
+                      ) : (
+                        <>
+                          <Odometer value={c.val} options={odometerOptions} />
+                          {c.suffix && <span className="text-xs opacity-70">{c.suffix}</span>}
+                        </>
+                      )}
                     </p>
                   </div>
                 ))}
@@ -741,8 +794,6 @@ const processNextUpdate = () => {
         body, html { overflow-x: hidden; }
         * { box-sizing: border-box; }
         @media (max-width: 767px) { input, select, textarea { font-size: 16px !important; } }
-
-        
       `}</style>
     </div>
   );
