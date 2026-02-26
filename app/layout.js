@@ -79,10 +79,11 @@ export default function RootLayout({ children }) {
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
-              '@type': 'WebSite',
+              '@type': 'WebApplication',
               name: 'RFID Attendance Portal',
               url: 'https://rfid-attendance-portal.vercel.app',
               description: 'Real-time RFID-powered attendance management for Philippine schools.',
+              "applicationCategory": "EducationalApplication", 
               publisher: {
                 '@type': 'Organization',
                 name: 'RFID Attendance Portal',
