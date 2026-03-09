@@ -4,7 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata = {
-  metadataBase: new URL('https://rfid-attendance-portal.vercel.app'),
+  metadataBase: new URL('https://ridap.vercel.app'),
   title: 'RFID Attendance Portal',
   description: "RFID Attendance Portal is a real-time attendance management system for Philippine schools. Teachers get live dashboards, classroom monitoring, and Excel export. Parents can track their child's daily attendance through a dedicated parent portal.",
   keywords: ['attendance', 'RFID', 'school', 'Philippines', 'dashboard', 'parent portal'],
@@ -15,7 +15,7 @@ export const metadata = {
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
-    url: 'https://rfid-attendance-portal.vercel.app',
+    url: 'https://ridap.vercel.app',
     siteName: 'RFID Attendance Portal',
     locale: 'en_PH',
     type: 'website',
@@ -60,7 +60,7 @@ export const metadata = {
   links: [
     {
       rel: 'canonical',
-      url: 'https://rfid-attendance-portal.vercel.app',
+      url: 'https://ridap.vercel.app',
     },
   ],
 };
@@ -81,7 +81,7 @@ export default function RootLayout({ children }) {
               '@context': 'https://schema.org',
               '@type': 'WebApplication',
               name: 'RFID Attendance Portal',
-              url: 'https://rfid-attendance-portal.vercel.app',
+              url: 'https://ridap.vercel.app',
               description: 'Real-time RFID-powered attendance management for Philippine schools.',
               "applicationCategory": "EducationalApplication", 
               publisher: {
@@ -89,7 +89,7 @@ export default function RootLayout({ children }) {
                 name: 'RFID Attendance Portal',
                 logo: {
                   '@type': 'ImageObject',
-                  url: 'https://rfid-attendance-portal.vercel.app/apple-touch-icon.png',
+                  url: 'https://ridap.vercel.app/apple-touch-icon.png',
                 },
               },
             }),
