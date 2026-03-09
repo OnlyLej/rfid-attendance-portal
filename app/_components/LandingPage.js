@@ -246,7 +246,7 @@ const processNextUpdate = () => {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AppLogo size="sm" />
-              <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+              <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance Portal</span>
             </div>
             <div className="hidden md:flex items-center gap-1">
               {['Features', 'How It Works', 'FAQ'].map((item) => (
@@ -324,49 +324,6 @@ const processNextUpdate = () => {
               </div>
             ))}
           </div>
-
-          {/* Dashboard preview */}
-          <div className="mt-14 relative">
-            <div className={`absolute inset-0 rounded-3xl blur-2xl opacity-30 ${darkMode ? 'bg-gradient-to-br from-sky-800 to-violet-800' : 'bg-gradient-to-br from-sky-200 to-violet-200'}`} />
-            <div className={`relative rounded-3xl border overflow-hidden ${darkMode ? 'bg-gray-900/80 border-white/8' : 'bg-white border-gray-200 shadow-xl'}`}>
-              <div className={`flex items-center gap-2 px-4 py-3 border-b ${darkMode ? 'border-white/5 bg-gray-900/50' : 'border-gray-100 bg-gray-50'}`}>
-                <div className="flex gap-1.5">{['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />)}</div>
-                <div className={`flex-1 mx-4 px-3 py-1 rounded-lg text-xs font-mono ${darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>rfid-attendance.vercel.app</div>
-                <div className="flex gap-1.5 items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /><span className={`text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Live</span></div>
-              </div>
-              <div className="p-4 md:p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  {[
-                    { label: 'Total Students', val: liveStats.students, color: '#0ea5e9', suffix: '' },
-                    { label: 'Present Today', val: liveStats.present, color: '#10b981', suffix: '' },
-                    { label: 'Absent Today', val: liveStats.absent, color: '#f43f5e', suffix: '' },
-                    /* ── CHANGE 4: "Today's Rate" → "Attendance Rate" in dashboard preview ── */
-                    { label: 'Attendance Rate', val: liveStats.rate, color: '#7c3aed', suffix: '%' },
-                  ].map((c, i) => (
-                    <div key={i} className={`p-3 rounded-xl border ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
-                      <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{c.label}</p>
-                      <p className={`text-xl font-black tabular-nums inline-flex items-baseline gap-0.5`} style={{ color: c.color }}>
-                        <span>{c.val}</span>
-                        {c.suffix && <span className="text-xs opacity-70">{c.suffix}</span>}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className={`rounded-xl border p-4 ${darkMode ? 'bg-gray-800/70 border-gray-700/50' : 'bg-slate-50 border-gray-100'}`}>
-                  <p className={`text-xs font-bold mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Weekly Attendance</p>
-                  <div className="flex items-end gap-2 h-16">
-                    {[72, 85, 78, 90, 83, 88, liveStats.rate].map((h, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <div className="w-full rounded-t-lg transition-all duration-500" style={{ height: `${Math.max(8, h)}%`, background: i === 6 ? 'linear-gradient(to top, #0ea5e9, #7c3aed)' : darkMode ? '#1e293b' : '#e2e8f0' }} />
-                        <span className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{['M','T','W','T','F','S','S'][i]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={`absolute bottom-0 left-0 right-0 h-16 rounded-b-3xl ${darkMode ? 'bg-gradient-to-t from-[#080c14]' : 'bg-gradient-to-t from-[#f7f9fc]'}`} />
-          </div>
         </section>
       </div>
     );
@@ -387,7 +344,7 @@ const processNextUpdate = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AppLogo size="sm" />
-            <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+            <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance Portal</span>
           </div>
           <div className="hidden md:flex items-center gap-1">
             {['Features', 'How It Works', 'FAQ'].map((item) => (
