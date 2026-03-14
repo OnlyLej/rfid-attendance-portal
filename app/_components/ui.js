@@ -166,16 +166,16 @@ export function ToastProvider({ children, darkMode }) {
 ═══════════════════════════════════════════════════════════ */
 
 export function Skeleton({ darkMode, className = '', style = {} }) {
+  // The shimmer gradient is the visual. Height comes from className (Tailwind) or style prop.
+  // We do NOT set minHeight here — Tailwind h-* classes must win.
+  const base  = darkMode ? 'rgba(255,255,255,0.06)' : '#eaeef4';
+  const shine = darkMode ? 'rgba(255,255,255,0.13)' : '#d8dfe9';
   return (
     <div
-      className={`rounded-xl ${className}`}
+      className={`rounded-xl block ${className}`}
       style={{
-        minHeight: '12px',
-        backgroundImage: darkMode
-          ? 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 40%,rgba(255,255,255,0.04) 100%)'
-          : 'linear-gradient(90deg,#f0f4f8 0%,#e2e8f0 40%,#f0f4f8 100%)',
+        background: `linear-gradient(90deg,${base} 0%,${shine} 40%,${base} 100%)`,
         backgroundSize: '300% 100%',
-        backgroundPosition: '200% center',
         animation: 'sk-shimmer 1.8s ease-in-out infinite',
         ...style,
       }}
@@ -188,13 +188,13 @@ export function SkeletonCard({ darkMode, rows = 3, showHeader = true }) {
     <div className={`border rounded-2xl p-5 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
       {showHeader && (
         <div className="flex items-center gap-3 mb-5">
-          <Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" />
-          <Skeleton darkMode={darkMode} className="h-4 w-36 rounded-lg" />
+          <Skeleton darkMode={darkMode} style={{ width: 32, height: 32, borderRadius: 12 }} />
+          <Skeleton darkMode={darkMode} style={{ height: 16, width: 144, borderRadius: 8 }} />
         </div>
       )}
       <div className="space-y-3">
         {Array.from({ length: rows }).map((_, i) => (
-          <Skeleton key={i} darkMode={darkMode} className="h-4 rounded-lg" style={{ width: `${85 - i * 12}%` }} />
+          <Skeleton key={i} darkMode={darkMode} style={{ height: 16, width: `${85 - i * 12}%`, borderRadius: 8 }} />
         ))}
       </div>
     </div>
@@ -234,11 +234,11 @@ export function StatCardSkeleton({ darkMode }) {
   return (
     <div className={`border rounded-2xl p-5 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
       <div className="flex items-start justify-between mb-4">
-        <Skeleton darkMode={darkMode} className="w-10 h-10 rounded-xl" />
-        <Skeleton darkMode={darkMode} className="w-12 h-5 rounded-full" />
+        <Skeleton darkMode={darkMode} style={{ width: 40, height: 40, borderRadius: 12 }} />
+        <Skeleton darkMode={darkMode} style={{ width: 48, height: 20, borderRadius: 999 }} />
       </div>
-      <Skeleton darkMode={darkMode} className="h-3 w-20 rounded mb-2" />
-      <Skeleton darkMode={darkMode} className="h-8 w-16 rounded-lg" />
+      <Skeleton darkMode={darkMode} style={{ height: 12, width: 80, borderRadius: 6, marginBottom: 8 }} />
+      <Skeleton darkMode={darkMode} style={{ height: 32, width: 64, borderRadius: 8 }} />
     </div>
   );
 }
@@ -474,20 +474,22 @@ export function EmptyState({ icon: Icon, title, body, action, actionLabel, darkM
 
 /* ── Global keyframes — rendered as a real <style> tag ── */
 export function UIStyles() {
+  // React 18 + Next.js App Router: plain <style> with dangerouslySetInnerHTML
+  // is the safest cross-environment way to inject global keyframes.
   return (
-    <style jsx global>{`
-      @keyframes sk-shimmer {
-        0%   { background-position: 200% center; }
-        100% { background-position: -200% center; }
-      }
-      @keyframes sk-fade-in {
-        from { opacity: 0; transform: translateY(6px); }
-        to   { opacity: 1; transform: none; }
-      }
-      @keyframes sk-pulse {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: 0.45; }
-      }
-    `}</style>
-  );
+    <style
+      dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes sk-shimmer {
+            0%   { background-position: 200% center; }
+            100% { background-position: -200% center; }
           }
+          @keyframes sk-fade-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+          }
+        `,
+      }}
+    />
+  );
+}
