@@ -3,463 +3,524 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import {
-  Calendar, Users, Clock, TrendingUp, Lock, Eye, EyeOff,
-  BarChart3, Activity, AlertCircle, Sun, Moon,
-  ChevronRight, RefreshCw, Award, Target, Shield, Bell,
-  X, LogIn, Sparkles, Zap, ArrowRight,
-  Cpu, CheckCircle, RadioTower, Database, Cloud, ShieldCheck, Brain, Network, CloudCog, Globe,
-  Monitor, Wifi, Radio, ChevronDown, ChevronUp, ChevronLeft,
-  Loader2, Waves, Signal, ArrowUp, ArrowDown
+  Eye, EyeOff, BarChart3, AlertCircle, Sun, Moon,
+  ChevronRight, Shield, Bell, X, LogIn, Sparkles, Zap, ArrowRight,
+  Cpu, CheckCircle, RadioTower, Database, Cloud, ShieldCheck, CloudCog, Globe,
+  Monitor, Wifi, ChevronDown, Menu,
+  Loader2, Signal, Play
 } from 'lucide-react';
 import { useApp } from '../_lib/AppContext';
 
-// Dynamically import Odometer with SSR disabled
-const Odometer = dynamic(
-  () => import('react-odometerjs'),
-  { ssr: false }
-);
+const Odometer = dynamic(() => import('react-odometerjs'), { ssr: false });
 
-// ─── Bot detection helper ────────────────────────────────────────────────────
 function useIsBot() {
   const [isBot, setIsBot] = useState(false);
   useEffect(() => {
     const ua = navigator.userAgent || '';
-    const botPattern = /Googlebot|bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|facebookexternalhit|Twitterbot|LinkedInBot|Applebot|AhrefsBot|SemrushBot|MJ12bot|DotBot|crawler|spider|bot/i;
-    setIsBot(botPattern.test(ua));
+    setIsBot(/Googlebot|bingbot|Slurp|DuckDuckBot|Baiduspider|YandexBot|facebookexternalhit|Twitterbot|LinkedInBot|Applebot|AhrefsBot|SemrushBot|MJ12bot|DotBot|crawler|spider|bot/i.test(ua));
   }, []);
   return isBot;
 }
 
-// ─── Static number display (for bots) ───────────────────────────────────────
-const StaticNum = ({ value, prefix, suffix }) => (
-  <span>
-    {prefix}<span>{value}</span>{suffix}
-  </span>
-);
+const StaticNum = ({ value, prefix, suffix }) => <span>{prefix}{value}{suffix}</span>;
 
 const AppLogo = ({ size = 'md', className = '' }) => {
-  const [imgError, setImgError] = useState(false);
-  const sz = size === 'sm' ? 'w-7 h-7' : size === 'lg' ? 'w-11 h-11' : 'w-9 h-9';
-  const iconSz = size === 'sm' ? 13 : size === 'lg' ? 20 : 16;
-  if (!imgError) {
-    return (
-      <div className={`${sz} rounded-xl overflow-hidden flex-shrink-0 shadow-md shadow-sky-500/20 ${className}`}>
-        <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover" onError={() => setImgError(true)} />
-      </div>
-    );
-  }
+  const [err, setErr] = useState(false);
+  const sz = size === 'sm' ? 'w-7 h-7' : size === 'lg' ? 'w-12 h-12' : 'w-9 h-9';
+  const ic = size === 'sm' ? 14 : size === 'lg' ? 22 : 17;
+  if (!err) return (
+    <div className={`${sz} rounded-xl overflow-hidden flex-shrink-0 shadow-lg shadow-sky-500/25 ${className}`}>
+      <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover" onError={() => setErr(true)} />
+    </div>
+  );
   return (
-    <div className={`${sz} rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-sky-500/20 ${className}`}>
-      <RadioTower size={iconSz} className="text-white" />
+    <div className={`${sz} rounded-xl bg-gradient-to-br from-sky-400 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-sky-500/25 ${className}`}>
+      <RadioTower size={ic} className="text-white" />
     </div>
   );
 };
 
+function ParticleCanvas({ darkMode }) {
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const pts = useRef([]);
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const mobile = () => window.innerWidth < 768;
+    const resize = () => { c.width = window.innerWidth; c.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+    const n = mobile() ? 28 : 55;
+    pts.current = Array.from({ length: n }, () => ({
+      x: Math.random() * c.width, y: Math.random() * c.height,
+      r: Math.random() * 1.4 + 0.4,
+      vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
+      a: Math.random() * 0.45 + 0.1,
+      col: ['#0ea5e9','#7c3aed','#10b981'][Math.floor(Math.random() * 3)],
+    }));
+    const draw = () => {
+      ctx.clearRect(0, 0, c.width, c.height);
+      const ld = mobile() ? 70 : 110;
+      pts.current.forEach(p => {
+        p.x = (p.x + p.vx + c.width) % c.width;
+        p.y = (p.y + p.vy + c.height) % c.height;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.col + Math.floor(p.a * 255).toString(16).padStart(2,'0'); ctx.fill();
+      });
+      pts.current.forEach((p, i) => {
+        for (let j = i + 1; j < pts.current.length; j++) {
+          const q = pts.current[j], d = Math.hypot(p.x-q.x, p.y-q.y);
+          if (d < ld) {
+            ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y);
+            ctx.strokeStyle = darkMode ? `rgba(148,163,184,${(1-d/ld)*0.055})` : `rgba(100,116,139,${(1-d/ld)*0.045})`;
+            ctx.lineWidth = 0.5; ctx.stroke();
+          }
+        }
+      });
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animRef.current); window.removeEventListener('resize', resize); };
+  }, [darkMode]);
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex:0, opacity:0.55 }} />;
+}
+
+function useReveal(t = 0.08) {
+  const ref = useRef(null);
+  const [vis, setVis] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setVis(true); obs.disconnect(); } }, { threshold: t });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [t]);
+  return [ref, vis];
+}
+
+function TypedText({ words, className }) {
+  const [idx, setIdx] = useState(0);
+  const [text, setText] = useState('');
+  const [del, setDel] = useState(false);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) { const t = setTimeout(() => setPaused(false), 1400); return () => clearTimeout(t); }
+    const w = words[idx % words.length];
+    const t = setTimeout(() => {
+      if (!del) { setText(w.slice(0, text.length+1)); if (text.length+1===w.length){setPaused(true);setDel(true);} }
+      else { setText(w.slice(0,text.length-1)); if (text.length===0){setDel(false);setIdx(i=>i+1);} }
+    }, del ? 38 : 75);
+    return () => clearTimeout(t);
+  }, [text, del, idx, words, paused]);
+  return <span className={className}>{text}<span className="opacity-60 animate-pulse">|</span></span>;
+}
+
+function CountUp({ to, suffix='', prefix='', duration=1400 }) {
+  const [val, setVal] = useState(0);
+  const [ref, vis] = useReveal(0.25);
+  useEffect(() => {
+    if (!vis) return;
+    let s = null;
+    const tick = (ts) => { if(!s)s=ts; const p=Math.min((ts-s)/duration,1); setVal(Math.floor((1-Math.pow(1-p,3))*to)); if(p<1)requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }, [vis, to, duration]);
+  return <span ref={ref}>{prefix}{val}{suffix}</span>;
+}
+
+function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
+  useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [open]);
+  if (!open) return null;
+  const go = (id) => { onClose(); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }), 220); };
+  return (
+    <div className="fixed inset-0 z-[60] flex">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className={`relative ml-auto w-[280px] sm:w-80 h-full flex flex-col shadow-2xl animate-slide-left ${darkMode ? 'bg-[#080d1a]' : 'bg-white'}`}>
+        <div className="h-1 w-full" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
+        <div className={`flex items-center justify-between px-5 py-4 border-b ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
+          <div className="flex items-center gap-2.5"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode?'text-white':'text-gray-900'}`}>RFID Attendance</span></div>
+          <button onClick={onClose} className={`p-2 rounded-xl transition-all hover:rotate-90 ${darkMode?'hover:bg-white/8 text-gray-400':'hover:bg-gray-100 text-gray-500'}`}><X size={18}/></button>
+        </div>
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {[['features','Features'],['how-it-works','How It Works'],['faq','FAQ']].map(([id,lbl])=>(
+            <button key={id} onClick={()=>go(id)}
+              className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center justify-between group ${darkMode?'text-gray-300 hover:bg-white/6 hover:text-white':'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
+              {lbl}<ChevronRight size={15} className="opacity-35 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"/>
+            </button>
+          ))}
+          <div className={`mx-1 my-3 h-px ${darkMode?'bg-white/6':'bg-gray-100'}`}/>
+          {/* Theme toggle in drawer */}
+          <button onClick={()=>{ /* handled by parent */ }} className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 ${darkMode?'text-gray-300 hover:bg-white/6':'text-gray-700 hover:bg-gray-50'}`}>
+            {darkMode ? <><Sun size={15}/> Light mode</> : <><Moon size={15}/> Dark mode</>}
+          </button>
+        </nav>
+        <div className={`p-4 border-t ${darkMode?'border-white/6':'border-gray-100'}`}>
+          <button onClick={()=>{onClose();onSignIn();}}
+            className="w-full py-3.5 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 relative overflow-hidden group text-sm"
+            style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+            <LogIn size={15}/> Sign In to Portal
+            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const { handleLogin } = useApp();
-  const [darkMode, setDarkMode] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [dark, setDark] = useState(false);
+  const [modal, setModal] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(0);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [activeFaq, setActiveFaq] = useState(null);
-  const [isMounted, setIsMounted] = useState(false);
-
+  const [navHide, setNavHide] = useState(false);
+  const [featIdx, setFeatIdx] = useState(0);
+  const [mouse, setMouse] = useState({ x:0.5, y:0.3 });
+  const [openFaq, setOpenFaq] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  const lastY = useRef(0);
   const isBot = useIsBot();
 
-  const [liveStats, setLiveStats] = useState({ 
-    students: 50, 
-    present: 30, 
-    absent: 20, 
-    rate: 67, 
-    checkins: 251, 
-    uptime: 99.99, 
-    responseTime: 100
+  const [stats, setStats] = useState({ students:50, present:30, absent:20, rate:67, checkins:251, uptime:99.99, responseTime:100 });
+  const timerRef = useRef(null);
+  const qRef = useRef([]);
+
+  const [heroRef, heroVis] = useReveal(0.04);
+  const [featRef, featVis] = useReveal(0.08);
+  const [howRef,  howVis]  = useReveal(0.08);
+  const [secRef,  secVis]  = useReveal(0.08);
+  const [faqRef,  faqVis]  = useReveal(0.08);
+  const [ctaRef,  ctaVis]  = useReveal(0.08);
+  const [metRef,  metVis]  = useReveal(0.08);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    try { if (localStorage.getItem('theme')==='dark'){ setDark(true); document.documentElement.classList.add('dark'); } } catch {}
+  }, []);
+
+  const toggleDark = () => setDark(p => {
+    const n = !p;
+    document.documentElement.classList.toggle('dark', n);
+    try { localStorage.setItem('theme', n?'dark':'light'); } catch {}
+    return n;
   });
-  const [statFlash, setStatFlash] = useState({});
-  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Set mounted state to true after hydration
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    if (isBot) return;
+    const tick = setInterval(() => {
+      const ns = {
+        students: Math.max(40, stats.students + Math.round((Math.random()-0.5)*4)),
+        present: Math.min(stats.students, Math.max(0, stats.present + Math.round((Math.random()-0.5)*5))),
+        checkins: Math.max(0, stats.checkins + Math.round((Math.random()-0.5)*6)),
+        uptime: stats.uptime, responseTime: stats.responseTime,
+      };
+      ns.absent = ns.students - ns.present;
+      ns.rate = Math.round((ns.present/ns.students)*100);
+      qRef.current.push(ns);
+      if (!timerRef.current) drain();
+    }, 2200);
+    return () => clearInterval(tick);
+  }, [isBot, stats]);
 
-  // Load theme
-  useEffect(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved === 'dark') { 
-      setDarkMode(true); 
-      document.documentElement.classList.add('dark'); 
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    setDarkMode(prev => {
-      const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-      return next;
-    });
+  const drain = () => {
+    if (!qRef.current.length){ timerRef.current=null; return; }
+    setStats(qRef.current.shift());
+    timerRef.current = setTimeout(()=>{ timerRef.current=null; drain(); }, 2800);
   };
 
-const animationTimerRef = useRef(null);
-const updateQueueRef = useRef([]);
-
-useEffect(() => {
-  // Don't run live updates for bots
-  if (isBot) return;
-
-  const tick = setInterval(() => {
-    const newStats = {
-      students: Math.max(0, liveStats.students + Math.round((Math.random() - 0.5) * 4)),
-      present: Math.min(liveStats.students, Math.max(0, liveStats.present + Math.round((Math.random() - 0.5) * 5))),
-      checkins: Math.max(0, liveStats.checkins + Math.round((Math.random() - 0.5) * 6)),
-      uptime: Math.min(100, Math.max(99, parseFloat((liveStats.uptime + (Math.random() - 0.5) * 0.02).toFixed(2)))),
-      responseTime: Math.max(80, Math.min(180, liveStats.responseTime + Math.round((Math.random() - 0.5) * 8)))
+  useEffect(() => {
+    const h = () => {
+      const y = window.scrollY;
+      setScrolled(y > 30);
+      setNavHide(y > lastY.current + 6 && y > 130);
+      lastY.current = y;
     };
-    newStats.absent = newStats.students - newStats.present;
-    newStats.rate = newStats.students > 0 ? Math.round((newStats.present / newStats.students) * 100) : 0;
-
-    updateQueueRef.current.push(newStats);
-
-    if (!animationTimerRef.current) {
-      processNextUpdate();
-    }
-  }, 2000);
-
-  return () => clearInterval(tick);
-}, [isBot, liveStats.students, liveStats.present, liveStats.checkins, liveStats.uptime, liveStats.responseTime]);
-
-const processNextUpdate = () => {
-  if (updateQueueRef.current.length === 0) {
-    animationTimerRef.current = null;
-    return;
-  }
-
-  const nextStats = updateQueueRef.current.shift();
-  setLiveStats(nextStats);
-  
-  animationTimerRef.current = setTimeout(() => {
-    animationTimerRef.current = null;
-    processNextUpdate();
-  }, 3000);
-};
-
-  useEffect(() => {
-    if (Object.keys(statFlash).length === 0) return;
-    const t = setTimeout(() => setStatFlash({}), 400);
-    return () => clearTimeout(t);
-  }, [statFlash]);
-
-  useEffect(() => {
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handler);
-    return () => window.removeEventListener('scroll', handler);
+    window.addEventListener('scroll', h, { passive:true });
+    return () => window.removeEventListener('scroll', h);
   }, []);
 
   useEffect(() => {
-    const handler = (e) => setMousePos({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
-    window.addEventListener('mousemove', handler);
-    return () => window.removeEventListener('mousemove', handler);
+    const h = (e) => setMouse({ x: e.clientX/window.innerWidth, y: e.clientY/window.innerHeight });
+    window.addEventListener('mousemove', h, { passive:true });
+    return () => window.removeEventListener('mousemove', h);
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => setActiveFeature(p => (p + 1) % 4), 3500);
-    return () => clearInterval(interval);
+    const t = setInterval(() => setFeatIdx(p => (p+1)%4), 3800);
+    return () => clearInterval(t);
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoginLoading(true);
-    await handleLogin(username, password, setError);
-    setLoginLoading(false);
+  const submit = async (e) => {
+    e.preventDefault(); setErr(''); setLoading(true);
+    await handleLogin(user, pass, setErr);
+    setLoading(false);
   };
 
-  const inp = `w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all duration-200
-    ${darkMode ? 'bg-gray-700/60 border-gray-600 text-white placeholder-gray-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20' : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-500/15'}`;
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:'smooth' });
+
+  const inp = `w-full px-4 py-3.5 rounded-2xl text-sm border outline-none transition-all duration-200 ${dark ? 'bg-white/6 border-white/12 text-white placeholder-gray-600 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20' : 'bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20'}`;
+  const odo = { duration:100, theme:'default', auto:false };
 
   const features = [
-    { icon: Cpu, label: 'Hardware Layer', color: 'sky', gradient: 'from-sky-500 to-cyan-400', title: 'ESP8266 RFID Readers', desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'] },
-    { icon: Database, label: 'Secure Backend', color: 'violet', gradient: 'from-violet-500 to-purple-400', title: 'Google Apps Script API', desc: 'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.', bullets: ['Session token auth', 'Role-based access control', 'Real-time processing', 'GDPR compliant logging'] },
-    { icon: BarChart3, label: 'Analytics', color: 'emerald', gradient: 'from-emerald-500 to-teal-400', title: 'Live Dashboard Analytics', desc: 'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.', bullets: ['7-day & monthly trends', 'Class performance ranking', 'Export to Excel/CSV', 'Mobile-responsive'] },
-    { icon: Bell, label: 'Parent Portal', color: 'amber', gradient: 'from-amber-500 to-orange-400', title: 'Real-Time Parent Visibility', desc: "Parents see their child's check-in and check-out in real time. Supports multiple children per account with per-child or combined views.", bullets: ['Multi-child support', 'Per-child attendance log', 'Historical records', 'Exportable history'] },
-  ];
-
-  const faqs = [
-    { q: 'What RFID hardware is required?', a: 'Any standard 125kHz or 13.56MHz RFID card/fob works. The reader units run on ESP8266 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.' },
-    { q: 'How is student data protected?', a: 'All data is encrypted in transit (TLS 1.3) and at rest. Session tokens expire after 30 minutes of inactivity. No personally identifiable data is stored on the hardware itself.' },
-    { q: 'Can parents access admin features?', a: "No. The parent portal is strictly read-only, scoped to their own children's records. Teachers and administrators have separate credential tiers." },
-    { q: 'Can one parent account track multiple children?', a: 'Yes. A parent account can be linked to multiple students. The portal shows a child-selector to switch between individual views or see all records combined.' },
-    { q: 'What happens if the WiFi goes down?', a: 'The ESP8266 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.' },
-    { q: 'How do I export attendance records?', a: 'Click Export on any filtered view in the Logs tab. Records download as a formatted Excel (.xlsx) file with color-coded statuses and auto-filters pre-applied.' },
+    { icon:Cpu,      label:'Hardware Layer', gradient:'from-sky-500 to-cyan-400',    glow:'#0ea5e9', title:'ESP8266/ESP32 RFID Readers',    desc:'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets:['Dual-band WiFi transmission','OLED status display','Audio & visual feedback','Tamper-resistant casing'] },
+    { icon:Database, label:'Secure Backend', gradient:'from-violet-500 to-purple-400', glow:'#7c3aed', title:'Google Apps Script API',          desc:'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.',               bullets:['Session token auth','Role-based access control','Real-time processing','GDPR compliant logging'] },
+    { icon:BarChart3, label:'Analytics',      gradient:'from-emerald-500 to-teal-400', glow:'#10b981', title:'Live Dashboard Analytics',         desc:'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.',                          bullets:['7-day & monthly trends','Class performance ranking','Export to Excel/CSV','Mobile-responsive'] },
+    { icon:Bell,      label:'Parent Portal',  gradient:'from-amber-500 to-orange-400', glow:'#f59e0b', title:'Real-Time Parent Visibility',      desc:'Parents see their child\'s check-in and check-out in real time. Supports multiple children per account.',                              bullets:['Multi-child support','Per-child attendance log','Historical records','Exportable history'] },
   ];
 
   const steps = [
-    { step: '01', icon: Wifi, title: 'Student taps RFID card', desc: 'The ESP8266 reader at the classroom door instantly detects the card and reads the unique UID in under 50ms.', gradient: 'from-sky-500 to-cyan-400', accent: '#0ea5e9' },
-    { step: '02', icon: CloudCog, title: 'WiFi transmission to API', desc: 'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.', gradient: 'from-violet-500 to-purple-400', accent: '#7c3aed' },
-    { step: '03', icon: Database, title: 'Data stored & classified', desc: 'The log is written to Google Sheets in real time with the student name, class, IN/OUT status, and PH-timezone timestamp.', gradient: 'from-indigo-500 to-blue-400', accent: '#6366f1' },
-    { step: '04', icon: Monitor, title: 'Dashboard updates live', desc: 'Teachers see the attendance count update in real time. Charts, class comparisons, and parent portals all reflect the new data.', gradient: 'from-emerald-500 to-teal-400', accent: '#10b981' },
+    { n:'01', icon:Wifi,     title:'Student taps RFID card',     desc:'The ESP8266/ESP32 reader detects the card and reads the unique UID in under 50ms.',                                         gradient:'from-sky-500 to-cyan-400',    accent:'#0ea5e9' },
+    { n:'02', icon:CloudCog, title:'WiFi transmission to API',   desc:'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.',                        gradient:'from-violet-500 to-purple-400', accent:'#7c3aed' },
+    { n:'03', icon:Database, title:'Data stored & classified',   desc:'The log is written to Google Sheets in real time — student name, class, IN/OUT status, PH-timezone timestamp.',            gradient:'from-indigo-500 to-blue-400',  accent:'#6366f1' },
+    { n:'04', icon:Monitor,  title:'Dashboard updates live',     desc:'Teachers see the attendance count update in real time. Charts, comparisons, and parent portals all reflect the new data.', gradient:'from-emerald-500 to-teal-400', accent:'#10b981' },
   ];
 
-  const px = mousePos.x;
-  const py = mousePos.y;
+  const faqs = [
+    { q:'What RFID hardware is required?',              a:'Any standard 125kHz or 13.56MHz RFID card/fob works. Reader units run on ESP8266/ESP32 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.' },
+    { q:'How is student data protected?',               a:'All data is encrypted in transit (TLS 1.3) and at rest. Session tokens expire after 30 minutes of inactivity. No personally identifiable data is stored on the hardware itself.' },
+    { q:'Can parents access admin features?',           a:"No. The parent portal is strictly read-only, scoped to their own children's records. Teachers and administrators have separate credential tiers." },
+    { q:'Can one parent account track multiple children?', a:'Yes. A parent account can be linked to multiple students. The portal shows a child-selector to switch between individual views or see all records combined.' },
+    { q:'What happens if the WiFi goes down?',          a:'The ESP8266/ESP32 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.' },
+    { q:'How do I export attendance records?',          a:'Click Export on any filtered view in the Logs tab. Records download as a formatted Excel (.xlsx) file with color-coded statuses and auto-filters pre-applied.' },
+  ];
 
-  const odometerOptions = {
-    duration: 100,
-    theme: 'default',
-    auto: false,
-  };
+  const statCards = [
+    { key:'students',  val:stats.students,     label:'Students Enrolled', icon:Signal,       accent:'#0ea5e9', dim:'rgba(14,165,233,0.1)' },
+    { key:'checkins',  val:stats.checkins,     label:'Daily Check-ins',   icon:CheckCircle,  accent:'#10b981', dim:'rgba(16,185,129,0.1)', suffix:'+' },
+    { key:'uptime',    val:stats.uptime,       label:'System Uptime',     icon:Cloud,        accent:'#7c3aed', dim:'rgba(124,58,237,0.1)', suffix:'%' },
+    { key:'rt',        val:stats.responseTime, label:'Scan Response',     icon:Zap,          accent:'#f59e0b', dim:'rgba(245,158,11,0.1)', prefix:'<', suffix:'ms' },
+  ];
 
-  // ─── Stat card value renderer: static for bots, animated for humans ────────
-  const renderVal = (val, { format, prefix, suffix } = {}) => {
-    if (isBot || !isMounted) {
-      return <StaticNum value={format === 'float' ? val : val} prefix={prefix} suffix={suffix} />;
-    }
-    return (
-      <>
-        {prefix && <span className="text-sm opacity-70">{prefix}</span>}
-        <Odometer value={val} options={odometerOptions} />
-        {suffix && <span className="text-sm opacity-70">{suffix}</span>}
-      </>
-    );
-  };
-
-  // Show simplified version during SSR
-  if (!isMounted) {
-    return (
-      <div className={`min-h-screen overflow-x-hidden ${darkMode ? 'bg-[#080c14] text-white' : 'bg-[#f7f9fc] text-gray-900'} transition-colors duration-300`}>
-        {/* Background orbs */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-          <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] transition-[left,top] duration-1000 ease-out ${darkMode ? 'bg-sky-900/25' : 'bg-sky-200/50'}`} style={{ left: `${-10 + px * 15}%`, top: `${-10 + py * 10}%` }} />
-          <div className={`absolute w-[500px] h-[500px] rounded-full blur-[100px] transition-[right,bottom] duration-[1400ms] ease-out ${darkMode ? 'bg-violet-900/20' : 'bg-violet-100/60'}`} style={{ right: `${-5 + (1 - px) * 12}%`, bottom: `${10 + py * 8}%` }} />
-          <div className={`absolute w-[300px] h-[300px] rounded-full blur-[80px] ${darkMode ? 'bg-emerald-900/15' : 'bg-emerald-100/40'}`} style={{ left: '40%', top: '60%' }} />
-        </div>
-
-        {/* Nav */}
-        <nav className={`sticky top-0 z-50 border-b backdrop-blur-2xl transition-all duration-500 ${scrolled ? 'shadow-lg shadow-black/5' : ''} ${darkMode ? 'bg-[#080c14]/80 border-white/5' : 'bg-white/80 border-black/5'}`}>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <AppLogo size="sm" />
-              <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance Portal</span>
-            </div>
-            <div className="hidden md:flex items-center gap-1">
-              {['Features', 'How It Works', 'FAQ'].map((item) => (
-                <button key={item} onClick={() => document.getElementById(item.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}>{item}</button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={toggleTheme} className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-black/5 text-gray-500'}`}>
-                {darkMode ? <Sun size={17} /> : <Moon size={17} />}
-              </button>
-              <button onClick={() => setShowModal(true)} className="relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden group transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/30" style={{ background: 'linear-gradient(135deg, #0ea5e9, #7c3aed)' }}>
-                <span className="relative z-10 flex items-center gap-1.5"><LogIn size={14} /> Sign In</span>
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-              </button>
-            </div>
-          </div>
-        </nav>
-
-        {/* Hero */}
-        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
-          {/* ── CHANGE 1 & 2: icon-only pulse dot (no "Live" text), "students active" ── */}
-          <div className="flex justify-center mb-8">
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
-              </span>
-              {liveStats.present} students active
-            </div>
-          </div>
-          <div className="text-center space-y-6 max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-black leading-[0.95] tracking-tighter">
-              <span className={darkMode ? 'text-white' : 'text-gray-900'}>Attendance, </span>
-              <br className="hidden md:block" />
-              <span className="relative inline-block">
-                <span style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 50%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Automated.</span>
-                <svg className="absolute -bottom-2 left-0 w-full" height="6" viewBox="0 0 200 6" preserveAspectRatio="none">
-                  <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="url(#heroUnderlineGrad)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                  <defs><linearGradient id="heroUnderlineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#0ea5e9" /><stop offset="50%" stopColor="#7c3aed" /><stop offset="100%" stopColor="#10b981" /></linearGradient></defs>
-                </svg>
-              </span>
-            </h1>
-            <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              RFID card taps replace manual roll-calls. Real-time dashboards, parent portals with multi-child support, and one-click Excel exports — built for Philippine schools.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button onClick={() => setShowModal(true)} className="group relative px-7 py-3.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-sky-500/30 flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%)' }}>
-                <span className="relative z-10 flex items-center gap-2">Access Portal <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" /></span>
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-              <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className={`px-7 py-3.5 text-sm font-bold rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/5' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
-                See how it works <ChevronDown size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Live stat cards — static numbers for SSR */}
-          <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {[
-              { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
-              /* ── CHANGE 3: "Today's Check-ins" → "Daily Check-ins" ── */
-              { key: 'checkins', val: liveStats.checkins, label: 'Daily Check-ins', icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
-              { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
-              { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
-            ].map((s, i) => (
-              <div key={i} className={`group relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-default text-center ${darkMode ? 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'}`}>
-                <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
-                <s.icon size={20} className="mx-auto mb-2.5" style={{ color: s.accent }} />
-                <p className={`text-2xl font-black tabular-nums inline-flex items-baseline gap-0.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
-                  <span>{s.val}</span>
-                  {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
-                </p>
-                <p className={`text-xs mt-1 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    );
-  }
-
-  // Full render with odometer after hydration
   return (
-    <div className={`min-h-screen overflow-x-hidden ${darkMode ? 'bg-[#080c14] text-white' : 'bg-[#f7f9fc] text-gray-900'} transition-colors duration-300`}>
-      {/* Background orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
-        <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] transition-[left,top] duration-1000 ease-out ${darkMode ? 'bg-sky-900/25' : 'bg-sky-200/50'}`} style={{ left: `${-10 + px * 15}%`, top: `${-10 + py * 10}%` }} />
-        <div className={`absolute w-[500px] h-[500px] rounded-full blur-[100px] transition-[right,bottom] duration-[1400ms] ease-out ${darkMode ? 'bg-violet-900/20' : 'bg-violet-100/60'}`} style={{ right: `${-5 + (1 - px) * 12}%`, bottom: `${10 + py * 8}%` }} />
-        <div className={`absolute w-[300px] h-[300px] rounded-full blur-[80px] ${darkMode ? 'bg-emerald-900/15' : 'bg-emerald-100/40'}`} style={{ left: '40%', top: '60%' }} />
+    <div className={`min-h-screen overflow-x-hidden ${dark ? 'bg-[#050810] text-white' : 'bg-[#edf1f9] text-gray-900'}`}>
+
+      {mounted && <ParticleCanvas darkMode={dark} />}
+
+      {/* Ambient mesh */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex:0 }}>
+        <div className="absolute rounded-full transition-all duration-[2200ms] ease-out"
+          style={{ width:680, height:680, left:`${-12+mouse.x*18}%`, top:`${-14+mouse.y*14}%`, background: dark?'radial-gradient(circle,rgba(14,165,233,0.11) 0%,transparent 68%)':'radial-gradient(circle,rgba(14,165,233,0.18) 0%,transparent 68%)', filter:'blur(30px)' }}/>
+        <div className="absolute rounded-full transition-all duration-[2800ms] ease-out"
+          style={{ width:520, height:520, right:`${-8+(1-mouse.x)*14}%`, bottom:`${4+mouse.y*10}%`, background: dark?'radial-gradient(circle,rgba(124,58,237,0.09) 0%,transparent 68%)':'radial-gradient(circle,rgba(124,58,237,0.14) 0%,transparent 68%)', filter:'blur(50px)' }}/>
+        <div className="absolute rounded-full" style={{ width:320, height:320, left:'38%', top:'55%', background: dark?'radial-gradient(circle,rgba(16,185,129,0.06) 0%,transparent 70%)':'radial-gradient(circle,rgba(16,185,129,0.1) 0%,transparent 70%)', filter:'blur(55px)' }}/>
+        <div className="absolute inset-0" style={{ backgroundImage: dark?'linear-gradient(rgba(148,163,184,0.028) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,0.028) 1px,transparent 1px)':'linear-gradient(rgba(100,116,139,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(100,116,139,0.055) 1px,transparent 1px)', backgroundSize:'64px 64px' }}/>
       </div>
 
-      {/* Nav */}
-      <nav className={`sticky top-0 z-50 border-b backdrop-blur-2xl transition-all duration-500 ${scrolled ? 'shadow-lg shadow-black/5' : ''} ${darkMode ? 'bg-[#080c14]/80 border-white/5' : 'bg-white/80 border-black/5'}`}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AppLogo size="sm" />
-            <span className={`font-black text-sm tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance Portal</span>
+      <MobileDrawer open={drawer} onClose={()=>setDrawer(false)} darkMode={dark} onSignIn={()=>setModal(true)} />
+
+      {/* ── NAV ── */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${navHide?'-translate-y-full':'translate-y-0'} ${scrolled?'shadow-2xl shadow-black/8':''} backdrop-blur-2xl ${dark?'bg-[#050810]/88 border-b border-white/6':'bg-white/88 border-b border-black/6'}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="relative">
+              <AppLogo size="sm"/>
+              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-70"/>
+                <span className={`relative rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 ${dark?'border-[#050810]':'border-white'}`}/>
+              </span>
+            </div>
+            <span className={`font-black text-sm tracking-tight ${dark?'text-white':'text-gray-900'}`}>RFID Attendance</span>
           </div>
-          <div className="hidden md:flex items-center gap-1">
-            {['Features', 'How It Works', 'FAQ'].map((item) => (
-              <button key={item} onClick={() => document.getElementById(item.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-500 hover:text-gray-900 hover:bg-black/5'}`}>{item}</button>
+          <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
+            {[['features','Features'],['how-it-works','How It Works'],['faq','FAQ']].map(([id,lbl])=>(
+              <button key={id} onClick={()=>scrollTo(id)}
+                className={`relative px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${dark?'text-gray-400 hover:text-white':'text-gray-500 hover:text-gray-900'}`}>
+                {lbl}
+                <span className="absolute bottom-0.5 left-3.5 right-3.5 h-px rounded-full scale-x-0 group-hover:scale-x-100 transition-transform duration-250 origin-left" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed)' }}/>
+              </button>
             ))}
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-black/5 text-gray-500'}`}>
-              {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button onClick={toggleDark} className={`p-2 rounded-xl transition-all duration-300 hover:scale-110 hover:rotate-12 ${dark?'hover:bg-white/6 text-gray-400':'hover:bg-black/6 text-gray-500'}`}>
+              {dark ? <Sun size={17}/> : <Moon size={17}/>}
             </button>
-            <button onClick={() => setShowModal(true)} className="relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden group transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/30" style={{ background: 'linear-gradient(135deg, #0ea5e9, #7c3aed)' }}>
-              <span className="relative z-10 flex items-center gap-1.5"><LogIn size={14} /> Sign In</span>
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            <button onClick={()=>setModal(true)}
+              className="hidden sm:flex relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden items-center gap-1.5 shadow-lg shadow-sky-500/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
+              style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+              <LogIn size={14}/> Sign In
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
+            </button>
+            <button onClick={()=>setDrawer(true)} className={`md:hidden p-2 rounded-xl transition-all ${dark?'hover:bg-white/6 text-gray-300':'hover:bg-black/6 text-gray-600'}`}>
+              <Menu size={20}/>
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-28 md:pt-28 md:pb-36" style={{ zIndex: 1 }}>
-        {/* ── CHANGE 1 & 2: icon-only pulse dot, "students active", Odometer for humans ── */}
-        <div className="flex justify-center mb-8">
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+      {/* ── HERO ── */}
+      <section ref={heroRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 pt-28 pb-20 sm:pt-36 sm:pb-24 md:pt-44 md:pb-32" style={{ zIndex:1 }}>
+        {/* Live badge */}
+        <div className={`flex justify-center mb-7 transition-all duration-600 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-5'}`}>
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${dark?'bg-emerald-500/10 border-emerald-500/25 text-emerald-400':'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+              <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75"/>
+              <span className="relative rounded-full h-2 w-2 bg-emerald-500"/>
             </span>
-            {isBot
-              ? <>{liveStats.present} students active</>
-              : <><Odometer value={liveStats.present} options={odometerOptions} /> students active</>
-            }
-          </div>
-        </div>
-        <div className="text-center space-y-6 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-black leading-[0.95] tracking-tighter">
-            <span className={darkMode ? 'text-white' : 'text-gray-900'}>Attendance, </span>
-            <br className="hidden md:block" />
-            <span className="relative inline-block">
-              <span style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 50%, #10b981 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Automated.</span>
-              <svg className="absolute -bottom-2 left-0 w-full" height="6" viewBox="0 0 200 6" preserveAspectRatio="none">
-                <path d="M0 5 Q50 0 100 4 Q150 8 200 3" stroke="url(#heroUnderlineGrad)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-                <defs><linearGradient id="heroUnderlineGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#0ea5e9" /><stop offset="50%" stopColor="#7c3aed" /><stop offset="100%" stopColor="#10b981" /></linearGradient></defs>
-              </svg>
-            </span>
-          </h1>
-          <p className={`text-lg md:text-xl max-w-2xl mx-auto leading-relaxed font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            RFID card taps replace manual roll-calls. Real-time dashboards, parent portals with multi-child support, and one-click Excel exports — built for Philippine schools.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <button onClick={() => setShowModal(true)} className="group relative px-7 py-3.5 text-sm font-bold text-white rounded-xl overflow-hidden transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-sky-500/30 flex items-center gap-2" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%)' }}>
-              <span className="relative z-10 flex items-center gap-2">Access Portal <ArrowRight size={16} className="transition-transform duration-200 group-hover:translate-x-1" /></span>
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-            <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className={`px-7 py-3.5 text-sm font-bold rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/5' : 'border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
-              See how it works <ChevronDown size={16} />
-            </button>
+            System live — {stats.present} students active
           </div>
         </div>
 
-        {/* Stat cards — Odometer for humans, plain number for bots */}
-        <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {[
-            { key: 'students', val: liveStats.students, label: 'Students Enrolled', icon: Users, accent: '#0ea5e9', format: 'number' },
-            /* ── CHANGE 3: "Today's Check-ins" → "Daily Check-ins" ── */
-            { key: 'checkins', val: liveStats.checkins, label: 'Daily Check-ins', icon: CheckCircle, accent: '#10b981', format: 'number', suffix: '+' },
-            { key: 'uptime', val: liveStats.uptime, label: 'System Uptime', icon: Cloud, accent: '#7c3aed', format: 'float', suffix: '%' },
-            { key: 'responseTime', val: liveStats.responseTime, label: 'Scan Response', icon: Zap, accent: '#f59e0b', format: 'number', prefix: '<', suffix: 'ms' },
-          ].map((s, i) => (
-            <div key={i} className={`group relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg cursor-default text-center ${darkMode ? 'bg-white/3 border-white/8 hover:bg-white/6 hover:border-white/15' : 'bg-white border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md'}`}>
-              <div className="absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)` }} />
-              <s.icon size={20} className="mx-auto mb-2.5" style={{ color: s.accent }} />
-              <p className={`text-2xl font-black tabular-nums inline-flex items-baseline gap-0.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {isBot ? (
-                  <StaticNum value={s.val} prefix={s.prefix} suffix={s.suffix} />
-                ) : (
+        <div className="text-center max-w-4xl mx-auto space-y-5">
+          <h1 className={`font-black tracking-tighter leading-[0.9] transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-10'}`}
+            style={{ fontSize:'clamp(2.4rem,8vw,4.8rem)', transitionDelay:'80ms' }}>
+            <span className={dark?'text-white':'text-gray-900'}>School attendance,</span><br/>
+            <span style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 48%,#10b981 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+              finally automated.
+            </span>
+          </h1>
+
+          <p className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed font-medium transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'} ${dark?'text-gray-400':'text-gray-500'}`} style={{ transitionDelay:'160ms' }}>
+            RFID card taps replace manual roll-calls.{' '}
+            <TypedText words={['Built for Philippine schools.','No more clipboards.','Instant & accurate.','Parents see it live.']} className={`font-bold ${dark?'text-sky-400':'text-sky-600'}`}/>
+          </p>
+
+          <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-6'}`} style={{ transitionDelay:'240ms' }}>
+            <button onClick={()=>setModal(true)}
+              className="group relative px-7 py-4 text-sm font-bold text-white rounded-2xl overflow-hidden shadow-2xl shadow-sky-500/35 transition-all duration-300 hover:scale-105 active:scale-98 flex items-center justify-center gap-2"
+              style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 100%)' }}>
+              <LogIn size={15}/> Access Your Portal
+              <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1"/>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
+            </button>
+            <button onClick={()=>scrollTo('how-it-works')}
+              className={`group px-7 py-4 text-sm font-bold rounded-2xl border transition-all duration-300 hover:scale-105 active:scale-98 flex items-center justify-center gap-2 ${dark?'border-white/12 text-gray-300 hover:bg-white/6 hover:border-white/22':'border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300 shadow-sm hover:shadow-md'}`}>
+              <Play size={13} className="transition-transform group-hover:scale-110"/> See how it works
+            </button>
+          </div>
+
+          {/* Trust bar */}
+          <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 transition-all duration-700 ${heroVis?'opacity-100':'opacity-0'}`} style={{ transitionDelay:'340ms' }}>
+            {[{icon:ShieldCheck,t:'TLS 1.3'},{icon:Globe,t:'PH Timezone'},{icon:Zap,t:'<200ms scan'},{icon:Cloud,t:'99.95% uptime'}].map((x,i)=>(
+              <div key={i} className={`flex items-center gap-1.5 text-xs font-semibold ${dark?'text-gray-500':'text-gray-400'}`}>
+                <x.icon size={12} className="text-emerald-500"/>{x.t}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stat cards */}
+        <div className="mt-12 sm:mt-16 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {statCards.map((s,i)=>(
+            <div key={s.key}
+              className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-5 text-center cursor-default transition-all duration-500 hover:-translate-y-2 hover:shadow-xl ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'} ${dark?'bg-white/[0.04] border-white/8 hover:bg-white/[0.07] hover:border-white/16':'bg-white border-gray-100/80 hover:border-gray-200 shadow-sm hover:shadow-lg'}`}
+              style={{ transitionDelay:`${440+i*80}ms` }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"
+                style={{ background:`radial-gradient(circle at 50% 0%,${s.dim},transparent 72%)` }}/>
+              <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
+                style={{ background:`linear-gradient(90deg,${s.accent},${s.accent}55)` }}/>
+              <s.icon size={18} className="mx-auto mb-2.5 transition-transform duration-300 group-hover:scale-110" style={{ color:s.accent }}/>
+              <div className={`text-2xl sm:text-3xl font-black tabular-nums flex items-baseline justify-center gap-0.5 ${dark?'text-white':'text-gray-900'}`}>
+                {isBot ? <StaticNum value={s.val} prefix={s.prefix} suffix={s.suffix}/> : (
                   <>
-                    {s.prefix && <span className="text-sm opacity-70">{s.prefix}</span>}
-                    <Odometer value={s.val} options={odometerOptions} />
-                    {s.suffix && <span className="text-sm opacity-70">{s.suffix}</span>}
+                    {s.prefix&&<span className="text-sm opacity-60">{s.prefix}</span>}
+                    {mounted ? <Odometer value={s.val} options={odo}/> : <span>{s.val}</span>}
+                    {s.suffix&&<span className="text-sm opacity-60">{s.suffix}</span>}
                   </>
                 )}
-              </p>
-              <p className={`text-xs mt-1 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.label}</p>
+              </div>
+              <p className={`text-xs mt-1 font-semibold ${dark?'text-gray-500':'text-gray-400'}`}>{s.label}</p>
             </div>
           ))}
         </div>
+
+        {/* Scroll cue */}
+        <div className={`hidden sm:flex justify-center mt-10 transition-all duration-700 ${heroVis?'opacity-100':'opacity-0'}`} style={{ transitionDelay:'900ms' }}>
+          <button onClick={()=>scrollTo('features')} className={`flex flex-col items-center gap-2 transition-opacity hover:opacity-60 ${dark?'text-gray-600':'text-gray-400'}`}>
+            <span className="text-[10px] font-bold uppercase tracking-widest">Scroll</span>
+            <div className="mouse-scroll-icon"/>
+          </button>
+        </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20" style={{ zIndex: 1 }}>
-        <div className="text-center mb-12">
-          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>Platform Features</p>
-          <h2 className={`text-4xl md:text-5xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Everything you need,<br />nothing you don't</h2>
+      {/* ── MARQUEE ── */}
+      <div className={`relative py-3.5 overflow-hidden border-y ${dark?'border-white/6 bg-white/[0.02]':'border-gray-200/60 bg-white/70'}`} style={{ zIndex:1 }}>
+        <div className="flex gap-10 marquee-strip whitespace-nowrap select-none">
+          {[0,1,2,3].flatMap(gi =>
+            ['ESP8266/ESP32 Hardware','RFID RC522','Google Apps Script','Real-Time Sync','Parent Portal','Excel Export','TLS 1.3 Encrypted','PH Timezone','Multi-Role Auth','Live Dashboard']
+              .map((t,i) => (
+                <span key={`${gi}-${i}`} className={`text-[11px] font-bold uppercase tracking-[0.16em] flex items-center gap-3 ${dark?'text-gray-600':'text-gray-400'}`}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background:['#0ea5e9','#7c3aed','#10b981','#f59e0b'][i%4] }}/>
+                  {t}
+                </span>
+              ))
+          )}
         </div>
-        <div className="grid md:grid-cols-2 gap-4 items-start">
-          <div className="space-y-2">
-            {features.map((f, i) => (
-              <button key={i} onClick={() => setActiveFeature(i)} className={`w-full text-left p-5 rounded-2xl border transition-all duration-300 ${activeFeature === i ? darkMode ? 'bg-white/6 border-white/15 shadow-lg' : 'bg-white border-gray-200 shadow-lg' : darkMode ? 'border-white/4 hover:bg-white/4 hover:border-white/10' : 'border-transparent hover:bg-white hover:border-gray-100'}`}>
-                <div className="flex items-center gap-3 mb-1">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${activeFeature === i ? `bg-gradient-to-br ${f.gradient}` : darkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                    <f.icon size={15} className={activeFeature === i ? 'text-white' : darkMode ? 'text-gray-400' : 'text-gray-500'} />
-                  </div>
-                  <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wider ${activeFeature === i ? darkMode ? 'text-sky-400' : 'text-sky-600' : darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{f.label}</p>
-                    <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{f.title}</p>
-                  </div>
-                  <ChevronRight size={16} className={`ml-auto transition-all duration-300 ${activeFeature === i ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'} ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+      </div>
+
+      {/* ── FEATURES ── */}
+      <section id="features" ref={featRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex:1 }}>
+        <div className={`text-center mb-12 transition-all duration-700 ${featVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'}`}>
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-4 ${dark?'bg-sky-500/10 border-sky-500/25 text-sky-400':'bg-sky-50 border-sky-200 text-sky-600'}`}>
+            <Sparkles size={11} className="animate-pulse"/> Platform Features
+          </div>
+          <h2 className={`font-black tracking-tight leading-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.9rem,5vw,3.2rem)' }}>
+            Everything you need,<br/><span className={dark?'text-gray-500':'text-gray-400'}>nothing you don't.</span>
+          </h2>
+        </div>
+
+        {/* Mobile accordion */}
+        <div className="md:hidden space-y-2.5">
+          {features.map((f,i)=>(
+            <div key={i}
+              className={`rounded-2xl border overflow-hidden transition-all duration-400 ${featVis?'opacity-100 translate-y-0':'opacity-0 translate-y-6'} ${featIdx===i ? dark?'bg-white/6 border-white/16 shadow-xl':'bg-white border-gray-200 shadow-xl' : dark?'border-white/6 bg-white/[0.03]':'border-gray-100 bg-white/80'}`}
+              style={{ transitionDelay:`${i*60}ms` }}>
+              <button onClick={()=>setFeatIdx(featIdx===i ? -1 : i)} className="w-full text-left p-4 flex items-center gap-3">
+                <div className={`w-9 h-9 min-w-[36px] rounded-xl flex items-center justify-center transition-all ${featIdx===i?`bg-gradient-to-br ${f.gradient} shadow-lg`:dark?'bg-white/6':'bg-gray-100'}`}>
+                  <f.icon size={15} className={featIdx===i?'text-white':dark?'text-gray-400':'text-gray-500'}/>
                 </div>
-                {activeFeature === i && (
-                  <div className="mt-3 pl-11 space-y-2">
-                    <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
-                    <div className="grid grid-cols-2 gap-1.5 mt-3">
-                      {f.bullets.map((b, bi) => (
-                        <div key={bi} className={`flex items-center gap-1.5 text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                          <CheckCircle size={12} className="text-emerald-500 flex-shrink-0" />{b}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[10px] font-bold uppercase tracking-wider ${featIdx===i?dark?'text-sky-400':'text-sky-600':dark?'text-gray-500':'text-gray-400'}`}>{f.label}</p>
+                  <p className={`text-sm font-black ${dark?'text-white':'text-gray-900'}`}>{f.title}</p>
+                </div>
+                <ChevronDown size={15} className={`flex-shrink-0 transition-transform duration-300 ${featIdx===i?'rotate-180':''} ${dark?'text-gray-500':'text-gray-400'}`}/>
+              </button>
+              <div className={`overflow-hidden transition-all duration-400 ${featIdx===i?'max-h-80':'max-h-0'}`}>
+                <div className="px-4 pb-5 pl-16">
+                  <p className={`text-sm leading-relaxed mb-3 ${dark?'text-gray-400':'text-gray-500'}`}>{f.desc}</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {f.bullets.map((b,bi)=>(
+                      <div key={bi} className={`flex items-start gap-1.5 text-xs font-medium ${dark?'text-gray-400':'text-gray-600'}`}>
+                        <CheckCircle size={11} className="text-emerald-500 flex-shrink-0 mt-0.5"/>{b}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop two-col */}
+        <div className="hidden md:grid md:grid-cols-2 gap-4 items-start">
+          <div className="space-y-2">
+            {features.map((f,i)=>(
+              <button key={i} onClick={()=>setFeatIdx(i)}
+                className={`w-full text-left p-5 rounded-2xl border transition-all duration-300 ${featVis?'opacity-100 translate-x-0':'opacity-0 -translate-x-8'} ${featIdx===i
+                  ? dark?'bg-white/6 border-white/16 shadow-xl':'bg-white border-gray-200 shadow-xl'
+                  : dark?'border-white/[0.04] hover:bg-white/[0.04] hover:border-white/10':'border-transparent hover:bg-white hover:border-gray-100 hover:shadow-md'}`}
+                style={{ transitionDelay:`${i*55}ms` }}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${featIdx===i?`bg-gradient-to-br ${f.gradient} shadow-lg`:dark?'bg-white/6':'bg-gray-100'}`}>
+                    <f.icon size={15} className={featIdx===i?'text-white':dark?'text-gray-400':'text-gray-500'}/>
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${featIdx===i?dark?'text-sky-400':'text-sky-600':dark?'text-gray-500':'text-gray-400'}`}>{f.label}</p>
+                    <p className={`text-sm font-black ${dark?'text-white':'text-gray-900'}`}>{f.title}</p>
+                  </div>
+                  <ChevronRight size={15} className={`flex-shrink-0 transition-all duration-300 ${featIdx===i?'opacity-100 text-sky-500':'opacity-0'}`}/>
+                </div>
+                {featIdx===i && (
+                  <div className="mt-3 pl-12 animate-expand-down">
+                    <p className={`text-sm leading-relaxed mb-3 ${dark?'text-gray-400':'text-gray-500'}`}>{f.desc}</p>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {f.bullets.map((b,bi)=>(
+                        <div key={bi} className={`flex items-center gap-1.5 text-xs font-medium ${dark?'text-gray-400':'text-gray-600'}`}>
+                          <CheckCircle size={11} className="text-emerald-500 flex-shrink-0"/>{b}
                         </div>
                       ))}
                     </div>
@@ -468,19 +529,22 @@ const processNextUpdate = () => {
               </button>
             ))}
           </div>
-          <div className={`sticky top-24 rounded-3xl border overflow-hidden ${darkMode ? 'bg-gray-900/60 border-white/8' : 'bg-white border-gray-200 shadow-xl'}`} style={{ minHeight: '340px' }}>
-            {features.map((f, i) => (
-              <div key={i} className={`transition-all duration-500 ${activeFeature === i ? 'opacity-100 relative' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
-                <div className={`h-2 w-full bg-gradient-to-r ${f.gradient}`} />
-                <div className="p-8">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gradient-to-br ${f.gradient}`}><f.icon size={26} className="text-white" /></div>
-                  <h3 className={`text-xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{f.title}</h3>
-                  <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
-                  <div className="grid grid-cols-1 gap-2">
-                    {f.bullets.map((b, bi) => (
-                      <div key={bi} className={`flex items-center gap-3 p-3 rounded-xl border ${darkMode ? 'border-white/5 bg-white/3' : 'border-gray-100 bg-slate-50'}`}>
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${f.gradient}`}><CheckCircle size={12} className="text-white" /></div>
-                        <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{b}</span>
+          <div className={`sticky top-24 rounded-3xl border overflow-hidden transition-all duration-700 ${featVis?'opacity-100 translate-x-0':'opacity-0 translate-x-8'} ${dark?'bg-gray-900/60 border-white/8 shadow-2xl':'bg-white border-gray-200 shadow-2xl'}`}
+            style={{ minHeight:360, transitionDelay:'200ms' }}>
+            {features.map((f,i)=>(
+              <div key={i} className={`transition-all duration-500 ${featIdx===i?'opacity-100 relative':'opacity-0 absolute inset-0 pointer-events-none'}`}>
+                <div className={`h-1.5 bg-gradient-to-r ${f.gradient}`}/>
+                <div className="p-7">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gradient-to-br ${f.gradient}`} style={{ boxShadow:`0 8px 32px ${f.glow}40` }}>
+                    <f.icon size={26} className="text-white"/>
+                  </div>
+                  <h3 className={`text-xl font-black mb-2 ${dark?'text-white':'text-gray-900'}`}>{f.title}</h3>
+                  <p className={`text-sm leading-relaxed mb-5 ${dark?'text-gray-400':'text-gray-500'}`}>{f.desc}</p>
+                  <div className="space-y-2">
+                    {f.bullets.map((b,bi)=>(
+                      <div key={bi} className={`flex items-center gap-3 p-3 rounded-xl border transition-all hover:-translate-y-px ${dark?'border-white/6 bg-white/[0.03] hover:bg-white/6':'border-gray-100 bg-slate-50 hover:bg-white hover:border-gray-200'}`}>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 bg-gradient-to-br ${f.gradient}`}><CheckCircle size={12} className="text-white"/></div>
+                        <span className={`text-sm font-semibold ${dark?'text-gray-300':'text-gray-700'}`}>{b}</span>
                       </div>
                     ))}
                   </div>
@@ -491,26 +555,36 @@ const processNextUpdate = () => {
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className={`relative py-20 ${darkMode ? 'bg-white/2' : 'bg-white'}`} style={{ zIndex: 1 }}>
-        <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Process</p>
-            <h2 className={`text-4xl md:text-5xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>From tap to dashboard<br />in 200 milliseconds</h2>
+      {/* ── HOW IT WORKS ── */}
+      <section id="how-it-works" ref={howRef} className={`relative py-20 sm:py-28 ${dark?'bg-white/[0.02]':'bg-white'}`} style={{ zIndex:1 }}>
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: dark?'linear-gradient(90deg,transparent,rgba(148,163,184,0.1),transparent)':'linear-gradient(90deg,transparent,rgba(100,116,139,0.13),transparent)' }}/>
+        <div className="max-w-3xl mx-auto px-4 sm:px-5">
+          <div className={`text-center mb-12 transition-all duration-700 ${howVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'}`}>
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-4 ${dark?'bg-emerald-500/10 border-emerald-500/25 text-emerald-400':'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+              <Zap size={11}/> The Process
+            </div>
+            <h2 className={`font-black tracking-tight leading-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.9rem,5vw,3.2rem)' }}>
+              Tap to dashboard<br/>
+              <span style={{ background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>in 200 milliseconds.</span>
+            </h2>
           </div>
           <div className="relative">
-            <div className={`absolute top-8 bottom-8 w-px ${darkMode ? 'bg-gradient-to-b from-sky-500 via-violet-500 to-emerald-500' : 'bg-gradient-to-b from-sky-300 via-violet-300 to-emerald-300'}`} style={{ left: '31px' }} />
-            <div className="space-y-6">
-              {steps.map((item, i) => (
-                <div key={i} className="relative flex gap-5 items-start group">
-                  <div className={`relative z-10 flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${item.gradient} transition-transform duration-300 group-hover:scale-105`}>
-                    <item.icon size={24} className="text-white" />
-                    <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full text-xs font-black flex items-center justify-center border-2 ${darkMode ? 'bg-gray-900' : 'bg-white'}`} style={{ color: item.accent, borderColor: item.accent }}>{i + 1}</div>
+            <div className={`absolute w-px transition-opacity duration-700 ${howVis?'opacity-100':'opacity-0'}`}
+              style={{ left:31, top:32, bottom:32, background: dark?'linear-gradient(to bottom,#0ea5e9,#7c3aed,#6366f1,#10b981)':'linear-gradient(to bottom,#7dd3fc,#c4b5fd,#a5b4fc,#6ee7b7)' }}/>
+            <div className="space-y-5">
+              {steps.map((s,i)=>(
+                <div key={i}
+                  className={`relative flex gap-4 items-start group transition-all duration-700 ${howVis?'opacity-100 translate-x-0':'opacity-0 -translate-x-10'}`}
+                  style={{ transitionDelay:`${i*110}ms` }}>
+                  <div className={`relative z-10 flex-shrink-0 w-[62px] h-[62px] rounded-2xl flex items-center justify-center shadow-xl bg-gradient-to-br ${s.gradient} transition-all duration-300 group-hover:scale-105 group-hover:rotate-2`}
+                    style={{ boxShadow:`0 6px 28px ${s.accent}40` }}>
+                    <s.icon size={22} className="text-white"/>
+                    <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center border-2 ${dark?'bg-gray-900 border-gray-700':'bg-white border-gray-100'}`} style={{ color:s.accent }}>{i+1}</div>
                   </div>
-                  <div className={`flex-1 p-5 rounded-2xl border transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-md ${darkMode ? 'bg-white/3 border-white/6 hover:border-white/12' : 'bg-slate-50 border-gray-100 hover:border-gray-200 hover:bg-white'}`}>
-                    <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: item.accent }}>Step {item.step}</p>
-                    <h3 className={`text-base font-black mb-1.5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{item.title}</h3>
-                    <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.desc}</p>
+                  <div className={`flex-1 min-w-0 p-4 sm:p-5 rounded-2xl border transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-lg ${dark?'bg-white/[0.03] border-white/6 hover:border-white/12 hover:bg-white/5':'bg-slate-50/80 border-gray-100 hover:border-gray-200 hover:bg-white'}`}>
+                    <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color:s.accent }}>Step {s.n}</p>
+                    <h3 className={`text-sm sm:text-base font-black mb-1 ${dark?'text-white':'text-gray-900'}`}>{s.title}</h3>
+                    <p className={`text-xs sm:text-sm leading-relaxed ${dark?'text-gray-400':'text-gray-500'}`}>{s.desc}</p>
                   </div>
                 </div>
               ))}
@@ -519,29 +593,64 @@ const processNextUpdate = () => {
         </div>
       </section>
 
-      {/* Security section */}
-      <section className={`relative py-14 overflow-hidden ${darkMode ? 'bg-white/2' : 'bg-white'}`} style={{ zIndex: 1 }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className={`p-8 md:p-10 rounded-3xl border overflow-hidden relative ${darkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-white/8' : 'bg-gradient-to-br from-slate-900 to-gray-800 border-transparent'}`}>
-            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10 blur-3xl bg-sky-400" />
-            <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full opacity-10 blur-2xl bg-violet-400" />
-            <div className="grid md:grid-cols-2 gap-8 items-center relative z-10">
+      {/* ── METRICS ── */}
+      <section ref={metRef} className="relative py-14 sm:py-16" style={{ zIndex:1 }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { to:500, suffix:'+',  label:'Students tracked',     accent:'#0ea5e9' },
+              { to:99,  suffix:'.9%',label:'Scan accuracy',        accent:'#10b981' },
+              { to:200, prefix:'<',  suffix:'ms', label:'Response time', accent:'#7c3aed' },
+              { to:24,  suffix:'/7', label:'System availability',  accent:'#f59e0b' },
+            ].map((m,i)=>(
+              <div key={i}
+                className={`p-5 sm:p-6 rounded-2xl border text-center transition-all duration-500 hover:-translate-y-1 ${metVis?'opacity-100 translate-y-0':'opacity-0 translate-y-6'} ${dark?'bg-white/[0.04] border-white/8 hover:border-white/16':'bg-white border-gray-100 shadow-sm hover:shadow-lg'}`}
+                style={{ transitionDelay:`${i*80}ms` }}>
+                <p className="text-3xl sm:text-4xl font-black tabular-nums mb-1" style={{ color:m.accent }}>
+                  <CountUp to={m.to} suffix={m.suffix} prefix={m.prefix}/>
+                </p>
+                <p className={`text-xs font-bold ${dark?'text-gray-500':'text-gray-400'}`}>{m.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SECURITY ── */}
+      <section ref={secRef} className={`relative py-14 sm:py-20 ${dark?'bg-white/[0.02]':'bg-white'}`} style={{ zIndex:1 }}>
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: dark?'linear-gradient(90deg,transparent,rgba(148,163,184,0.1),transparent)':'linear-gradient(90deg,transparent,rgba(100,116,139,0.13),transparent)' }}/>
+        <div className="max-w-6xl mx-auto px-4 sm:px-5">
+          <div className={`relative overflow-hidden rounded-3xl p-6 sm:p-10 transition-all duration-700 ${secVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'}`}
+            style={{ background:'linear-gradient(135deg,#0c111f,#111827)', border:'1px solid rgba(255,255,255,0.06)' }}>
+            <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full pointer-events-none animate-slow-pulse" style={{ background:'radial-gradient(circle,rgba(14,165,233,0.13) 0%,transparent 70%)', filter:'blur(20px)' }}/>
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full pointer-events-none" style={{ background:'radial-gradient(circle,rgba(124,58,237,0.12) 0%,transparent 70%)', filter:'blur(16px)', animation:'slow-pulse 4s ease-in-out infinite 2s' }}/>
+            <div className="absolute top-5 right-5 w-20 h-20 rounded-full border border-dashed border-white/8 animate-spin-24"/>
+            <div className="absolute bottom-5 left-5 w-14 h-14 rounded-full border border-dashed border-white/5 animate-spin-18-rev"/>
+            <div className="relative z-10 grid md:grid-cols-2 gap-8 items-center">
               <div>
-                <div className="flex items-center gap-2 mb-4"><Shield size={20} className="text-sky-400" /><span className="text-sky-400 text-xs font-bold uppercase tracking-widest">Enterprise Security</span></div>
-                <h3 className="text-2xl md:text-3xl font-black text-white mb-3">Your data stays yours.</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">Every request is authenticated with a rotating session token. Connections use TLS 1.3. No attendance data is stored on the hardware itself — only the school's backend holds student records.</p>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center"><Shield size={15} className="text-sky-400"/></div>
+                  <span className="text-sky-400 text-xs font-black uppercase tracking-widest">Enterprise Security</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white mb-3 leading-tight">Your data stays yours.</h3>
+                <p className="text-gray-400 text-sm leading-relaxed mb-5">Every request is authenticated with a rotating session token. Connections use TLS 1.3. No attendance data is stored on the hardware — only the school's backend holds student records.</p>
+                <div className="flex flex-wrap gap-2">
+                  {['Zero hardware storage','Role-based access','Encrypted at rest'].map(t=>(
+                    <span key={t} className="text-xs px-3 py-1.5 rounded-xl font-bold bg-white/6 text-gray-300 border border-white/10">{t}</span>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: Shield, label: 'TLS 1.3 Encryption', val: '256-bit' },
-                  { icon: Clock, label: 'Session Timeout', val: '30 min' },
-                  { icon: Database, label: 'Data Isolation', val: 'Per-role' },
-                  { icon: CheckCircle, label: 'Audit Logs', val: 'Full trail' },
-                ].map((s, i) => (
-                  <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/8">
-                    <s.icon size={16} className="text-sky-400 mb-2" />
-                    <p className="text-white font-bold text-lg">{s.val}</p>
-                    <p className="text-gray-500 text-xs mt-0.5">{s.label}</p>
+                  { icon:Shield,       label:'TLS 1.3 Encryption', val:'256-bit', accent:'#0ea5e9' },
+                  { icon:ShieldCheck,  label:'Session Timeout',     val:'30 min',  accent:'#10b981' },
+                  { icon:Database,     label:'Data Isolation',      val:'Per-role',accent:'#7c3aed' },
+                  { icon:CheckCircle,  label:'Audit Logs',          val:'Full trail',accent:'#f59e0b' },
+                ].map((x,i)=>(
+                  <div key={i} className="p-4 rounded-2xl bg-white/[0.05] border border-white/8 hover:bg-white/[0.09] hover:border-white/15 transition-all duration-200 hover:-translate-y-0.5 group cursor-default">
+                    <x.icon size={15} className="mb-2 transition-transform group-hover:scale-110" style={{ color:x.accent }}/>
+                    <p className="text-white font-black text-base sm:text-lg">{x.val}</p>
+                    <p className="text-gray-500 text-xs mt-0.5 font-medium">{x.label}</p>
                   </div>
                 ))}
               </div>
@@ -550,131 +659,156 @@ const processNextUpdate = () => {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="relative max-w-3xl mx-auto px-4 sm:px-6 py-20" style={{ zIndex: 1 }}>
-        <div className="text-center mb-12">
-          <p className={`text-xs font-bold uppercase tracking-[0.2em] mb-3 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>FAQ</p>
-          <h2 className={`text-4xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Common questions</h2>
+      {/* ── FAQ ── */}
+      <section id="faq" ref={faqRef} className="relative max-w-3xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex:1 }}>
+        <div className={`text-center mb-10 transition-all duration-700 ${faqVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'}`}>
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-4 ${dark?'bg-amber-500/10 border-amber-500/25 text-amber-400':'bg-amber-50 border-amber-200 text-amber-600'}`}>Common Questions</div>
+          <h2 className={`font-black tracking-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.8rem,5vw,2.8rem)' }}>Got questions?</h2>
         </div>
         <div className="space-y-2">
-          {faqs.map((f, i) => (
-            <div key={i} className={`rounded-2xl border overflow-hidden transition-all duration-300 ${activeFaq === i ? darkMode ? 'bg-white/5 border-white/12' : 'bg-white border-gray-200 shadow-md' : darkMode ? 'border-white/5 hover:border-white/10' : 'border-gray-100 hover:border-gray-200 bg-white'}`}>
-              <button onClick={() => setActiveFaq(activeFaq === i ? null : i)} className="w-full flex items-center justify-between p-5 text-left">
-                <span className={`font-bold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{f.q}</span>
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ml-3 transition-all duration-300 ${activeFaq === i ? 'bg-sky-500' : darkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                  {activeFaq === i ? <ChevronUp size={14} className="text-white" /> : <ChevronDown size={14} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />}
+          {faqs.map((f,i)=>(
+            <div key={i}
+              className={`rounded-2xl border overflow-hidden transition-all duration-500 ${faqVis?'opacity-100 translate-y-0':'opacity-0 translate-y-5'} ${openFaq===i
+                ? dark?'bg-white/5 border-white/14 shadow-lg':'bg-white border-gray-200 shadow-lg'
+                : dark?'border-white/[0.05] bg-white/[0.025] hover:border-white/10':'border-gray-100 bg-white/80 hover:bg-white hover:border-gray-200'}`}
+              style={{ transitionDelay:`${i*55}ms` }}>
+              <button onClick={()=>setOpenFaq(openFaq===i?null:i)} className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3 group">
+                <span className={`font-bold text-sm leading-snug flex-1 ${dark?'text-white':'text-gray-900'}`}>{f.q}</span>
+                <div className={`w-7 h-7 min-w-[28px] rounded-xl flex items-center justify-center transition-all duration-300 ${openFaq===i?'bg-sky-500 rotate-180':dark?'bg-white/6 group-hover:bg-white/10':'bg-gray-100 group-hover:bg-gray-200'}`}>
+                  <ChevronDown size={14} className={openFaq===i?'text-white':dark?'text-gray-400':'text-gray-500'}/>
                 </div>
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ${activeFaq === i ? 'max-h-40 pb-5' : 'max-h-0'}`}>
-                <p className={`px-5 text-sm leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{f.a}</p>
+              <div className={`overflow-hidden transition-all duration-350 ${openFaq===i?'max-h-56 pb-5':'max-h-0'}`}>
+                <p className={`px-4 sm:px-5 text-sm leading-relaxed ${dark?'text-gray-400':'text-gray-500'}`}>{f.a}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="relative max-w-4xl mx-auto px-4 sm:px-6 py-16 text-center" style={{ zIndex: 1 }}>
-        <div className={`relative p-10 md:p-14 rounded-3xl overflow-hidden border ${darkMode ? 'border-white/8' : 'border-transparent'}`} style={{ background: darkMode ? 'linear-gradient(135deg, rgba(14,165,233,0.08), rgba(124,58,237,0.08))' : 'linear-gradient(135deg, #eff6ff, #f5f3ff)' }}>
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/4 w-64 h-64 rounded-full blur-3xl opacity-20" style={{ background: 'radial-gradient(circle, #0ea5e9, transparent)' }} />
-            <div className="absolute bottom-0 right-1/4 w-64 h-64 rounded-full blur-3xl opacity-20" style={{ background: 'radial-gradient(circle, #7c3aed, transparent)' }} />
-          </div>
+      {/* ── CTA ── */}
+      <section ref={ctaRef} className="relative max-w-4xl mx-auto px-4 sm:px-5 pb-20 sm:pb-28" style={{ zIndex:1 }}>
+        <div className={`relative overflow-hidden rounded-3xl p-8 sm:p-14 text-center border transition-all duration-700 ${ctaVis?'opacity-100 translate-y-0 scale-100':'opacity-0 translate-y-8 scale-[0.98]'} ${dark?'border-white/8':'border-transparent'}`}
+          style={{ background: dark?'linear-gradient(135deg,rgba(14,165,233,0.07),rgba(124,58,237,0.07))':'linear-gradient(135deg,#eff6ff,#f5f3ff)' }}>
+          <div className="absolute top-0 left-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 animate-slow-pulse pointer-events-none" style={{ background:'radial-gradient(circle,#0ea5e9,transparent)' }}/>
+          <div className="absolute bottom-0 right-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background:'radial-gradient(circle,#7c3aed,transparent)', animation:'slow-pulse 3.5s ease-in-out infinite 1.8s' }}/>
+          <div className="absolute top-5 right-5 w-20 h-20 rounded-full border-2 border-dashed opacity-[0.08] animate-spin-24" style={{ borderColor:'#0ea5e9' }}/>
+          <div className="absolute bottom-5 left-5 w-14 h-14 rounded-full border border-dashed opacity-[0.07] animate-spin-18-rev" style={{ borderColor:'#7c3aed' }}/>
           <div className="relative z-10">
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-6 ${darkMode ? 'bg-white/5 border-white/10 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
-              <Sparkles size={11} className="animate-pulse" /> Ready to transform attendance?
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-5 ${dark?'bg-white/5 border-white/12 text-sky-400':'bg-sky-50 border-sky-200 text-sky-600'}`}>
+              <Sparkles size={11} className="animate-pulse"/> Ready to transform attendance?
             </div>
-            <h2 className={`text-4xl md:text-5xl font-black tracking-tight mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Start tracking smarter</h2>
-            <p className={`text-base mb-8 max-w-lg mx-auto ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Sign in to access live dashboards, parent portals, and one-click reports — all powered by your RFID readers.</p>
-            <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2.5 px-8 py-4 text-base font-bold text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-xl shadow-sky-500/30 group" style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #7c3aed 100%)' }}>
-              Access Portal <ArrowRight size={18} className="transition-transform duration-200 group-hover:translate-x-1" />
+            <h2 className={`font-black tracking-tight mb-4 leading-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.8rem,5vw,3rem)' }}>
+              Start tracking smarter
+            </h2>
+            <p className={`text-sm sm:text-base mb-8 max-w-md mx-auto ${dark?'text-gray-400':'text-gray-500'}`}>
+              Sign in to access live dashboards, parent portals, and one-click reports — all powered by your RFID readers.
+            </p>
+            <button onClick={()=>setModal(true)}
+              className="inline-flex items-center gap-2.5 px-8 sm:px-10 py-4 text-sm sm:text-base font-bold text-white rounded-2xl shadow-2xl shadow-sky-500/35 transition-all duration-300 hover:scale-105 active:scale-98 group relative overflow-hidden"
+              style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 100%)' }}>
+              Access Portal <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1"/>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
             </button>
-            <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm">
-              {[{ icon: ShieldCheck, label: 'Secure by default' }, { icon: Cloud, label: '99.95% uptime' }, { icon: Globe, label: 'PH timezone native' }].map((t, i) => (
-                <div key={i} className={`flex items-center gap-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}><t.icon size={15} className="text-emerald-500" /><span className="font-medium">{t.label}</span></div>
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-7 text-xs sm:text-sm">
+              {[{icon:ShieldCheck,t:'Secure by default'},{icon:Cloud,t:'99.95% uptime'},{icon:Globe,t:'PH timezone native'}].map((x,i)=>(
+                <div key={i} className={`flex items-center gap-1.5 ${dark?'text-gray-400':'text-gray-500'}`}>
+                  <x.icon size={14} className="text-emerald-500"/><span className="font-semibold">{x.t}</span>
+                </div>
               ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className={`relative border-t py-10 ${darkMode ? 'border-white/5 bg-black/20' : 'border-gray-100 bg-white'}`} style={{ zIndex: 1 }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
+      {/* ── FOOTER ── */}
+      <footer className={`relative border-t py-10 sm:py-12 ${dark?'border-white/6 bg-black/25':'border-gray-100 bg-white'}`} style={{ zIndex:1 }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-5">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2.5 mb-3"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span></div>
-              <p className={`text-xs leading-relaxed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Modern attendance management for Philippine schools. Built on proven hardware and cloud infrastructure.</p>
+              <div className="flex items-center gap-2.5 mb-3"><AppLogo size="sm"/><span className={`font-black text-sm ${dark?'text-white':'text-gray-900'}`}>RFID Attendance</span></div>
+              <p className={`text-xs leading-relaxed ${dark?'text-gray-500':'text-gray-400'}`}>Modern attendance management for Philippine schools. Built on proven hardware and cloud infrastructure.</p>
             </div>
             <div>
-              <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Quick Links</p>
+              <p className={`text-xs font-black uppercase tracking-widest mb-3 ${dark?'text-gray-500':'text-gray-400'}`}>Quick Links</p>
               <div className="space-y-2">
-                {['Features', 'How It Works', 'FAQ'].map(l => (
-                  <button key={l} onClick={() => document.getElementById(l.toLowerCase().replace(/ /g, '-'))?.scrollIntoView({ behavior: 'smooth' })} className={`block text-xs font-medium transition-colors ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>{l}</button>
+                {[['features','Features'],['how-it-works','How It Works'],['faq','FAQ']].map(([id,l])=>(
+                  <button key={id} onClick={()=>scrollTo(id)} className={`block text-xs font-semibold transition-colors ${dark?'text-gray-400 hover:text-white':'text-gray-500 hover:text-gray-900'}`}>{l}</button>
                 ))}
               </div>
             </div>
             <div>
-              <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Stack</p>
-              <div className="flex flex-wrap gap-2">
-                {['ESP8266', 'RFID RC522', 'Google Apps Script', 'Next.js', 'Recharts', 'ExcelJS'].map(t => (
-                  <span key={t} className={`text-xs px-2 py-1 rounded-lg font-medium ${darkMode ? 'bg-white/5 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>{t}</span>
+              <p className={`text-xs font-black uppercase tracking-widest mb-3 ${dark?'text-gray-500':'text-gray-400'}`}>Tech Stack</p>
+              <div className="flex flex-wrap gap-1.5">
+                {['ESP8266/ESP32','RFID RC522','GAS API','Next.js','Recharts','ExcelJS'].map(t=>(
+                  <span key={t} className={`text-xs px-2.5 py-1 rounded-lg font-bold cursor-default transition-colors ${dark?'bg-white/5 text-gray-400 hover:bg-white/10':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t}</span>
                 ))}
               </div>
             </div>
           </div>
-          <div className={`border-t pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs ${darkMode ? 'border-white/5 text-gray-600' : 'border-gray-100 text-gray-400'}`}>
+          <div className={`border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs ${dark?'border-white/6 text-gray-600':'border-gray-100 text-gray-400'}`}>
             <p>© {new Date().getFullYear()} RFID Attendance Portal. All rights reserved.</p>
             <p className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" /></span>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75"/>
+                <span className="relative rounded-full h-1.5 w-1.5 bg-emerald-500"/>
+              </span>
               All systems operational
             </p>
           </div>
         </div>
       </footer>
 
-      {/* Login modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowModal(false)} />
-          <div className={`relative w-full max-w-md rounded-3xl animate-modal-in overflow-hidden ${darkMode ? 'bg-gray-900 border border-white/10 shadow-2xl' : 'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.18)]'}`}>
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-7">
+      {/* ── LOGIN MODAL ── */}
+      {modal && (
+        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={()=>setModal(false)}/>
+          <div className={`relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl animate-modal-up overflow-hidden ${dark?'bg-[#090e1c] border border-white/12 shadow-2xl':'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.2)]'}`}>
+            <div className="h-1 w-full" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }}/>
+            {/* Mobile drag handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className={`w-10 h-1 rounded-full ${dark?'bg-white/15':'bg-gray-200'}`}/>
+            </div>
+            <div className="p-5 sm:p-8">
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <AppLogo size="sm" />
+                  <AppLogo size="sm"/>
                   <div>
-                    <h2 className={`text-lg font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Welcome back</h2>
-                    <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sign in to your portal</p>
+                    <h2 className={`text-base sm:text-lg font-black tracking-tight ${dark?'text-white':'text-gray-900'}`}>Welcome back</h2>
+                    <p className={`text-xs ${dark?'text-gray-500':'text-gray-400'}`}>Sign in to your portal</p>
                   </div>
                 </div>
-                <button onClick={() => setShowModal(false)} className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-95 ${darkMode ? 'hover:bg-white/5 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}><X size={18} /></button>
+                <button onClick={()=>setModal(false)} className={`p-2 rounded-xl transition-all hover:scale-110 hover:rotate-90 ${dark?'hover:bg-white/8 text-gray-400':'hover:bg-gray-100 text-gray-500'}`}><X size={18}/></button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={submit} className="space-y-4">
                 <div>
-                  <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Username</label>
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter username" className={inp} required disabled={loginLoading} />
+                  <label className={`block text-xs font-black uppercase tracking-wider mb-1.5 ${dark?'text-gray-400':'text-gray-500'}`}>Username</label>
+                  <input type="text" value={user} onChange={e=>setUser(e.target.value)} placeholder="Enter username" className={inp} required disabled={loading} autoComplete="username"/>
                 </div>
                 <div>
-                  <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Password</label>
+                  <label className={`block text-xs font-black uppercase tracking-wider mb-1.5 ${dark?'text-gray-400':'text-gray-500'}`}>Password</label>
                   <div className="relative">
-                    <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" className={`${inp} pr-11`} required disabled={loginLoading} />
-                    <button type="button" onClick={() => setShowPw(!showPw)} className={`absolute right-3.5 top-1/2 -translate-y-1/2 hover:scale-110 transition-all ${darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}>
-                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    <input type={showPw?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)} placeholder="Enter password" className={`${inp} pr-12`} required disabled={loading} autoComplete="current-password"/>
+                    <button type="button" onClick={()=>setShowPw(p=>!p)} className={`absolute right-3.5 top-1/2 -translate-y-1/2 p-1 rounded-lg transition-all hover:scale-110 ${dark?'text-gray-500 hover:text-gray-300':'text-gray-400 hover:text-gray-600'}`}>
+                      {showPw ? <EyeOff size={16}/> : <Eye size={16}/>}
                     </button>
                   </div>
                 </div>
-                {error && (
-                  <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm animate-shake border ${darkMode ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
-                    <AlertCircle size={15} />{error}
+                {err && (
+                  <div className={`flex items-center gap-2 px-3.5 py-3 rounded-xl text-sm animate-shake border ${dark?'bg-rose-500/10 text-rose-400 border-rose-500/25':'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                    <AlertCircle size={15} className="flex-shrink-0"/>{err}
                   </div>
                 )}
-                <button type="submit" disabled={loginLoading} className="w-full py-3.5 text-white font-bold rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25" style={{ background: 'linear-gradient(135deg, #0ea5e9, #7c3aed)' }}>
-                  {loginLoading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : <><LogIn size={16} /> Sign In</>}
+                <button type="submit" disabled={loading}
+                  className="w-full py-4 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 relative overflow-hidden group transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
+                  style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                  {loading ? <><Loader2 size={16} className="animate-spin"/> Signing in…</> : <><LogIn size={16}/> Sign In</>}
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
                 </button>
               </form>
-              <div className={`mt-6 pt-5 border-t flex items-center justify-center gap-4 text-xs ${darkMode ? 'border-white/5 text-gray-600' : 'border-gray-100 text-gray-400'}`}>
-                {[ShieldCheck, Globe, Zap].map((Icon, i) => (
-                  <div key={i} className="flex items-center gap-1"><Icon size={11} className="text-emerald-500" /><span>{['Encrypted','PH Timezone','Fast'][i]}</span></div>
+              <div className={`mt-5 pt-5 border-t flex items-center justify-center gap-5 text-xs ${dark?'border-white/6 text-gray-600':'border-gray-100 text-gray-400'}`}>
+                {[[ShieldCheck,'Encrypted'],[Globe,'PH Timezone'],[Zap,'Fast']].map(([Icon,t],i)=>(
+                  <div key={i} className="flex items-center gap-1.5"><Icon size={11} className="text-emerald-500"/><span className="font-semibold">{t}</span></div>
                 ))}
               </div>
             </div>
@@ -683,25 +817,51 @@ const processNextUpdate = () => {
       )}
 
       <style jsx global>{`
-        @keyframes fade-in-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes modal-in { from { opacity: 0; transform: scale(0.94) translateY(-10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
-        .animate-fade-in-up { animation: fade-in-up 0.45s ease-out both; }
-        .animate-modal-in { animation: modal-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .animate-shake { animation: shake 0.4s ease-out; }
-        
-        /* Odometer customizations */
-        .odometer {
-          font-family: inherit !important;
-        }
-        .odometer .odometer-digit {
-          font-family: inherit !important;
-        }
-        
-        html { scroll-behavior: smooth; }
-        body, html { overflow-x: hidden; }
-        * { box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+        body, html { font-family: 'Sora', sans-serif; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
         @media (max-width: 767px) { input, select, textarea { font-size: 16px !important; } }
+
+        @keyframes modal-up   { from{opacity:0;transform:translateY(28px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes slide-left { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
+        @keyframes shake      { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+        @keyframes expand-down{ from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes marquee    { from{transform:translateX(0)} to{transform:translateX(-25%)} }
+        @keyframes slow-pulse { 0%,100%{opacity:0.16} 50%{opacity:0.32} }
+        @keyframes spin-24    { to{transform:rotate(360deg)}  }
+        @keyframes spin-18r   { to{transform:rotate(-360deg)} }
+        @keyframes scroll-m   { 0%,100%{transform:translateY(0);opacity:1} 50%{transform:translateY(7px);opacity:0.3} }
+
+        .animate-modal-up    { animation: modal-up 0.34s cubic-bezier(0.34,1.5,0.64,1) both; }
+        .animate-slide-left  { animation: slide-left 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+        .animate-shake       { animation: shake 0.42s ease-out; }
+        .animate-expand-down { animation: expand-down 0.28s ease-out both; }
+        .animate-slow-pulse  { animation: slow-pulse 3.5s ease-in-out infinite; }
+        .animate-spin-24     { animation: spin-24  24s linear infinite; }
+        .animate-spin-18-rev { animation: spin-18r 18s linear infinite; }
+
+        .marquee-strip { animation: marquee 34s linear infinite; }
+        .marquee-strip:hover { animation-play-state: paused; }
+
+        .mouse-scroll-icon {
+          width: 22px; height: 34px; border-radius: 11px;
+          border: 2px solid currentColor; position: relative; opacity: 0.45;
+        }
+        .mouse-scroll-icon::after {
+          content:''; position:absolute; top:5px; left:50%;
+          transform:translateX(-50%); width:3px; height:6px;
+          border-radius:2px; background:currentColor;
+          animation: scroll-m 1.6s ease-in-out infinite;
+        }
+
+        .odometer, .odometer .odometer-digit { font-family:'Sora',sans-serif !important; }
+        section { isolation: isolate; }
+
+        /* Safe area support (iPhone notch/home bar) */
+        nav { padding-top: env(safe-area-inset-top, 0px); }
+        footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
       `}</style>
     </div>
   );
