@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { RouteGuard } from '../_lib/RouteGuard';
 import { useApp } from '../_lib/AppContext';
 import AppHeader from '../_components/AppHeader';
+import AppSidebar from '../_components/AppSidebar';
 import ParentLogsTab from '../_components/ParentLogsTab';
 import ExcelJS from 'exceljs';
 import { normalizeId, getPhTodayStr } from '../_lib/data';
@@ -69,9 +70,29 @@ async function exportToExcel(logsToExport = [], filenameSuffix = '') {
   URL.revokeObjectURL(url);
 }
 
+function useSidebarCollapse() {
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved === 'true') setCollapsed(true);
+  }, []);
+  const toggle = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebarCollapsed', next ? 'true' : 'false');
+      return next;
+    });
+  }, []);
+  return [collapsed, toggle];
+}
+
+const SIDEBAR_W_EXPANDED  = 260;
+const SIDEBAR_W_COLLAPSED = 64;
+
 export default function ParentPage() {
   const [darkMode, toggleTheme] = useDarkMode();
   const isMobile = useIsMobile();
+  const [sidebarCollapsed, toggleSidebar] = useSidebarCollapse();
   const { logs, students, loading, userInfo, fetchData } = useApp();
   const [childrenInfo, setChildrenInfo] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState('all');
@@ -99,10 +120,22 @@ export default function ParentPage() {
 
   const exportToCSV = (logsToExport, filenameSuffix = '') => exportToExcel(logsToExport || logs, filenameSuffix);
 
+  const sidebarW = isMobile ? 0 : (sidebarCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED);
+
   return (
     <RouteGuard allowedRoles={['parent']}>
       <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#0f1117]' : 'bg-slate-50/80'}`}>
-        <AppHeader darkMode={darkMode} toggleTheme={toggleTheme} loading={loading} onRefresh={fetchData} isMobile={isMobile} />
+        {!isMobile && (
+          <AppSidebar darkMode={darkMode} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+        )}
+        {isMobile && !sidebarCollapsed && (
+          <>
+            <div className="fixed inset-0 z-[39] bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
+            <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} />
+          </>
+        )}
+        <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.3s cubic-bezier(0.34,1.1,0.64,1)' }}>
+        <AppHeader darkMode={darkMode} toggleTheme={toggleTheme} loading={loading} onRefresh={fetchData} isMobile={isMobile} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           <div className="animate-fade-in-up">
             <ParentLogsTab
@@ -118,6 +151,7 @@ export default function ParentPage() {
             />
           </div>
         </main>
+        </div>
         <PageStyles />
       </div>
     </RouteGuard>

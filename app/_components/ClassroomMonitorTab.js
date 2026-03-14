@@ -85,14 +85,13 @@ export default function ClassroomMonitorTab({
   const [lastRefreshed,  setLastRefreshed]  = useState(Date.now());
   const sortRef = useRef(null);
 
-  // Staggered card entrance
+  // Staggered card entrance — single setState after last timeout to avoid N re-renders
   useEffect(() => {
-    const timers = [];
-    classes.forEach((_, i) => {
-      const t = setTimeout(() => setVisibleCards(prev => new Set([...prev, i])), i * 60);
-      timers.push(t);
-    });
-    return () => timers.forEach(clearTimeout);
+    if (!classes.length) return;
+    const t = setTimeout(() => {
+      setVisibleCards(new Set(classes.map((_, i) => i)));
+    }, 80);
+    return () => clearTimeout(t);
   }, [classes.join(',')]);
 
   // Track refresh for "last updated" display
@@ -370,14 +369,14 @@ export default function ClassroomMonitorTab({
 
             return (
               <div key={cn}
-                className={`group border rounded-2xl overflow-hidden transition-all duration-500 ease-out
-                  hover:-translate-y-1 hover:shadow-xl
+                className={`group border rounded-2xl overflow-hidden transition-[opacity,transform,border-color,background-color,box-shadow] duration-200
+                  hover:-translate-y-0.5 hover:shadow-lg
                   ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
                   ${isExpanded
                     ? darkMode ? 'bg-white/[0.06] border-white/16 shadow-xl' : 'bg-white border-gray-300 shadow-xl'
                     : darkMode ? 'bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/14' : 'bg-white border-gray-200/80 shadow-sm hover:border-gray-300 hover:shadow-lg'
                   }`}
-                style={{ transitionDelay: `${idx * 50}ms` }}
+                
               >
                 {/* Top accent */}
                 <div className="h-0.5 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"

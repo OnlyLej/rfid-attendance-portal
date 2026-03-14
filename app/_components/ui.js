@@ -174,7 +174,7 @@ export function Skeleton({ darkMode, className = '', style = {} }) {
     <div
       className={`rounded-xl block ${className}`}
       style={{
-        background: `linear-gradient(90deg,${base} 0%,${shine} 40%,${base} 100%)`,
+        backgroundImage: `linear-gradient(90deg,${base} 0%,${shine} 40%,${base} 100%)`,
         backgroundSize: '300% 100%',
         animation: 'sk-shimmer 1.8s ease-in-out infinite',
         ...style,

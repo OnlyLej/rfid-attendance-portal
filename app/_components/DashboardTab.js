@@ -10,6 +10,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, toPhDateStr, getPhLocalDate } from '../_lib/data';
+import { Skeleton, ChartSkeleton, Card } from './ui';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -58,30 +59,6 @@ const useCountUp = (target, duration = 1200, start = false) => {
     requestAnimationFrame(step);
   }, [target, duration, start]);
   return val;
-};
-
-/* ── Card ── */
-const Card = ({ children, className = '', darkMode, delay = 0, hover = false }) => {
-  const visible = useFadeIn(delay);
-  return (
-    <div
-      className={`border rounded-2xl backdrop-blur-sm transition-all duration-500 ease-out
-        ${darkMode
-          ? 'bg-white/[0.04] border-white/8'
-          : 'bg-white border-gray-200/80 shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.02)]'
-        }
-        ${hover
-          ? darkMode
-            ? 'hover:bg-white/[0.07] hover:border-white/16 hover:shadow-xl hover:-translate-y-0.5'
-            : 'hover:border-gray-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'
-          : ''
-        }
-        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-        ${className}`}
-    >
-      {children}
-    </div>
-  );
 };
 
 /* ── StatCard ── */
@@ -154,28 +131,6 @@ const StatCard = ({ icon: Icon, label, value, color, darkMode, delay = 0, numeri
     </div>
   );
 };
-
-/* ── Skeleton ── */
-const Skeleton = ({ className = '', darkMode }) => (
-  <div className={`rounded-xl overflow-hidden ${className}`}>
-    <div className={`w-full h-full ${darkMode ? 'bg-white/6' : 'bg-gray-200/60'} animate-pulse`} />
-  </div>
-);
-
-const ChartSkeleton = ({ darkMode }) => (
-  <div className="flex flex-col gap-3 h-full justify-end pb-2">
-    <div className="flex items-end gap-2 h-full">
-      {[0.4, 0.7, 0.5, 0.9, 0.6, 0.8, 0.5].map((h, i) => (
-        <div key={i} className="flex-1">
-          <div
-            className={`w-full rounded-t-lg animate-pulse ${darkMode ? 'bg-white/6' : 'bg-gray-200/60'}`}
-            style={{ height: `${h * 100}%` }}
-          />
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 /* ── ChartHeader ── */
 const ChartHeader = ({ icon: Icon, title, badge, color = 'sky', darkMode }) => {
