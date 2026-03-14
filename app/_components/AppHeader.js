@@ -498,8 +498,8 @@ export default function AppHeader({
             {/* ── LEFT ── */}
             <div className="flex items-center gap-2.5 min-w-0">
 
-              {/* Burger button — animated lines */}
-              <Tooltip label="Menu (M)" darkMode={darkMode}>
+              {/* Burger: always on desktop, hidden on mobile for teacher (has bottom tabs) */}
+              {(!isMobile || userType !== 'teacher') && <Tooltip label="Menu (M)" darkMode={darkMode}>
                 <button
                   onClick={() => setDrawerOpen(v => !v)}
                   className={`p-2 rounded-xl flex-shrink-0 transition-all duration-200 hover:scale-110 active:scale-90
@@ -517,7 +517,7 @@ export default function AppHeader({
                       ${drawerOpen ? '-rotate-45 -translate-y-[6px]' : ''}`} />
                   </div>
                 </button>
-              </Tooltip>
+              </Tooltip>}
 
               {/* Logo + live dot */}
               <div className="relative flex-shrink-0">
@@ -543,34 +543,7 @@ export default function AppHeader({
               </div>
             </div>
 
-            {/* ── CENTER: desktop tabs (teacher) ── */}
-            {!isMobile && userType === 'teacher' && (
-              <nav className={`hidden md:flex items-center gap-0.5 p-1 rounded-2xl flex-1 justify-center max-w-xs
-                ${darkMode ? 'bg-white/[0.05] border border-white/8' : 'bg-gray-100/80 border border-gray-200/60'}`}>
-                {TABS.map(tab => {
-                  const active = pathname === tab.href || pathname.startsWith(tab.href + '/');
-                  return (
-                    <Link
-                      key={tab.href}
-                      href={tab.href}
-                      className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold
-                        transition-all duration-200 hover:scale-105 active:scale-95
-                        ${active
-                          ? darkMode ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
-                          : darkMode ? 'text-gray-500 hover:text-gray-300 hover:bg-white/6' : 'text-gray-500 hover:text-gray-700 hover:bg-white/70'
-                        }`}
-                    >
-                      {active && (
-                        <span className="absolute bottom-0.5 left-3.5 right-3.5 h-px rounded-full"
-                          style={{ background: `linear-gradient(90deg,${tab.color},${tab.color}55)` }} />
-                      )}
-                      <tab.icon size={14} />
-                      {tab.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-            )}
+            {/* Navigation handled by burger drawer on desktop, floating tabs on mobile */}
 
             {/* ── RIGHT ── */}
             <div className="flex items-center gap-1 flex-shrink-0">
