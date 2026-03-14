@@ -1,737 +1,493 @@
-'use client';
-
 /**
- * AppHeader + Navigation System
+ * ui.jsx — Shared design-system primitives
+ * Import from this file in every tab/component.
  *
- * Desktop  → collapsible sidebar (left edge, slides open/closed)
- * Mobile   → floating liquid-glass tab bar (bottom, hovers above content)
- *
- * Liquid glass effect:
- *   backdrop-filter: blur + saturate + contrast
- *   layered semi-transparent gradients
- *   inner highlight border
- *   soft drop shadow
- *   the active pill slides between tabs with CSS transform
+ * Exports:
+ *   ToastProvider, useToast
+ *   Skeleton, SkeletonCard, ChartSkeleton
+ *   Card
+ *   Tooltip
+ *   Pagination
+ *   RateRing
+ *   AnimatedNumber
+ *   FilterChip
+ *   StatusBadge
+ *   EmptyState
  */
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+'use client';
+
 import {
-  Sun, Moon, RefreshCw, LogOut, Home, Users, FileText, RadioTower,
-  Bell, X, AlertTriangle, CheckCircle, Info, XCircle, Keyboard,
-  ChevronLeft, ChevronRight, Menu,
-} from 'lucide-react';
-import { useApp } from '../_lib/AppContext';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+  createContext, useContext, useState, useEffect, useRef, useCallback, useId,
+} from 'react';
+import { X, CheckCircle, AlertTriangle, Info, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PH_TZ = 'Asia/Manila';
-const TABS = [
-  { href: '/dashboard', icon: Home,     label: 'Dashboard', color: '#0ea5e9' },
-  { href: '/classroom', icon: Users,    label: 'Classroom', color: '#7c3aed' },
-  { href: '/logs',      icon: FileText, label: 'Logs',      color: '#10b981' },
-];
+/* ═══════════════════════════════════════════════════════════
+   TOAST SYSTEM
+   Usage:
+     wrap app in <ToastProvider darkMode={...} />
+     const { toast } = useToast();
+     toast.success('Saved!');
+     toast.error('Something went wrong');
+     toast.info('Refreshing…');
+     toast.warn('Low attendance today');
+═══════════════════════════════════════════════════════════ */
 
-/* ─────────────────────────────────────────────────────────
-   HOOKS
-───────────────────────────────────────────────────────── */
-function usePHClock() {
-  const [time, setTime] = useState('');
-  const [date, setDate] = useState('');
+const ToastCtx = createContext(null);
+
+export function useToast() {
+  const ctx = useContext(ToastCtx);
+  if (!ctx) throw new Error('useToast must be inside <ToastProvider>');
+  return ctx;
+}
+
+function ToastItem({ id, type, title, body, darkMode, onDismiss, duration = 4000 }) {
+  const [visible, setVisible]   = useState(false);
+  const [leaving, setLeaving]   = useState(false);
+  const [progress, setProgress] = useState(100);
+  const startRef  = useRef(null);
+  const rafRef    = useRef(null);
+  const pausedRef = useRef(false);
+  const elapsed   = useRef(0);
+
+  const dismiss = useCallback(() => {
+    setLeaving(true);
+    setTimeout(() => onDismiss(id), 320);
+  }, [id, onDismiss]);
+
+  // Mount entrance
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
+
+  // Auto-dismiss with pausable progress bar
   useEffect(() => {
-    const tick = () => {
-      const n = new Date();
-      setTime(n.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      setDate(n.toLocaleDateString('en-PH',  { timeZone: PH_TZ, weekday: 'short', month: 'short', day: 'numeric' }));
+    const tick = (ts) => {
+      if (!startRef.current) startRef.current = ts;
+      if (!pausedRef.current) elapsed.current += ts - (startRef.current);
+      startRef.current = ts;
+      const pct = Math.max(0, 100 - (elapsed.current / duration) * 100);
+      setProgress(pct);
+      if (pct <= 0) { dismiss(); return; }
+      rafRef.current = requestAnimationFrame(tick);
     };
-    tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
-  }, []);
-  return { time, date };
-}
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [duration, dismiss]);
 
-function getGreeting() {
-  const h = parseInt(new Date().toLocaleString('en-PH', { hour: 'numeric', hour12: false, timeZone: PH_TZ }));
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-}
-
-/* ─────────────────────────────────────────────────────────
-   APP LOGO
-───────────────────────────────────────────────────────── */
-function AppLogo({ size = 'md', collapsed = false }) {
-  const [err, setErr] = useState(false);
-  const sz = size === 'sm' ? 'w-8 h-8' : size === 'xs' ? 'w-6 h-6' : 'w-10 h-10';
-  const ic = size === 'sm' ? 14 : size === 'xs' ? 11 : 18;
-  const logo = err ? null : (
-    <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover" onError={() => setErr(true)} />
-  );
-  return (
-    <div className={`${sz} rounded-xl overflow-hidden flex-shrink-0 bg-gradient-to-br from-sky-400 to-violet-600 flex items-center justify-center shadow-lg shadow-sky-500/30`}>
-      {!err ? <img src="/favicon.ico" alt="" className="w-full h-full object-cover" onError={() => setErr(true)} /> : <RadioTower size={ic} className="text-white" />}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   LIQUID GLASS HELPERS
-   We build the glass look with inline styles so it works
-   even without Tailwind arbitrary-value support.
-───────────────────────────────────────────────────────── */
-function glassStyle(darkMode, extra = {}) {
-  return {
-    background: darkMode
-      ? 'linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 100%)'
-      : 'linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.48) 100%)',
-    backdropFilter: 'blur(24px) saturate(180%) brightness(1.05)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%) brightness(1.05)',
-    border: darkMode
-      ? '1px solid rgba(255,255,255,0.09)'
-      : '1px solid rgba(255,255,255,0.75)',
-    boxShadow: darkMode
-      ? '0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)'
-      : '0 8px 40px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)',
-    ...extra,
+  const iconMap = {
+    success: { Icon: CheckCircle, color: '#10b981', bg: 'bg-emerald-500/12 border-emerald-500/20', bar: '#10b981' },
+    error:   { Icon: XCircle,     color: '#f43f5e', bg: 'bg-rose-500/12 border-rose-500/20',       bar: '#f43f5e' },
+    warn:    { Icon: AlertTriangle,color: '#f59e0b', bg: 'bg-amber-500/12 border-amber-500/20',    bar: '#f59e0b' },
+    info:    { Icon: Info,         color: '#0ea5e9', bg: 'bg-sky-500/12 border-sky-500/20',         bar: '#0ea5e9' },
   };
-}
-
-/* ─────────────────────────────────────────────────────────
-   LOGOUT MODAL
-───────────────────────────────────────────────────────── */
-function LogoutModal({ darkMode, onConfirm, onCancel }) {
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onCancel(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onCancel]);
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onCancel} />
-      <div className="relative w-full max-w-sm rounded-2xl overflow-hidden nav-modal-in"
-        style={glassStyle(darkMode, { boxShadow: '0 32px 80px rgba(0,0,0,0.45)' })}>
-        <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#f43f5e,#f59e0b)' }} />
-        <div className="p-7 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={24} className="text-rose-500" />
-          </div>
-          <h3 className={`text-lg font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Sign out?</h3>
-          <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>You'll need to sign back in.</p>
-          <div className="flex gap-2.5">
-            <button onClick={onCancel}
-              className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-              Stay
-            </button>
-            <button onClick={onConfirm}
-              className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)', boxShadow: '0 4px 20px rgba(244,63,94,0.35)' }}>
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   SHORTCUTS MODAL
-───────────────────────────────────────────────────────── */
-function ShortcutsModal({ darkMode, onClose }) {
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-xs rounded-2xl overflow-hidden nav-modal-in"
-        style={glassStyle(darkMode, { boxShadow: '0 24px 64px rgba(0,0,0,0.4)' })}>
-        <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed)' }} />
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Keyboard size={14} className="text-sky-500" />
-              <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>Keyboard Shortcuts</p>
-            </div>
-            <button onClick={onClose} className={`p-1.5 rounded-lg transition-all hover:scale-110 ${darkMode ? 'hover:bg-white/8 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
-              <X size={14} />
-            </button>
-          </div>
-          {[['R','Refresh data'],['T','Toggle theme'],['B','Toggle sidebar'],['?','Show this help'],['Esc','Close panels']].map(([k,d],i) => (
-            <div key={i} className={`flex items-center justify-between py-2.5 border-b last:border-0 ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
-              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{d}</span>
-              <kbd className={`px-2.5 py-1 rounded-lg text-xs font-black border font-mono ${darkMode ? 'bg-white/8 border-white/12 text-gray-200' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>{k}</kbd>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   NOTIFICATIONS PANEL
-───────────────────────────────────────────────────────── */
-const T_ICON  = { success: CheckCircle, error: XCircle, warn: AlertTriangle, info: Info };
-const T_COLOR = { success:'text-emerald-500', error:'text-rose-500', warn:'text-amber-500', info:'text-sky-500' };
-const T_DOT   = { success:'bg-emerald-500',   error:'bg-rose-500',   warn:'bg-amber-500',   info:'bg-sky-500'   };
-
-function NotificationsPanel({ darkMode, onClose, notifications = [], onMarkAllRead }) {
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  return (
-    <div className="absolute right-0 top-full mt-2 w-80 z-50 rounded-2xl overflow-hidden nav-slide-down"
-      style={glassStyle(darkMode, { boxShadow: '0 20px 56px rgba(0,0,0,0.25)' })}>
-      <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
-      <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-white/6' : 'border-gray-200/60'}`}>
-        <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>Notifications</p>
-        <div className="flex items-center gap-1">
-          {notifications.length > 0 && (
-            <button onClick={onMarkAllRead} className={`text-[10px] font-bold px-2 py-1 rounded-lg ${darkMode ? 'text-sky-400 hover:bg-sky-500/10' : 'text-sky-600 hover:bg-sky-50'}`}>
-              Mark all read
-            </button>
-          )}
-          <button onClick={onClose} className={`p-1.5 rounded-lg transition-all hover:scale-110 ${darkMode ? 'hover:bg-white/8 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
-            <X size={13} />
-          </button>
-        </div>
-      </div>
-      {notifications.length === 0 ? (
-        <div className="p-10 text-center">
-          <Bell size={22} className={`mx-auto mb-2 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-          <p className={`text-xs font-black ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>All caught up!</p>
-        </div>
-      ) : (
-        <div className="max-h-72 overflow-y-auto">
-          {notifications.map((n, i) => {
-            const Icon = T_ICON[n.type] || Info;
-            return (
-              <div key={i} className={`flex gap-3 px-4 py-3.5 border-b last:border-0 transition-colors ${n.read ? 'opacity-55' : ''} ${darkMode ? 'border-white/[0.04] hover:bg-white/[0.04]' : 'border-gray-50 hover:bg-slate-50'}`}>
-                {!n.read && <span className={`absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full ${T_DOT[n.type] || 'bg-sky-500'}`} />}
-                <Icon size={15} className={`mt-0.5 flex-shrink-0 ${T_COLOR[n.type] || 'text-sky-500'}`} />
-                <div className="min-w-0">
-                  <p className={`text-xs font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{n.title}</p>
-                  {n.body && <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{n.body}</p>}
-                  {n.time && <p className={`text-[10px] mt-1 font-medium ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{n.time}</p>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   DESKTOP SIDEBAR
-───────────────────────────────────────────────────────── */
-export function DesktopSidebar({ darkMode, toggleTheme, loading, onRefresh, notifications = [], onMarkAllRead, onToast, sidebarOpen, setSidebarOpen }) {
-  const { userType, userInfo, handleLogout } = useApp();
-  const pathname = usePathname();
-  const { time, date } = usePHClock();
-
-  const [showLogout,    setShowLogout]    = useState(false);
-  const [showNotifs,    setShowNotifs]    = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [refreshSpin,   setRefreshSpin]   = useState(false);
-  const [mounted,       setMounted]       = useState(false);
-  const notifsRef = useRef(null);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  // Active tab index for sliding indicator
-  const activeIdx = TABS.findIndex(t => pathname.startsWith(t.href));
-  const activeTab = TABS[activeIdx] || TABS[0];
-
-  // Close notifs on outside click
-  useEffect(() => {
-    const h = (e) => { if (notifsRef.current && !notifsRef.current.contains(e.target)) setShowNotifs(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const h = (e) => {
-      if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
-      if (e.key === 'r' && !e.metaKey) handleRefresh();
-      if (e.key === 't' && !e.metaKey) toggleTheme();
-      if (e.key === 'b' && !e.metaKey) setSidebarOpen(v => !v);
-      if (e.key === '?') setShowShortcuts(v => !v);
-    };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [loading]);
-
-  const handleRefresh = useCallback(() => {
-    if (loading || refreshSpin) return;
-    setRefreshSpin(true);
-    setTimeout(() => setRefreshSpin(false), 800);
-    onRefresh?.();
-    onToast?.('info', 'Refreshing…', 'Fetching latest data');
-  }, [loading, refreshSpin, onRefresh, onToast]);
-
-  const unread = notifications.filter(n => !n.read).length;
-
-  // Sidebar widths
-  const W_OPEN   = 240;
-  const W_CLOSED = 64;
-  const w = sidebarOpen ? W_OPEN : W_CLOSED;
-
-  return (
-    <>
-      {/* ── Sidebar panel ── */}
-      <aside
-        className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 z-40 overflow-hidden"
-        style={{
-          width: w,
-          transition: 'width 0.35s cubic-bezier(0.34,1.1,0.64,1)',
-          ...glassStyle(darkMode, {
-            borderRadius: '0 20px 20px 0',
-            boxShadow: darkMode
-              ? '4px 0 48px rgba(0,0,0,0.5), inset -1px 0 0 rgba(255,255,255,0.06)'
-              : '4px 0 48px rgba(0,0,0,0.1), inset -1px 0 0 rgba(255,255,255,0.8)',
-            border: 'none',
-            borderRight: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.06)',
-          }),
-        }}
-      >
-        {/* Loading stripe */}
-        <div className="h-0.5 flex-shrink-0 transition-opacity duration-300" style={{ opacity: loading ? 1 : 0, background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9)', backgroundSize: '300%', animation: 'nav-sweep 1.8s linear infinite' }} />
-
-        {/* Logo + brand */}
-        <div className={`flex items-center gap-3 px-3.5 py-4 flex-shrink-0 border-b ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.05]'}`}>
-          <div className="flex-shrink-0">
-            <AppLogo size="sm" />
-          </div>
-          <div className="overflow-hidden" style={{ opacity: sidebarOpen ? 1 : 0, transition: 'opacity 0.2s', width: sidebarOpen ? 'auto' : 0 }}>
-            <p className={`text-sm font-black tracking-tight whitespace-nowrap ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {userType === 'teacher' ? 'Teacher Portal' : 'Parent Portal'}
-            </p>
-            <p className={`text-[10px] font-semibold whitespace-nowrap ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              {getGreeting()}, <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>{userInfo?.fullName?.split(' ')[0] || 'User'}</span>
-            </p>
-          </div>
-          {/* Collapse toggle — only shown on open sidebar */}
-        </div>
-
-        {/* Nav tabs (teacher only) */}
-        {userType === 'teacher' && (
-          <nav className="flex-1 px-2.5 py-3 space-y-1 overflow-hidden">
-            {/* Sliding active pill background */}
-            <div className="relative">
-              {/* Ghost items to measure height */}
-              {TABS.map((tab, i) => {
-                const active = pathname.startsWith(tab.href);
-                return (
-                  <Link key={tab.href} href={tab.href}
-                    className={`relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-200 group mb-0.5
-                      ${active ? 'text-white' : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}
-                    style={{ overflow: 'hidden' }}
-                  >
-                    {/* Active sliding bg */}
-                    {active && (
-                      <span
-                        className="absolute inset-0 rounded-xl nav-pill-in"
-                        style={{
-                          background: `linear-gradient(135deg,${tab.color}cc,${tab.color}88)`,
-                          boxShadow: `0 4px 20px ${tab.color}55, inset 0 1px 0 rgba(255,255,255,0.2)`,
-                        }}
-                      />
-                    )}
-                    {/* Hover bg */}
-                    {!active && (
-                      <span className={`absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${darkMode ? 'bg-white/6' : 'bg-black/5'}`} />
-                    )}
-
-                    <tab.icon
-                      size={18}
-                      className="relative z-10 flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
-                      style={{ filter: active ? 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' : undefined }}
-                    />
-
-                    {/* Label — hidden when collapsed */}
-                    <span
-                      className="relative z-10 text-sm font-bold whitespace-nowrap overflow-hidden"
-                      style={{
-                        maxWidth: sidebarOpen ? '140px' : '0px',
-                        opacity: sidebarOpen ? 1 : 0,
-                        transition: 'max-width 0.28s cubic-bezier(0.34,1.1,0.64,1), opacity 0.2s',
-                      }}
-                    >
-                      {tab.label}
-                    </span>
-
-                    {/* Active dot when collapsed */}
-                    {active && !sidebarOpen && (
-                      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-white" style={{ boxShadow: `0 0 6px ${tab.color}` }} />
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        )}
-
-        {/* Bottom section: clock + actions */}
-        <div className={`flex-shrink-0 px-2.5 pb-4 space-y-1 border-t ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.05]'}`}>
-
-          {/* Live clock */}
-          {mounted && sidebarOpen && (
-            <div className={`mx-1 mt-3 mb-1 px-3 py-2 rounded-xl text-center ${darkMode ? 'bg-white/[0.04]' : 'bg-black/[0.03]'}`}>
-              <p className={`text-sm font-black tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>{time}</p>
-              <p className={`text-[10px] font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{date}</p>
-            </div>
-          )}
-          {mounted && !sidebarOpen && (
-            <div className="flex justify-center pt-3 pb-1">
-              <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
-            </div>
-          )}
-
-          {/* Action buttons */}
-          {[
-            { icon: Bell,     label: 'Notifications', action: () => setShowNotifs(v => !v), badge: unread,  active: showNotifs },
-            { icon: darkMode ? Sun : Moon, label: darkMode ? 'Light mode' : 'Dark mode', action: toggleTheme, badge: 0 },
-            { icon: RefreshCw, label: 'Refresh (R)', action: handleRefresh, spin: loading || refreshSpin },
-            { icon: Keyboard,  label: 'Shortcuts (?)', action: () => setShowShortcuts(true) },
-            { icon: LogOut,    label: 'Sign out',    action: () => setShowLogout(true), danger: true },
-          ].map((btn, i) => (
-            <div key={i} className="relative" ref={i === 0 ? notifsRef : undefined}>
-              <button
-                onClick={btn.action}
-                disabled={btn.spin && btn.label.includes('Refresh') && loading}
-                className={`relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-bold
-                  transition-all duration-200 group overflow-hidden
-                  ${btn.active
-                    ? darkMode ? 'bg-white/8 text-sky-400' : 'bg-sky-50 text-sky-600'
-                    : btn.danger
-                      ? darkMode ? 'text-gray-400 hover:text-rose-400' : 'text-gray-500 hover:text-rose-600'
-                      : darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'
-                  }`}
-              >
-                <span className={`absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                  ${btn.danger ? darkMode ? 'bg-rose-500/10' : 'bg-rose-50' : darkMode ? 'bg-white/6' : 'bg-black/5'}`} />
-                <btn.icon
-                  size={18}
-                  className={`relative z-10 flex-shrink-0 transition-all duration-300 group-hover:scale-110
-                    ${btn.spin ? 'animate-spin text-sky-500' : ''}`}
-                />
-                {btn.badge > 0 && (
-                  <span className="absolute left-5 top-1.5 min-w-[14px] h-3.5 rounded-full text-white text-[8px] font-black flex items-center justify-center px-0.5"
-                    style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)', boxShadow: `0 0 0 2px ${darkMode ? 'rgba(5,8,16,0.9)' : 'rgba(255,255,255,0.9)'}` }}>
-                    {btn.badge}
-                  </span>
-                )}
-                <span className="relative z-10 whitespace-nowrap overflow-hidden"
-                  style={{ maxWidth: sidebarOpen ? '140px' : '0px', opacity: sidebarOpen ? 1 : 0, transition: 'max-width 0.28s cubic-bezier(0.34,1.1,0.64,1), opacity 0.2s' }}>
-                  {btn.label}
-                </span>
-              </button>
-              {i === 0 && showNotifs && (
-                <NotificationsPanel darkMode={darkMode} onClose={() => setShowNotifs(false)} notifications={notifications} onMarkAllRead={() => { onMarkAllRead?.(); setShowNotifs(false); }} />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Collapse toggle button */}
-        <button
-          onClick={() => setSidebarOpen(v => !v)}
-          className={`absolute -right-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center
-            transition-all duration-300 hover:scale-110 active:scale-90 z-10`}
-          style={glassStyle(darkMode, { boxShadow: '0 4px 16px rgba(0,0,0,0.2)', border: darkMode ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.08)' })}
-        >
-          <div style={{ transition: 'transform 0.35s cubic-bezier(0.34,1.3,0.64,1)', transform: sidebarOpen ? 'rotate(0deg)' : 'rotate(180deg)' }}>
-            <ChevronLeft size={13} className={darkMode ? 'text-gray-300' : 'text-gray-600'} />
-          </div>
-        </button>
-      </aside>
-
-      {showLogout    && <LogoutModal    darkMode={darkMode} onConfirm={() => { setShowLogout(false); handleLogout(); }} onCancel={() => setShowLogout(false)} />}
-      {showShortcuts && <ShortcutsModal darkMode={darkMode} onClose={() => setShowShortcuts(false)} />}
-
-      <style jsx global>{`
-        @keyframes nav-sweep  { 0%{background-position:200% center} 100%{background-position:-200% center} }
-        @keyframes nav-modal-in { from{opacity:0;transform:translateY(14px) scale(0.97)} to{opacity:1;transform:none} }
-        @keyframes nav-slide-down { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
-        @keyframes nav-pill-in { from{opacity:0;transform:scaleX(0.8)} to{opacity:1;transform:scaleX(1)} }
-        .nav-modal-in   { animation: nav-modal-in   0.3s cubic-bezier(0.34,1.5,0.64,1) both; }
-        .nav-slide-down { animation: nav-slide-down 0.2s ease-out both; }
-        .nav-pill-in    { animation: nav-pill-in    0.25s cubic-bezier(0.34,1.3,0.64,1) both; }
-      `}</style>
-    </>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   TOP HEADER BAR (desktop — sits above content, slim)
-   Shows loading bar + user name + page title
-───────────────────────────────────────────────────────── */
-export default function AppHeader({ darkMode, loading, sidebarOpen }) {
-  const { userType, userInfo } = useApp();
-  const pathname = usePathname();
-  const activeTab = TABS.find(t => pathname.startsWith(t.href)) || TABS[0];
-
-  return (
-    <header
-      className="hidden md:flex sticky top-0 z-30 items-center h-14 px-5 gap-4 flex-shrink-0 transition-all duration-300"
-      style={glassStyle(false, {
-        background: 'transparent',
-        backdropFilter: 'none',
-        WebkitBackdropFilter: 'none',
-        boxShadow: 'none',
-        border: 'none',
-        borderBottom: darkMode ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(0,0,0,0.05)',
-      })}
-    >
-      {/* Loading bar */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 transition-opacity duration-300"
-        style={{ opacity: loading ? 1 : 0, background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9)', backgroundSize: '300%', animation: 'nav-sweep 1.8s linear infinite' }} />
-
-      {/* Page title with color dot */}
-      <div className="flex items-center gap-2.5">
-        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: activeTab.color, boxShadow: `0 0 10px ${activeTab.color}88` }} />
-        <h1 className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{activeTab.label}</h1>
-      </div>
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* User pill */}
-      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${darkMode ? 'bg-white/[0.05] text-gray-300' : 'bg-black/[0.04] text-gray-600'}`}>
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-70" />
-          <span className="relative rounded-full h-2 w-2 bg-emerald-500" />
-        </span>
-        {userInfo?.fullName || 'User'}
-      </div>
-    </header>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────
-   MOBILE LIQUID GLASS FLOATING TAB BAR
-───────────────────────────────────────────────────────── */
-export function MobileNav({ darkMode }) {
-  const pathname = usePathname();
-  const activeIdx = TABS.findIndex(t => pathname.startsWith(t.href));
-  const safeIdx = activeIdx === -1 ? 0 : activeIdx;
-  const [pressedIdx, setPressedIdx] = useState(null);
-
-  // The pill slides left/right using translateX
-  // Each tab takes 1/3 of the bar width, pill is slightly smaller
-  const PILL_OFFSET = `calc(${safeIdx} * 33.333% + 4px)`;
+  const cfg = iconMap[type] || iconMap.info;
 
   return (
     <div
-      className="md:hidden fixed bottom-5 left-1/2 z-50"
-      style={{
-        transform: 'translateX(-50%)',
-        width: 'min(360px, calc(100vw - 32px))',
-        paddingBottom: 'env(safe-area-inset-bottom,0px)',
-      }}
+      onMouseEnter={() => { pausedRef.current = true; }}
+      onMouseLeave={() => { pausedRef.current = false; startRef.current = null; }}
+      className={`relative w-full max-w-sm overflow-hidden rounded-2xl border backdrop-blur-xl
+        transition-all duration-300 ease-out cursor-default select-none
+        ${cfg.bg}
+        ${darkMode ? 'shadow-[0_8px_32px_rgba(0,0,0,0.45)]' : 'shadow-[0_8px_32px_rgba(0,0,0,0.18)]'}
+        ${visible && !leaving ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}`}
+      style={{ fontFamily: "'Sora', sans-serif" }}
     >
-      {/* Outer glow orb behind the bar */}
+      {/* Progress bar */}
       <div
-        className="absolute inset-x-4 -bottom-2 h-8 blur-xl rounded-full opacity-40 pointer-events-none"
-        style={{ background: `linear-gradient(90deg,${TABS[safeIdx].color}88,${TABS[(safeIdx + 1) % 3].color}55)`, transition: 'background 0.4s' }}
+        className="absolute top-0 left-0 h-0.5 rounded-full transition-none"
+        style={{ width: `${progress}%`, background: cfg.bar, boxShadow: `0 0 6px ${cfg.bar}88` }}
       />
 
-      <nav
-        className="relative rounded-[22px] p-1 overflow-hidden"
-        style={glassStyle(darkMode, {
-          borderRadius: '22px',
-          padding: '4px',
-          boxShadow: darkMode
-            ? '0 16px 60px rgba(0,0,0,0.7), 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1)'
-            : '0 16px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.95)',
-        })}
-      >
-        {/* Inner top highlight */}
-        <div className="absolute top-0 left-6 right-6 h-px rounded-full pointer-events-none"
-          style={{ background: darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,1)' }} />
-
-        {/* Sliding color pill */}
-        <div
-          className="absolute top-1 bottom-1 rounded-[18px] pointer-events-none"
-          style={{
-            left: PILL_OFFSET,
-            width: 'calc(33.333% - 8px)',
-            background: `linear-gradient(135deg,${TABS[safeIdx].color}ee,${TABS[safeIdx].color}99)`,
-            boxShadow: `0 4px 20px ${TABS[safeIdx].color}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
-            transition: 'left 0.38s cubic-bezier(0.34,1.3,0.64,1), background 0.3s, box-shadow 0.3s',
-          }}
+      <div className="flex items-start gap-3 p-4">
+        <cfg.Icon size={17} className="flex-shrink-0 mt-0.5" style={{ color: cfg.color }} />
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-black leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</p>
+          {body && <p className={`text-xs mt-0.5 leading-snug ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{body}</p>}
+        </div>
+        <button
+          onClick={dismiss}
+          className={`p-1 rounded-lg flex-shrink-0 transition-all hover:scale-110 active:scale-90 mt-0.5
+            ${darkMode ? 'hover:bg-white/10 text-gray-500 hover:text-gray-300' : 'hover:bg-black/8 text-gray-400 hover:text-gray-600'}`}
         >
-          {/* Pill inner top gloss */}
-          <div className="absolute top-0 left-4 right-4 h-px rounded-full bg-white/40" />
-          {/* Pill inner shine blob */}
-          <div className="absolute top-1 left-2 right-2 h-3 rounded-full bg-white/10 blur-sm" />
-        </div>
-
-        {/* Tab buttons */}
-        <div className="relative flex">
-          {TABS.map((tab, i) => {
-            const active   = safeIdx === i;
-            const pressed  = pressedIdx === i;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                onTouchStart={() => setPressedIdx(i)}
-                onTouchEnd={() => setPressedIdx(null)}
-                onMouseDown={() => setPressedIdx(i)}
-                onMouseUp={() => setPressedIdx(null)}
-                className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-[18px] select-none"
-                style={{
-                  transition: 'transform 0.15s',
-                  transform: pressed ? 'scale(0.88)' : 'scale(1)',
-                }}
-              >
-                {/* Icon */}
-                <div
-                  className="relative"
-                  style={{
-                    transition: 'transform 0.35s cubic-bezier(0.34,1.5,0.64,1)',
-                    transform: active ? 'scale(1.15) translateY(-1px)' : 'scale(1)',
-                  }}
-                >
-                  <tab.icon
-                    size={20}
-                    style={{
-                      color: active ? '#ffffff' : darkMode ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)',
-                      transition: 'color 0.25s',
-                      filter: active ? `drop-shadow(0 0 6px rgba(255,255,255,0.5))` : 'none',
-                    }}
-                  />
-                  {/* Active inner glow dot above icon */}
-                  {active && (
-                    <span
-                      className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/80"
-                      style={{ animation: 'nav-dot-in 0.3s ease-out both', boxShadow: '0 0 4px rgba(255,255,255,0.8)' }}
-                    />
-                  )}
-                </div>
-
-                {/* Label */}
-                <span
-                  className="text-[10px] font-black leading-none"
-                  style={{
-                    color: active ? '#ffffff' : darkMode ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
-                    transition: 'color 0.25s',
-                    letterSpacing: active ? '0.02em' : '0',
-                  }}
-                >
-                  {tab.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+          <X size={13} />
+        </button>
+      </div>
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────────────────
-   MOBILE TOP HEADER (slim, shows page + actions)
-───────────────────────────────────────────────────────── */
-export function MobileHeader({ darkMode, toggleTheme, loading, onRefresh, notifications = [], onMarkAllRead, onToast }) {
-  const { userType, userInfo, handleLogout } = useApp();
-  const pathname = usePathname();
-  const activeTab = TABS.find(t => pathname.startsWith(t.href)) || TABS[0];
-  const { time } = usePHClock();
-  const [mounted, setMounted] = useState(false);
-  const [showLogout, setShowLogout] = useState(false);
-  const [refreshSpin, setRefreshSpin] = useState(false);
-  const [scrollDir, setScrollDir] = useState('up');
-  const lastY = useRef(0);
+export function ToastProvider({ children, darkMode }) {
+  const [toasts, setToasts] = useState([]);
 
-  useEffect(() => { setMounted(true); }, []);
-
-  useEffect(() => {
-    const h = () => {
-      const y = window.scrollY;
-      setScrollDir(y > lastY.current + 6 && y > 50 ? 'down' : 'up');
-      lastY.current = y;
-    };
-    window.addEventListener('scroll', h, { passive: true });
-    return () => window.removeEventListener('scroll', h);
+  const dismiss = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const handleRefresh = () => {
-    if (loading || refreshSpin) return;
-    setRefreshSpin(true);
-    setTimeout(() => setRefreshSpin(false), 700);
-    onRefresh?.();
-    onToast?.('info', 'Refreshing…');
+  const add = useCallback((type, title, body, duration) => {
+    const id = `toast-${Date.now()}-${Math.random()}`;
+    setToasts(prev => [...prev.slice(-4), { id, type, title, body, duration }]);
+    return id;
+  }, []);
+
+  const toast = {
+    success: (title, body, dur) => add('success', title, body, dur),
+    error:   (title, body, dur) => add('error',   title, body, dur),
+    warn:    (title, body, dur) => add('warn',     title, body, dur),
+    info:    (title, body, dur) => add('info',     title, body, dur),
   };
 
-  const unread = notifications.filter(n => !n.read).length;
+  return (
+    <ToastCtx.Provider value={{ toast }}>
+      <UIStyles />
+      {children}
+      {/* Toast stack — bottom-right on desktop, bottom-center on mobile */}
+      <div
+        className="fixed z-[999] flex flex-col gap-2.5 pointer-events-none"
+        style={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.25rem)',
+          right: '1.25rem',
+          left: 'auto',
+          width: '360px',
+          maxWidth: 'calc(100vw - 2.5rem)',
+        }}
+      >
+        {toasts.map(t => (
+          <div key={t.id} className="pointer-events-auto">
+            <ToastItem {...t} darkMode={darkMode} onDismiss={dismiss} />
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SKELETON SHIMMER
+═══════════════════════════════════════════════════════════ */
+
+export function Skeleton({ darkMode, className = '', style = {} }) {
+  return (
+    <div
+      className={`rounded-xl ${className}`}
+      style={{
+        minHeight: '12px',
+        backgroundImage: darkMode
+          ? 'linear-gradient(90deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.10) 40%,rgba(255,255,255,0.04) 100%)'
+          : 'linear-gradient(90deg,#f0f4f8 0%,#e2e8f0 40%,#f0f4f8 100%)',
+        backgroundSize: '300% 100%',
+        backgroundPosition: '200% center',
+        animation: 'sk-shimmer 1.8s ease-in-out infinite',
+        ...style,
+      }}
+    />
+  );
+}
+
+export function SkeletonCard({ darkMode, rows = 3, showHeader = true }) {
+  return (
+    <div className={`border rounded-2xl p-5 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
+      {showHeader && (
+        <div className="flex items-center gap-3 mb-5">
+          <Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" />
+          <Skeleton darkMode={darkMode} className="h-4 w-36 rounded-lg" />
+        </div>
+      )}
+      <div className="space-y-3">
+        {Array.from({ length: rows }).map((_, i) => (
+          <Skeleton key={i} darkMode={darkMode} className="h-4 rounded-lg" style={{ width: `${85 - i * 12}%` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ChartSkeleton({ darkMode, height = 240 }) {
+  const bars = [0.45, 0.72, 0.55, 0.88, 0.63, 0.82, 0.50, 0.70];
+  const usableH = height - 24; // subtract label row
+  return (
+    <div style={{ height, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
+        {bars.map((ratio, i) => (
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <Skeleton
+              darkMode={darkMode}
+              style={{
+                height: `${Math.round(ratio * usableH)}px`,
+                borderRadius: '6px 6px 0 0',
+                width: '100%',
+                animationDelay: `${i * 80}ms`,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {bars.map((_, i) => (
+          <Skeleton key={i} darkMode={darkMode} style={{ flex: 1, height: '10px', borderRadius: '999px', animationDelay: `${i * 60}ms` }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function StatCardSkeleton({ darkMode }) {
+  return (
+    <div className={`border rounded-2xl p-5 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
+      <div className="flex items-start justify-between mb-4">
+        <Skeleton darkMode={darkMode} className="w-10 h-10 rounded-xl" />
+        <Skeleton darkMode={darkMode} className="w-12 h-5 rounded-full" />
+      </div>
+      <Skeleton darkMode={darkMode} className="h-3 w-20 rounded mb-2" />
+      <Skeleton darkMode={darkMode} className="h-8 w-16 rounded-lg" />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════════════════════ */
+
+export function Card({ children, className = '', darkMode, hover = false, delay = 0 }) {
+  const [visible, setVisible] = useState(delay === 0);
+  useEffect(() => {
+    if (delay === 0) return;
+    const t = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
 
   return (
-    <>
-      <header
-        className={`md:hidden sticky top-0 z-30 flex items-center h-14 px-4 gap-3
-          transition-all duration-300 ${scrollDir === 'down' ? '-translate-y-full' : 'translate-y-0'}`}
-        style={glassStyle(darkMode, {
-          borderRadius: 0,
-          borderBottom: darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.07)',
-          boxShadow: darkMode ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.08)',
-          border: 'none',
-          borderBottom: darkMode ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.07)',
-        })}
-      >
-        {/* Loading bar */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 transition-opacity duration-300"
-          style={{ opacity: loading ? 1 : 0, background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9)', backgroundSize: '300%', animation: 'nav-sweep 1.8s linear infinite' }} />
-
-        {/* Logo */}
-        <AppLogo size="xs" />
-
-        {/* Page title */}
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <span className="w-2 h-2 rounded-full flex-shrink-0 transition-all duration-300"
-            style={{ background: activeTab.color, boxShadow: `0 0 8px ${activeTab.color}88` }} />
-          <p className={`text-sm font-black truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{activeTab.label}</p>
-        </div>
-
-        {/* Right actions */}
-        <div className="flex items-center gap-0.5">
-          {mounted && (
-            <div className={`text-[10px] font-black tabular-nums px-2 py-1 rounded-lg ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{time}</div>
-          )}
-          <button onClick={toggleTheme}
-            className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            <div style={{ transition: 'transform 0.4s cubic-bezier(0.34,1.5,0.64,1)', transform: darkMode ? 'rotate(0)' : 'rotate(-30deg)' }}>
-              {darkMode ? <Sun size={16}/> : <Moon size={16}/>}
-            </div>
-          </button>
-          <button onClick={handleRefresh} disabled={loading}
-            className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 disabled:opacity-40 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            <RefreshCw size={16} className={loading || refreshSpin ? 'animate-spin text-sky-500' : ''} />
-          </button>
-          <button onClick={() => setShowLogout(true)}
-            className={`p-2 rounded-xl transition-all hover:scale-110 active:scale-90 ${darkMode ? 'text-gray-400 hover:text-rose-400' : 'text-gray-500 hover:text-rose-600'}`}>
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
-
-      {showLogout && (
-        <LogoutModal darkMode={darkMode}
-          onConfirm={() => { setShowLogout(false); handleLogout(); }}
-          onCancel={() => setShowLogout(false)} />
-      )}
-
-      <style jsx global>{`
-        @keyframes nav-dot-in { from{opacity:0;transform:translateX(-50%) scale(0)} to{opacity:1;transform:translateX(-50%) scale(1)} }
-      `}</style>
-    </>
+    <div
+      className={`border rounded-2xl backdrop-blur-sm transition-all duration-500 ease-out
+        ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-[0_1px_4px_rgba(0,0,0,0.06)]'}
+        ${hover ? darkMode
+          ? 'hover:bg-white/[0.07] hover:border-white/16 hover:shadow-xl hover:-translate-y-0.5'
+          : 'hover:border-gray-300 hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] hover:-translate-y-0.5'
+          : ''}
+        ${delay > 0 ? (visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4') : ''}
+        ${className}`}
+    >
+      {children}
+    </div>
   );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOOLTIP
+═══════════════════════════════════════════════════════════ */
+
+export function Tooltip({ label, children, darkMode, side = 'bottom' }) {
+  const [show, setShow] = useState(false);
+  const posClass = side === 'top' ? 'bottom-full mb-2' : 'top-full mt-2';
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      <div
+        className={`absolute ${posClass} left-1/2 -translate-x-1/2 px-2.5 py-1 rounded-lg
+          text-xs font-bold whitespace-nowrap pointer-events-none z-[70]
+          transition-all duration-150 ease-out
+          ${show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}
+        style={{ background: '#111827', color: '#f9fafb', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}
+      >
+        {label}
+        {side === 'bottom' && (
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45" style={{ background: '#111827' }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGINATION
+═══════════════════════════════════════════════════════════ */
+
+export function Pagination({ currentPage, totalPages, onPageChange, darkMode }) {
+  if (totalPages <= 1) return null;
+  const pages = [];
+  const delta = 1;
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - delta && i <= currentPage + delta)) {
+      pages.push(i);
+    }
   }
+  const withEllipsis = [];
+  let prev = null;
+  for (const p of pages) {
+    if (prev && p - prev > 1) withEllipsis.push('...');
+    withEllipsis.push(p);
+    prev = p;
+  }
+
+  const base  = 'inline-flex items-center justify-center min-w-[36px] h-9 px-2 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105 active:scale-95';
+  const act   = darkMode ? 'bg-sky-600 text-white shadow-sm shadow-sky-500/30' : 'bg-sky-500 text-white shadow-sm shadow-sky-500/25';
+  const inact = darkMode ? 'text-gray-400 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100';
+  const navB  = darkMode ? 'text-gray-500 hover:bg-white/8 disabled:opacity-25' : 'text-gray-400 hover:bg-gray-100 disabled:opacity-25';
+
+  return (
+    <div className="flex items-center justify-center gap-1 py-4">
+      <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className={`${base} ${navB}`}>
+        <ChevronLeft size={15} />
+      </button>
+      {withEllipsis.map((p, i) =>
+        p === '...'
+          ? <span key={i} className={`${base} cursor-default ${inact}`}>…</span>
+          : <button key={i} onClick={() => onPageChange(p)} className={`${base} ${currentPage === p ? act : inact}`}>{p}</button>
+      )}
+      <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className={`${base} ${navB}`}>
+        <ChevronRight size={15} />
+      </button>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RATE RING  (SVG circular progress)
+═══════════════════════════════════════════════════════════ */
+
+export function RateRing({ rate, size = 44, darkMode, strokeWidth = 3.5 }) {
+  const r    = (size / 2) - strokeWidth - 1;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - Math.max(0, Math.min(1, rate / 100)) * circ;
+  const color  = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
+
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" strokeWidth={strokeWidth}
+        stroke={darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" strokeWidth={strokeWidth}
+        stroke={color} strokeLinecap="round"
+        strokeDasharray={circ} strokeDashoffset={offset}
+        style={{ transition: 'stroke-dashoffset 0.85s cubic-bezier(0.34,1.1,0.64,1), stroke 0.4s' }}
+      />
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATED NUMBER
+═══════════════════════════════════════════════════════════ */
+
+export function AnimatedNumber({ value, duration = 600, className = '' }) {
+  const [display, setDisplay] = useState(value);
+  const prevRef = useRef(value);
+  const rafRef  = useRef(null);
+
+  useEffect(() => {
+    cancelAnimationFrame(rafRef.current);
+    const from = prevRef.current;
+    prevRef.current = value;
+    if (from === value) { setDisplay(value); return; }
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + (value - from) * ease));
+      if (p < 1) rafRef.current = requestAnimationFrame(step);
+      else setDisplay(value);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value, duration]);
+
+  return <span className={className}>{display}</span>;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FILTER CHIP
+═══════════════════════════════════════════════════════════ */
+
+export function FilterChip({ label, onRemove, darkMode }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full
+        text-xs font-bold border transition-all duration-200 hover:scale-105
+        ${darkMode
+          ? 'bg-sky-500/12 border-sky-500/25 text-sky-400'
+          : 'bg-sky-50 border-sky-200/80 text-sky-600'
+        }`}
+    >
+      {label}
+      <button
+        onClick={onRemove}
+        className={`p-0.5 rounded-full transition-all hover:scale-110 active:scale-90
+          ${darkMode ? 'hover:bg-sky-500/20' : 'hover:bg-sky-100'}`}
+      >
+        <X size={10} />
+      </button>
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STATUS BADGE
+═══════════════════════════════════════════════════════════ */
+
+export function StatusBadge({ status }) {
+  const isIn = status === 'IN';
+  return (
+    <span
+      className={`relative inline-flex items-center gap-1.5 text-xs px-2.5 py-1
+        rounded-full font-bold border
+        ${isIn
+          ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+          : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+        }`}
+    >
+      {isIn && (
+        <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping opacity-60" />
+      )}
+      <span className={`relative w-1.5 h-1.5 rounded-full ${isIn ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+      {status}
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════ */
+
+export function EmptyState({ icon: Icon, title, body, action, actionLabel, darkMode }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${darkMode ? 'bg-white/[0.04]' : 'bg-gray-50'}`}>
+        <Icon size={26} className={darkMode ? 'text-gray-700' : 'text-gray-300'} />
+      </div>
+      <p className={`text-sm font-black ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{title}</p>
+      {body && <p className={`text-xs mt-1.5 max-w-xs leading-relaxed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{body}</p>}
+      {action && (
+        <button
+          onClick={action}
+          className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/25"
+          style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}
+        >
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Global keyframes — rendered as a real <style> tag ── */
+export function UIStyles() {
+  return (
+    <style jsx global>{`
+      @keyframes sk-shimmer {
+        0%   { background-position: 200% center; }
+        100% { background-position: -200% center; }
+      }
+      @keyframes sk-fade-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to   { opacity: 1; transform: none; }
+      }
+      @keyframes sk-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.45; }
+      }
+    `}</style>
+  );
+          }
