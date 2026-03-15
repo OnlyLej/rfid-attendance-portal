@@ -761,9 +761,9 @@ export default function LandingPage() {
 
       {/* ── LOGIN MODAL ── */}
       {modal && (
-        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={()=>setModal(false)}/>
-          <div className={`relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl animate-modal-up overflow-hidden ${dark?'bg-[#090e1c] border border-white/12 shadow-2xl':'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.2)]'}`}>
+          <div className={`relative w-full max-w-md rounded-3xl animate-modal-up mx-4 overflow-hidden ${dark?'bg-[#090e1c] border border-white/12 shadow-2xl':'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.2)]'}`}>
             <div className="h-1 w-full" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }}/>
             {/* Mobile drag handle */}
             <div className="sm:hidden flex justify-center pt-3 pb-1">

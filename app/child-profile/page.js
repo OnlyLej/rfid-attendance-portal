@@ -5,7 +5,9 @@ import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLay
 import PageShell from '../_components/PageShell';
 import { Skeleton } from '../_components/ui';
 import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../_lib/data';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import ChildPicker from '../_components/ChildPicker';
+import { useChildSelection } from '../_lib/useChildSelection';
 import { User, GraduationCap, Hash, Calendar, TrendingUp, Clock, CheckCircle, XCircle, Award } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -31,16 +33,9 @@ export default function ChildProfilePage() {
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapse();
   const { logs, students, userInfo, loading, fetchData } = useApp();
 
-  const childIds = useMemo(() => {
-    let raw = userInfo?.studentIds;
-    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = raw ? [raw] : []; } }
-    let ids = Array.isArray(raw) ? raw.map(String) : [];
-    if (!ids.length && userInfo?.studentId) ids = [String(userInfo.studentId)];
-    if (!ids.length) ids = students.map(s => String(s.studentId));
-    return ids.map(normalizeId);
-  }, [userInfo, students]);
-
-  const child = useMemo(() => students.find(s => childIds.includes(normalizeId(s.studentId))), [students, childIds]);
+  const { children: allChildren, selectedChildId, setSelectedChildId, selectedChild: childObj } = useChildSelection(userInfo, students);
+  const childIds = useMemo(() => childObj ? [normalizeId(childObj.studentId)] : [], [childObj]);
+  const child = useMemo(() => students.find(s => normalizeId(s.studentId) === (childIds[0] ?? '')), [students, childIds]);
   const childLogs = useMemo(() => logs.filter(l => childIds.includes(normalizeId(l.studentId))), [logs, childIds]);
 
   const today = getPhTodayStr();
@@ -94,6 +89,7 @@ export default function ChildProfilePage() {
         sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar}
         loading={loading} onRefresh={fetchData}>
         <div className="fade-in-up max-w-2xl mx-auto space-y-5">
+          <ChildPicker children={allChildren} selectedChildId={selectedChildId} onSelect={setSelectedChildId} darkMode={darkMode} />
 
           {/* Profile card */}
           <div className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>

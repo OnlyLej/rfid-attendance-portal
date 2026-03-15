@@ -3,7 +3,7 @@ import { RouteGuard } from '../_lib/RouteGuard';
 import { useApp } from '../_lib/AppContext';
 import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
 import PageShell from '../_components/PageShell';
-import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../_lib/data';
+import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp, LATE_HOUR } from '../_lib/data';
 import { useMemo, useState } from 'react';
 import { Bell, CheckCircle, AlertTriangle, Clock, TrendingDown, Info, Check, Trash2, BellOff } from 'lucide-react';
 
@@ -28,7 +28,7 @@ function buildNotifications(childLogs, childName) {
     const inLog = todayLogs.find(l => l.status === 'IN');
     const time = inLog ? parsePhTimestamp(inLog.timestamp)?.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' }) : '';
     const h = inLog ? parseInt(parsePhTimestamp(inLog.timestamp)?.toLocaleString('en-PH', { hour:'numeric', hour12:false, timeZone:PH_TZ })) : 0;
-    notes.push({ id: 'today-in', type: h >= 8 ? 'late' : 'present', title: h >= 8 ? `${childName} arrived late today` : `${childName} checked in today`, body: `Arrived at ${time}`, time: 'Today', read: false });
+    notes.push({ id: 'today-in', type: h >= LATE_HOUR ? 'late' : 'present', title: h >= LATE_HOUR ? `${childName} arrived late today` : `${childName} checked in today`, body: `Arrived at ${time}`, time: 'Today', read: false });
   } else {
     notes.push({ id: 'today-out', type: 'absent', title: `${childName} has not checked in today`, body: 'No attendance record yet for today.', time: 'Today', read: false });
   }
@@ -59,7 +59,7 @@ function buildNotifications(childLogs, childName) {
     if (inLog) {
       const time = parsePhTimestamp(inLog.timestamp)?.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' });
       const h = parseInt(parsePhTimestamp(inLog.timestamp)?.toLocaleString('en-PH', { hour:'numeric', hour12:false, timeZone:PH_TZ }));
-      notes.push({ id: `day-${i}`, type: h >= 8 ? 'late' : 'present', title: h >= 8 ? `Late arrival on ${label}` : `Attended on ${label}`, body: `Check-in time: ${time}`, time: label, read: i > 1 });
+      notes.push({ id: `day-${i}`, type: h >= LATE_HOUR ? 'late' : 'present', title: h >= LATE_HOUR ? `Late arrival on ${label}` : `Attended on ${label}`, body: `Check-in time: ${time}`, time: label, read: i > 1 });
     } else {
       notes.push({ id: `absent-${i}`, type: 'absent', title: `Absent on ${label}`, body: 'No check-in recorded for this school day.', time: label, read: i > 2 });
     }
@@ -77,19 +77,33 @@ export default function NotificationsPage() {
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapse();
   const { logs, students, userInfo, loading, fetchData } = useApp();
 
-  const childIds = useMemo(() => {
-    let raw = userInfo?.studentIds;
-    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = raw ? [raw] : []; } }
-    let ids = Array.isArray(raw) ? raw.map(String) : [];
-    if (!ids.length && userInfo?.studentId) ids = [String(userInfo.studentId)];
-    if (!ids.length) ids = students.map(s => String(s.studentId));
-    return ids.map(normalizeId);
+  // Resolve all children for this parent account
+  const allChildren = useMemo(() => {
+    if (!userInfo || !students.length) return [];
+    let rawIds = userInfo.studentIds;
+    if (typeof rawIds === 'string') { try { rawIds = JSON.parse(rawIds); } catch { rawIds = rawIds ? [rawIds] : []; } }
+    let linkedIds = Array.isArray(rawIds) ? rawIds.map(id => id.toString().trim()).filter(Boolean) : [];
+    if (!linkedIds.length && userInfo.studentId) linkedIds = [userInfo.studentId.toString().trim()];
+    if (!linkedIds.length) linkedIds = students.map(s => s.studentId.toString().trim());
+    return linkedIds.map(id => {
+      const nid = normalizeId(id);
+      const match = students.find(s => normalizeId(s.studentId) === nid);
+      return match ? match : { studentId: id, name: `Child (${id})`, class: '' };
+    });
   }, [userInfo, students]);
 
-  const child = useMemo(() => students.find(s => childIds.includes(normalizeId(s.studentId))), [students, childIds]);
-  const childLogs = useMemo(() => logs.filter(l => childIds.includes(normalizeId(l.studentId))), [logs, childIds]);
-
-  const rawNotes = useMemo(() => buildNotifications(childLogs, child?.name ?? 'Your child'), [childLogs, child]);
+  // Build combined notifications for ALL children
+  const rawNotes = useMemo(() => {
+    if (!allChildren.length) return [];
+    const allNotes = [];
+    allChildren.forEach(child => {
+      const childLogs = logs.filter(l => normalizeId(l.studentId) === normalizeId(child.studentId));
+      const notes = buildNotifications(childLogs, child.name ?? 'Your child');
+      // Prefix id with studentId to avoid collisions
+      notes.forEach(n => allNotes.push({ ...n, id: `${child.studentId}_${n.id}`, childName: child.name }));
+    });
+    return allNotes;
+  }, [allChildren, logs]);
   const [readIds, setReadIds] = useState(new Set());
   const [deletedIds, setDeletedIds] = useState(new Set());
   const [filter, setFilter] = useState('all');

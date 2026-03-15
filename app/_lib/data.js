@@ -4,6 +4,9 @@ import { useState, useCallback } from 'react';
 
 const PH_TZ = 'Asia/Manila';
 
+/* ── Late threshold: students not checked in BY this hour are marked late ── */
+export const LATE_HOUR = 7; // 7:00 AM — edit this value to change the cutoff
+
 export const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
 
 export const parsePhTimestamp = (str) => {
@@ -12,9 +15,22 @@ export const parsePhTimestamp = (str) => {
     const d = new Date(str);
     return isNaN(d.getTime()) ? null : d;
   }
+  // Try standard YYYY-MM-DD HH:MM:SS (from Google Sheets ISO-like export)
   const iso = str.replace(' ', 'T') + '+08:00';
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? null : d;
+  const d1 = new Date(iso);
+  if (!isNaN(d1.getTime())) return d1;
+  // Fallback: M/D/YYYY H:MM:SS format (Google Sheets locale default)
+  // Treat as PH time by appending a fake UTC offset after reformatting
+  const mdyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[,\s]+(.*))?$/);
+  if (mdyMatch) {
+    const [, mo, dy, yr, time = '00:00:00'] = mdyMatch;
+    const isoStr = `${yr}-${mo.padStart(2,'0')}-${dy.padStart(2,'0')}T${time.trim().replace(' AM','').replace(' PM','')}+08:00`;
+    const d2 = new Date(isoStr);
+    if (!isNaN(d2.getTime())) return d2;
+  }
+  // Last resort: native parse (may be wrong timezone but better than null)
+  const d3 = new Date(str);
+  return isNaN(d3.getTime()) ? null : d3;
 };
 
 export const getPhTodayStr = () =>

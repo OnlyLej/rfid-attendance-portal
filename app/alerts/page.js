@@ -4,7 +4,7 @@ import { useApp } from '../_lib/AppContext';
 import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
 import PageShell from '../_components/PageShell';
 import { Skeleton, EmptyState } from '../_components/ui';
-import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../_lib/data';
+import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp, LATE_HOUR } from '../_lib/data';
 import { useMemo } from 'react';
 import { AlertTriangle, UserX, Clock, Flame, CheckCircle, TrendingDown, Info } from 'lucide-react';
 
@@ -67,7 +67,7 @@ export default function AlertsPage() {
       const d = parsePhTimestamp(l.timestamp);
       if (!d) return false;
       const h = parseInt(d.toLocaleString('en-PH', { hour: 'numeric', hour12: false, timeZone: PH_TZ }));
-      return h >= 8;
+      return h >= LATE_HOUR;
     }).sort((a, b) => (parsePhTimestamp(b.timestamp)?.getTime() ?? 0) - (parsePhTimestamp(a.timestamp)?.getTime() ?? 0));
   }, [logs, today]);
 

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { RouteGuard } from '../_lib/RouteGuard';
 import { useApp } from '../_lib/AppContext';
-import AppHeader, { MobileNav } from '../_components/AppHeader';
+import AppHeader from '../_components/AppHeader';
 import AppSidebar from '../_components/AppSidebar';
 import ClassroomMonitorTab from '../_components/ClassroomMonitorTab';
 
@@ -72,14 +72,13 @@ export default function ClassroomPage() {
             <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} />
           </>
         )}
-        <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.3s cubic-bezier(0.34,1.1,0.64,1)' }}>
+        <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.32s cubic-bezier(0.34,1.1,0.64,1)' }}>
           <AppHeader darkMode={darkMode} toggleTheme={toggleTheme} loading={loading} onRefresh={fetchData} isMobile={isMobile} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
-          <main className={`max-w-7xl mx-auto px-4 sm:px-6 py-6 ${isMobile ? 'pb-24' : ''}`}>
+          <main className={`max-w-7xl mx-auto px-4 sm:px-6 py-6`}>
             <div className="animate-fade-in-up">
               <ClassroomMonitorTab darkMode={darkMode} students={students} classes={classes} searchQuery={searchQuery} setSearchQuery={setSearchQuery} selectedClass={selectedClass} setSelectedClass={setSelectedClass} logs={logs} />
             </div>
           </main>
-          {isMobile && <MobileNav darkMode={darkMode} />}
         </div>
         <PageStyles />
       </div>

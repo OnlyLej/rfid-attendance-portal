@@ -1,5 +1,5 @@
 'use client';
-import AppHeader, { MobileNav } from './AppHeader';
+import AppHeader from './AppHeader';
 import AppSidebar from './AppSidebar';
 import { SIDEBAR_W_EXPANDED, SIDEBAR_W_COLLAPSED } from '../_lib/usePageLayout';
 
@@ -7,22 +7,42 @@ export default function PageShell({
   darkMode, toggleTheme, isMobile,
   sidebarCollapsed, toggleSidebar,
   loading, onRefresh,
-  children, mobilePadding = true,
+  children,
 }) {
   const sidebarW = isMobile ? 0 : (sidebarCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#0f1117]' : 'bg-slate-50/80'}`}>
+      {/* Desktop sidebar — always rendered, uses width transition */}
       {!isMobile && (
-        <AppSidebar darkMode={darkMode} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+        <AppSidebar darkMode={darkMode} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} isMobile={false} />
       )}
-      {isMobile && !sidebarCollapsed && (
-        <>
-          <div className="fixed inset-0 z-[39] bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
-          <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} />
-        </>
+
+      {/* Mobile sidebar — slide in/out as overlay */}
+      <div
+        className={`fixed inset-0 z-[39] transition-all duration-300 ${isMobile && !sidebarCollapsed ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        style={{ opacity: isMobile && !sidebarCollapsed ? 1 : 0 }}
+      >
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
+      </div>
+
+      {isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 40,
+            transform: sidebarCollapsed ? `translateX(-${SIDEBAR_W_EXPANDED}px)` : 'translateX(0)',
+            transition: 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)',
+          }}
+        >
+          <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} isMobile={true} />
+        </div>
       )}
-      <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.3s cubic-bezier(0.34,1.1,0.64,1)' }}>
+
+      <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.32s cubic-bezier(0.34,1.1,0.64,1)' }}>
         <AppHeader
           darkMode={darkMode} toggleTheme={toggleTheme}
           loading={loading} onRefresh={onRefresh}
@@ -30,11 +50,11 @@ export default function PageShell({
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
         />
-        <main className={`max-w-7xl mx-auto px-4 sm:px-6 py-6 ${isMobile && mobilePadding ? 'pb-28' : ''}`}>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
           {children}
         </main>
-        {isMobile && <MobileNav darkMode={darkMode} />}
       </div>
+
       <style jsx global>{`
         @keyframes fade-in-up { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes skeleton-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }

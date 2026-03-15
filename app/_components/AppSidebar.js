@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
-  LayoutDashboard, Users, BarChart3, Settings,
+  LayoutDashboard, Users, BarChart3,
   RadioTower, User, CalendarDays,
-  GraduationCap, ClipboardList, TrendingUp, Download,
-  Bell, LogOut, PanelLeftClose, PanelLeftOpen,
+  GraduationCap, ClipboardList, TrendingUp,
+  LogOut, PanelLeftClose, PanelLeftOpen,
   AlertTriangle, Home,
 } from 'lucide-react';
 import { useApp } from '../_lib/AppContext';
@@ -15,7 +15,6 @@ import { useState, Suspense } from 'react';
 const SIDEBAR_W_EXPANDED  = 260;
 const SIDEBAR_W_COLLAPSED = 64;
 
-/* ─── Teacher sections ───────────────────────────────────── */
 const TEACHER_SECTIONS = {
   main: [
     { id: 'dashboard',  label: 'Dashboard',   icon: LayoutDashboard, color: '#0ea5e9', href: '/dashboard',  matchExact: true  },
@@ -24,48 +23,42 @@ const TEACHER_SECTIONS = {
     { id: 'logs',       label: 'Logs',        icon: ClipboardList,   color: '#10b981', href: '/logs',       matchExact: false },
     { id: 'reports',    label: 'Reports',     icon: BarChart3,       color: '#f59e0b', href: '/reports',    matchExact: false },
     { id: 'alerts',     label: 'Alerts',      icon: AlertTriangle,   color: '#f43f5e', href: '/alerts',     matchExact: false },
-    { id: 'schedule',   label: 'Schedule',    icon: CalendarDays,    color: '#06b6d4', href: '/schedule',   matchExact: false },
   ],
   system: [
-    { id: 'notifications', label: 'Notifications', icon: Bell,     color: '#f97316', href: '/dashboard?tab=notifications', matchSearch: 'tab=notifications', badge: null },
-    { id: 'settings',      label: 'Settings',      icon: Settings, color: '#64748b', href: '/dashboard?tab=settings',      matchSearch: 'tab=settings' },
+    { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
   ],
 };
 
-/* ─── Parent sections ────────────────────────────────────── */
 const PARENT_SECTIONS = {
   main: [
-    { id: 'home',          label: 'Home',            icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
-    { id: 'child-profile', label: 'Child Profile',   icon: User,         color: '#7c3aed', href: '/child-profile', matchExact: false },
-    { id: 'calendar',      label: 'Calendar',        icon: CalendarDays, color: '#10b981', href: '/calendar',      matchExact: false },
-    { id: 'progress',      label: 'Progress',        icon: TrendingUp,   color: '#f59e0b', href: '/progress',      matchExact: false },
-    { id: 'notifications', label: 'Notifications',   icon: Bell,         color: '#f43f5e', href: '/notifications', matchExact: false, badge: null },
-    { id: 'logs',          label: 'Attendance Log',  icon: ClipboardList,color: '#8b5cf6', href: '/parent',        matchSearch: 'tab=logs' },
+    { id: 'home',          label: 'Home',          icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
+    { id: 'child-profile', label: 'Child Profile', icon: User,         color: '#7c3aed', href: '/child-profile', matchExact: false },
+    { id: 'calendar',      label: 'Calendar',      icon: CalendarDays, color: '#10b981', href: '/calendar',      matchExact: false },
+    { id: 'progress',      label: 'Progress',      icon: TrendingUp,   color: '#f59e0b', href: '/progress',      matchExact: false },
   ],
   system: [
-    { id: 'settings',      label: 'Settings',        icon: Settings,     color: '#64748b', href: '/parent?tab=settings', matchSearch: 'tab=settings' },
+    { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
   ],
 };
 
-/* ─── Active check (plain fn, no hook) ──────────────────── */
 function checkActive(item, pathname, search) {
-  if (item.matchExact)   return pathname === item.href && !search;
-  if (item.matchSearch)  return pathname === item.href.split('?')[0] && search.includes(item.matchSearch);
+  if (item.isSignOut)   return false;
+  if (item.matchExact)  return pathname === item.href && !search;
+  if (item.matchSearch) return pathname === item.href.split('?')[0] && search.includes(item.matchSearch);
   return pathname === item.href || pathname.startsWith(item.href + '/');
 }
 
-/* ─── Logo ──────────────────────────────────────────────── */
 function SidebarLogo({ collapsed, darkMode }) {
   const [imgErr, setImgErr] = useState(false);
   return (
     <div className="flex items-center gap-3 overflow-hidden min-w-0">
       <div
-        className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg"
-        style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}
+        className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow overflow-hidden"
+        style={{ background: darkMode ? '#1e2333' : '#f1f5f9' }}
       >
         {imgErr
-          ? <RadioTower size={15} className="text-white" />
-          : <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover rounded-xl" onError={() => setImgErr(true)} />
+          ? <RadioTower size={15} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
+          : <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover" onError={() => setImgErr(true)} />
         }
       </div>
       {!collapsed && (
@@ -78,9 +71,30 @@ function SidebarLogo({ collapsed, darkMode }) {
   );
 }
 
-/* ─── Single flat nav item ───────────────────────────────── */
-function NavItem({ item, active, darkMode, collapsed }) {
+function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
   const Icon = item.icon;
+
+  if (item.isSignOut) {
+    return (
+      <button
+        onClick={onSignOut}
+        title={collapsed ? item.label : undefined}
+        className={[
+          'relative flex items-center gap-3 w-full rounded-xl transition-colors duration-150 select-none overflow-hidden',
+          collapsed ? 'px-0 py-2.5 justify-center' : 'px-3 py-2.5',
+          darkMode
+            ? 'text-gray-400 hover:text-rose-400 hover:bg-rose-500/10'
+            : 'text-gray-500 hover:text-rose-500 hover:bg-rose-50',
+        ].join(' ')}
+      >
+        <Icon size={17} className="flex-shrink-0" />
+        {!collapsed && (
+          <span className="text-[13px] font-semibold truncate leading-none flex-1">{item.label}</span>
+        )}
+      </button>
+    );
+  }
+
   return (
     <Link
       href={item.href}
@@ -94,36 +108,17 @@ function NavItem({ item, active, darkMode, collapsed }) {
             ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
             : 'text-gray-500 hover:text-gray-900 hover:bg-black/[0.05]',
       ].join(' ')}
-      style={active ? {
-        background: `linear-gradient(135deg,${item.color}d0,${item.color}88)`,
-      } : undefined}
+      style={active ? { background: `linear-gradient(135deg,${item.color}d0,${item.color}88)` } : undefined}
     >
-      {/* Active left accent bar — clipped by overflow-hidden on parent */}
       {active && !collapsed && (
-        <span
-          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full"
-          style={{ background: 'rgba(255,255,255,0.7)' }}
-        />
+        <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full" style={{ background: 'rgba(255,255,255,0.7)' }} />
       )}
-
-      <Icon
-        size={17}
-        className="flex-shrink-0"
-        style={{
-          color: active ? '#fff' : undefined,
-        }}
-      />
-
+      <Icon size={17} className="flex-shrink-0" style={{ color: active ? '#fff' : undefined }} />
       {!collapsed && (
         <span className="text-[13px] font-semibold truncate leading-none flex-1">{item.label}</span>
       )}
-
-      {/* Badge */}
       {!collapsed && item.badge > 0 && (
-        <span
-          className="ml-auto min-w-[18px] h-[18px] rounded-full text-white text-[10px] font-black flex items-center justify-center px-1 flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}
-        >
+        <span className="ml-auto min-w-[18px] h-[18px] rounded-full text-white text-[10px] font-black flex items-center justify-center px-1 flex-shrink-0" style={{ background: '#f43f5e' }}>
           {item.badge}
         </span>
       )}
@@ -131,7 +126,6 @@ function NavItem({ item, active, darkMode, collapsed }) {
   );
 }
 
-/* ─── Section divider ────────────────────────────────────── */
 function SectionLabel({ label, darkMode, collapsed }) {
   if (collapsed) return <div className={`mx-3 my-2 h-px ${darkMode ? 'bg-white/[0.07]' : 'bg-black/[0.07]'}`} />;
   return (
@@ -141,8 +135,7 @@ function SectionLabel({ label, darkMode, collapsed }) {
   );
 }
 
-/* ─── User card ──────────────────────────────────────────── */
-function UserCard({ darkMode, collapsed, userInfo, userType, onLogout }) {
+function UserCard({ darkMode, collapsed, userInfo, userType }) {
   const initial = (userInfo?.fullName || userInfo?.username || 'U').charAt(0).toUpperCase();
   return (
     <div className={`flex-shrink-0 border-t px-3 py-3 ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
@@ -154,30 +147,20 @@ function UserCard({ darkMode, collapsed, userInfo, userType, onLogout }) {
           {initial}
         </div>
         {!collapsed && (
-          <>
-            <div className="flex-1 min-w-0">
-              <p className={`text-[12px] font-black truncate leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {userInfo?.fullName || userInfo?.username || 'User'}
-              </p>
-              <p className={`text-[10px] font-semibold truncate leading-tight capitalize ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                {userType || 'Guest'}
-              </p>
-            </div>
-            <button
-              onClick={onLogout}
-              title="Sign out"
-              className={`p-1.5 rounded-lg transition-all hover:scale-110 active:scale-90 flex-shrink-0 ${darkMode ? 'text-gray-500 hover:text-rose-400 hover:bg-rose-500/10' : 'text-gray-400 hover:text-rose-500 hover:bg-rose-50'}`}
-            >
-              <LogOut size={14} />
-            </button>
-          </>
+          <div className="flex-1 min-w-0">
+            <p className={`text-[12px] font-black truncate leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {userInfo?.fullName || userInfo?.username || 'User'}
+            </p>
+            <p className={`text-[10px] font-semibold truncate leading-tight capitalize ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              {userType || 'Guest'}
+            </p>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-/* ─── Logout modal ───────────────────────────────────────── */
 function LogoutModal({ darkMode, onConfirm, onCancel }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
@@ -203,27 +186,25 @@ function LogoutModal({ darkMode, onConfirm, onCancel }) {
   );
 }
 
-/* ─── Inner sidebar ──────────────────────────────────────── */
-function SidebarInner({ darkMode, collapsed, onToggleCollapse, unreadNotifications = 0 }) {
+function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile }) {
   const { userType, userInfo, handleLogout } = useApp();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
   const search       = searchParams.toString();
   const [showLogout, setShowLogout] = useState(false);
 
-  const tree = userType === 'teacher' ? TEACHER_SECTIONS : PARENT_SECTIONS;
-
-  // Inject badge into notifications
-  const mainItems   = tree.main.map(s => s.id === 'notifications' ? { ...s, badge: unreadNotifications } : s);
+  const tree        = userType === 'teacher' ? TEACHER_SECTIONS : PARENT_SECTIONS;
+  const mainItems   = tree.main;
   const systemItems = tree.system;
+  const isCollapsed = isMobile ? false : collapsed;
 
   return (
     <>
       <aside
-        className="fixed left-0 top-0 h-screen z-40 flex flex-col overflow-hidden will-change-auto"
+        className="fixed left-0 top-0 h-screen z-40 flex flex-col overflow-hidden"
         style={{
-          width: collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED,
-          transition: 'width 0.3s cubic-bezier(0.34,1.1,0.64,1)',
+          width: isMobile ? SIDEBAR_W_EXPANDED : (isCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED),
+          transition: 'width 0.32s cubic-bezier(0.34,1.1,0.64,1)',
           background: darkMode ? 'linear-gradient(180deg,#0a0e1c 0%,#060914 100%)' : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)',
           borderRight: darkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.07)',
           boxShadow: darkMode ? '4px 0 40px rgba(0,0,0,0.5)' : '4px 0 24px rgba(0,0,0,0.06)',
@@ -233,54 +214,36 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, unreadNotificatio
         <div className="h-[2px] flex-shrink-0" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
 
         {/* Header */}
-        <div className={`flex-shrink-0 flex items-center gap-2 px-3 py-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          <SidebarLogo collapsed={collapsed} darkMode={darkMode} />
+        <div className={`flex-shrink-0 flex items-center gap-2 px-3 py-4 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <SidebarLogo collapsed={isCollapsed} darkMode={darkMode} />
           <button
             onClick={onToggleCollapse}
-            title={collapsed ? 'Expand' : 'Collapse'}
+            title={isCollapsed ? 'Expand' : 'Collapse'}
             className={`flex-shrink-0 p-1.5 rounded-lg transition-all hover:scale-110 active:scale-90 ${darkMode ? 'text-gray-600 hover:text-gray-300 hover:bg-white/[0.06]' : 'text-gray-400 hover:text-gray-700 hover:bg-black/[0.06]'}`}
           >
-            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            {isCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
           </button>
         </div>
 
         {/* Scrollable nav */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 sidebar-scroll">
-          <SectionLabel label="Menu" darkMode={darkMode} collapsed={collapsed} />
+          <SectionLabel label="Menu" darkMode={darkMode} collapsed={isCollapsed} />
           <div className="space-y-0.5">
             {mainItems.map(item => (
-              <NavItem
-                key={item.id}
-                item={item}
-                active={checkActive(item, pathname, search)}
-                darkMode={darkMode}
-                collapsed={collapsed}
-              />
+              <NavItem key={item.id} item={item} active={checkActive(item, pathname, search)} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} />
             ))}
           </div>
 
-          <SectionLabel label="System" darkMode={darkMode} collapsed={collapsed} />
+          <SectionLabel label="Account" darkMode={darkMode} collapsed={isCollapsed} />
           <div className="space-y-0.5">
             {systemItems.map(item => (
-              <NavItem
-                key={item.id}
-                item={item}
-                active={checkActive(item, pathname, search)}
-                darkMode={darkMode}
-                collapsed={collapsed}
-              />
+              <NavItem key={item.id} item={item} active={false} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} />
             ))}
           </div>
         </nav>
 
         {/* User card */}
-        <UserCard
-          darkMode={darkMode}
-          collapsed={collapsed}
-          userInfo={userInfo}
-          userType={userType}
-          onLogout={() => setShowLogout(true)}
-        />
+        <UserCard darkMode={darkMode} collapsed={isCollapsed} userInfo={userInfo} userType={userType} />
       </aside>
 
       {showLogout && (
@@ -304,7 +267,6 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, unreadNotificatio
   );
 }
 
-/* ═══ Export wrapped in Suspense (required for useSearchParams) ═══ */
 export default function AppSidebar(props) {
   return (
     <Suspense fallback={null}>

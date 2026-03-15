@@ -81,18 +81,8 @@ export default function ClassroomMonitorTab({
 }) {
   const [sortBy,         setSortBy]         = useState('name');
   const [showSort,       setShowSort]       = useState(false);
-  const [visibleCards,   setVisibleCards]   = useState(new Set());
   const [lastRefreshed,  setLastRefreshed]  = useState(Date.now());
   const sortRef = useRef(null);
-
-  // Staggered card entrance — single setState after last timeout to avoid N re-renders
-  useEffect(() => {
-    if (!classes.length) return;
-    const t = setTimeout(() => {
-      setVisibleCards(new Set(classes.map((_, i) => i)));
-    }, 80);
-    return () => clearTimeout(t);
-  }, [classes.join(',')]);
 
   // Track refresh for "last updated" display
   useEffect(() => {
@@ -362,7 +352,7 @@ export default function ClassroomMonitorTab({
             const { counts, rate, total } = classStats[cn] || { counts: { in: 0, out: 0, 'no-log': 0 }, rate: 0, total: 0 };
             const filteredSt  = getFilteredStudents(cn);
             const isExpanded  = selectedClass === cn;
-            const isVisible   = visibleCards.has(idx);
+            
             const spark       = classSparklines[cn] || [];
             const sparkColor  = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
             const rateGrad    = rate >= 80 ? 'from-emerald-400 to-emerald-600' : rate >= 60 ? 'from-amber-400 to-amber-500' : 'from-rose-400 to-rose-600';
@@ -371,7 +361,7 @@ export default function ClassroomMonitorTab({
               <div key={cn}
                 className={`group border rounded-2xl overflow-hidden transition-[opacity,transform,border-color,background-color,box-shadow] duration-200
                   hover:-translate-y-0.5 hover:shadow-lg
-                  ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}
+                  opacity-100 translate-y-0
                   ${isExpanded
                     ? darkMode ? 'bg-white/[0.06] border-white/16 shadow-xl' : 'bg-white border-gray-300 shadow-xl'
                     : darkMode ? 'bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/14' : 'bg-white border-gray-200/80 shadow-sm hover:border-gray-300 hover:shadow-lg'

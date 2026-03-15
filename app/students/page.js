@@ -111,19 +111,19 @@ export default function StudentsPage() {
 
         <div className="fade-in-up space-y-5">
           {/* Header stats */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
               { label: 'Total Students', value: students.length, icon: Users,     color: '#0ea5e9' },
               { label: 'Present Today',  value: presentCount,    icon: UserCheck,  color: '#10b981' },
               { label: 'Absent Today',   value: Math.max(0, students.length - presentCount), icon: UserX, color: '#f43f5e' },
             ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className={`border rounded-2xl p-4 flex items-center gap-3 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
-                  <Icon size={18} style={{ color }} />
+              <div key={label} className={`border rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
+                  <Icon size={16} style={{ color }} />
                 </div>
                 <div>
-                  <p className={`text-xl font-black leading-none ${darkMode ? 'text-white' : 'text-gray-900'}`}>{loading ? '—' : value}</p>
-                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{label}</p>
+                  <p className={`text-base sm:text-xl font-black leading-none ${darkMode ? 'text-white' : 'text-gray-900'}`}>{loading ? '—' : value}</p>
+                  <p className={`text-[10px] sm:text-xs mt-0.5 truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{label}</p>
                 </div>
               </div>
             ))}
@@ -131,7 +131,7 @@ export default function StudentsPage() {
 
           {/* Search + filter */}
           <div className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
-            <div className={`flex gap-3 items-center p-4 border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
+            <div className={`flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center p-3 sm:p-4 border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
               <div className={`flex-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-gray-50 border-gray-200'}`}>
                 <Search size={15} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
                 <input
@@ -145,7 +145,7 @@ export default function StudentsPage() {
               <select
                 value={classFilter}
                 onChange={e => setClassFilter(e.target.value)}
-                className={`px-3 py-2.5 rounded-xl border text-sm font-semibold outline-none ${darkMode ? 'bg-white/[0.04] border-white/8 text-white' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
+                className={`px-3 py-2.5 rounded-xl border text-sm font-semibold outline-none w-full sm:w-auto ${darkMode ? 'bg-white/[0.04] border-white/8 text-white' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
               >
                 {classes.map(c => <option key={c} value={c}>{c === 'all' ? 'All Classes' : c}</option>)}
               </select>

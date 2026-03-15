@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { RouteGuard } from '../_lib/RouteGuard';
 import { useApp } from '../_lib/AppContext';
-import AppHeader, { MobileNav } from '../_components/AppHeader';
+import AppHeader from '../_components/AppHeader';
 import AppSidebar from '../_components/AppSidebar';
 import DashboardTab from '../_components/DashboardTab';
 
@@ -67,23 +67,31 @@ export default function DashboardPage() {
             darkMode={darkMode}
             collapsed={sidebarCollapsed}
             onToggleCollapse={toggleSidebar}
+            isMobile={false}
           />
         )}
 
         {/* Mobile sidebar overlay */}
-        {isMobile && !sidebarCollapsed && (
-          <>
-            <div className="fixed inset-0 z-[39] bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
-            <AppSidebar
-              darkMode={darkMode}
-              collapsed={false}
-              onToggleCollapse={toggleSidebar}
-            />
-          </>
+        <div
+          className={`fixed inset-0 z-[39] transition-all duration-300 ${isMobile && !sidebarCollapsed ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          style={{ opacity: isMobile && !sidebarCollapsed ? 1 : 0 }}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
+        </div>
+        {isMobile && (
+          <div
+            style={{
+              position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
+              transform: sidebarCollapsed ? 'translateX(-260px)' : 'translateX(0)',
+              transition: 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)',
+            }}
+          >
+            <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} isMobile={true} />
+          </div>
         )}
 
         {/* Main content shifted right by sidebar width */}
-        <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.3s cubic-bezier(0.34,1.1,0.64,1)' }}>
+        <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.32s cubic-bezier(0.34,1.1,0.64,1)' }}>
           <AppHeader
             darkMode={darkMode}
             toggleTheme={toggleTheme}
@@ -93,12 +101,11 @@ export default function DashboardPage() {
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={toggleSidebar}
           />
-          <main className={`max-w-7xl mx-auto px-4 sm:px-6 py-6 ${isMobile ? 'pb-24' : ''}`}>
+          <main className={`max-w-7xl mx-auto px-4 sm:px-6 py-6`}>
             <div className="animate-fade-in-up">
               <DashboardTab darkMode={darkMode} stats={stats} weekData={weeklyData} students={students} logs={logs} classes={classes} loading={loading} />
             </div>
           </main>
-          {isMobile && <MobileNav darkMode={darkMode} />}
         </div>
         <PageStyles />
       </div>

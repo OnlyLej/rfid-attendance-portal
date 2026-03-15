@@ -1,22 +1,8 @@
 'use client';
 
-/**
- * AppHeader  —  slim top bar alongside AppSidebar
- *   ● Sidebar toggle (mobile hamburger)
- *   ● Live status dot + page title + greeting
- *   ● Live PH clock (desktop)
- *   ● Keyboard shortcuts modal  (press ?)
- *   ● Notifications panel
- *   ● Theme toggle
- *   ● Refresh button
- *
- * MobileNav  —  floating liquid-glass pill bar (mobile, kept for mobile UX)
- */
-
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
 import {
-  Sun, Moon, RefreshCw, Home, Users, FileText,
+  Sun, Moon, RefreshCw,
   Bell, X, AlertTriangle, CheckCircle, Info, XCircle, Keyboard,
   Menu,
 } from 'lucide-react';
@@ -25,17 +11,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const PH_TZ = 'Asia/Manila';
 
-const TABS = [
-  { href: '/dashboard', icon: Home,     label: 'Dashboard', color: '#0ea5e9', glow: 'rgba(14,165,233,0.4)'  },
-  { href: '/classroom', icon: Users,    label: 'Classroom', color: '#7c3aed', glow: 'rgba(124,58,237,0.4)' },
-  { href: '/logs',      icon: FileText, label: 'Logs',      color: '#10b981', glow: 'rgba(16,185,129,0.4)' },
-];
-
 const PAGE_TITLES = {
-  '/dashboard': 'Dashboard',
-  '/classroom': 'Classroom',
-  '/logs':      'Logs & Reports',
-  '/parent':    'Parent Portal',
+  '/dashboard':    'Dashboard',
+  '/classroom':    'Classroom',
+  '/logs':         'Logs & Reports',
+  '/parent':       'Parent Portal',
+  '/students':     'Students',
+  '/reports':      'Reports',
+  '/alerts':       'Alerts',
+  '/child-profile':'Child Profile',
+  '/calendar':     'Calendar',
+  '/progress':     'Progress',
+  '/notifications':'Notifications',
 };
 
 function usePHClock() {
@@ -232,16 +219,15 @@ export default function AppHeader({
   return (
     <>
       <header className={`sticky top-0 z-30 border-b backdrop-blur-2xl transition-all duration-300 ${darkMode ? 'bg-[#050810]/90 border-white/6' : 'bg-white/90 border-black/6'} shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isMobile && scrollDir === 'down' ? '-translate-y-full' : 'translate-y-0'}`}>
+        {/* Loading bar — no gradient color on top normally, only shows when loading */}
         <div className="h-0.5 w-full transition-opacity duration-300" style={{ opacity: loading ? 1 : 0, background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9)', backgroundSize: '300% 100%', animation: 'hdr-sweep 1.8s linear infinite' }} />
         <div className="px-4 sm:px-5">
           <div className="h-14 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
               {isMobile && (
-                <Tooltip label="Menu (B)" darkMode={darkMode}>
-                  <button onClick={onToggleSidebar} className={`p-2 rounded-xl flex-shrink-0 transition-all duration-200 hover:scale-110 active:scale-90 ${darkMode ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'}`}>
-                    <Menu size={18} />
-                  </button>
-                </Tooltip>
+                <button onClick={onToggleSidebar} className={`p-2 rounded-xl flex-shrink-0 transition-all duration-200 hover:scale-110 active:scale-90 ${darkMode ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'}`}>
+                  <Menu size={18} />
+                </button>
               )}
               <div className="flex items-center gap-2 min-w-0">
                 <span className="relative flex h-2 w-2 flex-shrink-0">
@@ -278,7 +264,7 @@ export default function AppHeader({
                     <Bell size={17} className={`transition-all duration-300 ${showNotifs ? 'scale-110' : ''}`} />
                     {unread > 0 && (
                       <span className="absolute top-1 right-1 min-w-[14px] h-3.5 rounded-full text-white text-[9px] font-black flex items-center justify-center px-0.5"
-                        style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)', boxShadow: `0 0 0 2px ${darkMode ? '#050810' : 'white'}`, animation: 'badge-bounce .5s ease-out' }}>
+                        style={{ background: '#0ea5e9', boxShadow: `0 0 0 2px ${darkMode ? '#050810' : 'white'}`, animation: 'badge-bounce .5s ease-out' }}>
                         {unread}
                       </span>
                     )}
@@ -312,38 +298,5 @@ export default function AppHeader({
       </header>
       {showShortcuts && <ShortcutsModal darkMode={darkMode} onClose={() => setShowShortcuts(false)} />}
     </>
-  );
-}
-
-export function MobileNav({ darkMode }) {
-  const pathname  = usePathname();
-  const activeIdx = TABS.findIndex(t => pathname === t.href || pathname.startsWith(t.href + '/'));
-  const safeIdx   = activeIdx === -1 ? 0 : activeIdx;
-  const [pressed, setPressed] = useState(null);
-  return (
-    <div className="md:hidden fixed bottom-5 left-1/2 z-50" style={{ transform: 'translateX(-50%)', width: 'min(360px, calc(100vw - 32px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="absolute inset-x-8 -bottom-3 h-10 rounded-full blur-2xl opacity-55 pointer-events-none" style={{ background: `radial-gradient(ellipse, ${TABS[safeIdx].glow}, transparent 70%)`, transition: 'background 0.4s ease' }} />
-      <nav className="relative rounded-[22px] overflow-hidden" style={{ padding: '4px', background: darkMode ? 'linear-gradient(135deg,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.04) 100%)' : 'linear-gradient(135deg,rgba(255,255,255,0.88) 0%,rgba(255,255,255,0.72) 100%)', backdropFilter: 'blur(32px) saturate(180%) brightness(1.05)', WebkitBackdropFilter: 'blur(32px) saturate(180%) brightness(1.05)', border: darkMode ? '1px solid rgba(255,255,255,0.11)' : '1px solid rgba(255,255,255,0.85)', boxShadow: darkMode ? '0 18px 70px rgba(0,0,0,0.7),0 4px 22px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.13)' : '0 18px 70px rgba(0,0,0,0.15),0 4px 18px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,1)' }}>
-        <div className="absolute top-1 bottom-1 rounded-[18px] pointer-events-none" style={{ left: `calc(${safeIdx} * 33.333% + 4px)`, width: 'calc(33.333% - 8px)', background: `linear-gradient(135deg,${TABS[safeIdx].color}f5,${TABS[safeIdx].color}99)`, boxShadow: `0 4px 26px ${TABS[safeIdx].glow},inset 0 1px 0 rgba(255,255,255,0.30)`, transition: 'left 0.42s cubic-bezier(0.34,1.3,0.64,1),background 0.3s,box-shadow 0.3s' }} />
-        <div className="relative flex">
-          {TABS.map((tab, i) => {
-            const active = safeIdx === i;
-            const isPress = pressed === i;
-            return (
-              <Link key={tab.href} href={tab.href} onTouchStart={() => setPressed(i)} onTouchEnd={() => setPressed(null)} onMouseDown={() => setPressed(i)} onMouseUp={() => setPressed(null)} onMouseLeave={() => setPressed(null)}
-                className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-[18px] select-none"
-                style={{ transition: 'transform 0.15s cubic-bezier(0.34,1.5,0.64,1)', transform: isPress ? 'scale(0.83)' : 'scale(1)' }}>
-                <div style={{ position: 'relative', transition: 'transform 0.40s cubic-bezier(0.34,1.5,0.64,1)', transform: active ? 'scale(1.20) translateY(-2px)' : 'scale(1)' }}>
-                  <tab.icon size={21} style={{ color: active ? '#ffffff' : darkMode ? 'rgba(255,255,255,0.38)' : 'rgba(15,23,42,0.38)', transition: 'color 0.25s,filter 0.25s', filter: active ? 'drop-shadow(0 0 7px rgba(255,255,255,0.6))' : 'none' }} />
-                  {active && <span style={{ position:'absolute', top:'-7px', left:'50%', transform:'translateX(-50%)', width:'4px', height:'4px', borderRadius:'50%', background:'rgba(255,255,255,0.85)', boxShadow:'0 0 5px rgba(255,255,255,0.8)', animation:'nav-dot-pop 0.3s cubic-bezier(0.34,1.5,0.64,1) both' }} />}
-                </div>
-                <span className="font-black leading-none" style={{ fontSize:'10px', letterSpacing:'0.02em', color: active ? '#ffffff' : darkMode ? 'rgba(255,255,255,0.32)' : 'rgba(15,23,42,0.35)', transition:'color 0.25s' }}>{tab.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-      <style jsx global>{`@keyframes nav-dot-pop { from{opacity:0;transform:translateX(-50%) scale(0.3)} to{opacity:1;transform:translateX(-50%) scale(1)} }`}</style>
-    </div>
   );
 }

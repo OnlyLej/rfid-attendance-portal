@@ -6,6 +6,8 @@ import PageShell from '../_components/PageShell';
 import { Skeleton } from '../_components/ui';
 import { normalizeId, getPhTodayStr, getPhLocalDate } from '../_lib/data';
 import { useMemo, useState } from 'react';
+import ChildPicker from '../_components/ChildPicker';
+import { useChildSelection } from '../_lib/useChildSelection';
 import { TrendingUp, TrendingDown, Minus, Award, Calendar } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -19,16 +21,9 @@ export default function ProgressPage() {
   const [range, setRange] = useState('30');
   const rangeNum = parseInt(range);
 
-  const childIds = useMemo(() => {
-    let raw = userInfo?.studentIds;
-    if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { raw = raw ? [raw] : []; } }
-    let ids = Array.isArray(raw) ? raw.map(String) : [];
-    if (!ids.length && userInfo?.studentId) ids = [String(userInfo.studentId)];
-    if (!ids.length) ids = students.map(s => String(s.studentId));
-    return ids.map(normalizeId);
-  }, [userInfo, students]);
-
-  const child = useMemo(() => students.find(s => childIds.includes(normalizeId(s.studentId))), [students, childIds]);
+  const { children: allChildren, selectedChildId, setSelectedChildId, selectedChild: childObj } = useChildSelection(userInfo, students);
+  const childIds = useMemo(() => childObj ? [normalizeId(childObj.studentId)] : [], [childObj]);
+  const child = useMemo(() => students.find(s => normalizeId(s.studentId) === (childIds[0] ?? '')), [students, childIds]);
   const childLogs = useMemo(() => logs.filter(l => childIds.includes(normalizeId(l.studentId))), [logs, childIds]);
 
   const dailyData = useMemo(() => {
@@ -82,7 +77,9 @@ export default function ProgressPage() {
       <PageShell darkMode={darkMode} toggleTheme={toggleTheme} isMobile={isMobile}
         sidebarCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar}
         loading={loading} onRefresh={fetchData}>
+
         <div className="fade-in-up space-y-5">
+          <ChildPicker children={allChildren} selectedChildId={selectedChildId} onSelect={setSelectedChildId} darkMode={darkMode} />
 
           {/* Child + range selector */}
           <div className="flex items-center justify-between flex-wrap gap-3">
