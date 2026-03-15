@@ -79,15 +79,13 @@ export default function DashboardPage() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
         </div>
         {isMobile && (
-          <div
-            style={{
-              position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 40,
-              transform: sidebarCollapsed ? 'translateX(-260px)' : 'translateX(0)',
-              transition: 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)',
-            }}
-          >
-            <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} isMobile={true} />
-          </div>
+          <AppSidebar
+            darkMode={darkMode}
+            collapsed={false}
+            onToggleCollapse={toggleSidebar}
+            isMobile={true}
+            mobileOpen={!sidebarCollapsed}
+          />
         )}
 
         {/* Main content shifted right by sidebar width */}

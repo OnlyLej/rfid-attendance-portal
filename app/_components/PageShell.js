@@ -27,19 +27,13 @@ export default function PageShell({
       </div>
 
       {isMobile && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            zIndex: 40,
-            transform: sidebarCollapsed ? `translateX(-${SIDEBAR_W_EXPANDED}px)` : 'translateX(0)',
-            transition: 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)',
-          }}
-        >
-          <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} isMobile={true} />
-        </div>
+        <AppSidebar
+          darkMode={darkMode}
+          collapsed={false}
+          onToggleCollapse={toggleSidebar}
+          isMobile={true}
+          mobileOpen={!sidebarCollapsed}
+        />
       )}
 
       <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.32s cubic-bezier(0.34,1.1,0.64,1)' }}>

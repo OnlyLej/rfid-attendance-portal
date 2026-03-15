@@ -10,6 +10,9 @@ export default function NotFound() {
   const [darkMode, setDarkMode] = useState(false);
   const [glitch, setGlitch] = useState(false);
   const [pulseAnim, setPulseAnim] = useState(false);
+  const [clientMounted, setClientMounted] = useState(false);
+  const [particles, setParticles] = useState([]);
+  const [timestamp, setTimestamp] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -32,6 +35,23 @@ export default function NotFound() {
       setTimeout(() => setPulseAnim(false), 400);
     }, 2000);
     return () => clearInterval(pulseInterval);
+  }, []);
+
+  useEffect(() => {
+    setClientMounted(true);
+    // Generate stable random particles client-side only
+    setParticles(Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      delay: Math.random() * 5,
+      duration: Math.random() * 10 + 10,
+    })));
+    // Live clock
+    const tick = () => setTimestamp(new Date().toLocaleTimeString());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
   }, []);
 
   const homeHref = !mounted || !authenticated
@@ -121,18 +141,18 @@ export default function NotFound() {
           }}
         />
 
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
+        {/* Floating particles — client-only to avoid hydration mismatch */}
+        {clientMounted && particles.map((p) => (
           <div
-            key={i}
+            key={p.id}
             className={`absolute w-1 h-1 rounded-full animate-float-particle ${
               darkMode ? 'bg-sky-400/20' : 'bg-sky-500/20'
             }`}
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${Math.random() * 10 + 10}s`,
+              left: `${p.left}%`,
+              top: `${p.top}%`,
+              animationDelay: `${p.delay}s`,
+              animationDuration: `${p.duration}s`,
             }}
           />
         ))}
@@ -181,7 +201,7 @@ export default function NotFound() {
               <div
                 className="absolute inset-0 pointer-events-none animate-gradient"
                 style={{
-                  background: darkMode
+                  backgroundImage: darkMode
                     ? 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(124,58,237,0.1) 100%)'
                     : 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(124,58,237,0.06) 100%)',
                   WebkitBackgroundClip: 'text',
@@ -201,7 +221,7 @@ export default function NotFound() {
                 The signal couldn't reach the requested endpoint.
               </p>
               <p className={`text-xs animate-slide-up-delay2 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                Error Code: 0x404 • Timestamp: {new Date().toLocaleTimeString()}
+                Error Code: 0x404 • Timestamp: {timestamp || '—'}
               </p>
             </div>
 

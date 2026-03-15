@@ -64,13 +64,18 @@ export default function ClassroomPage() {
     <RouteGuard allowedRoles={['teacher']}>
       <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#0f1117]' : 'bg-slate-50/80'}`}>
         {!isMobile && (
-          <AppSidebar darkMode={darkMode} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+          <AppSidebar darkMode={darkMode} collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} isMobile={false} />
         )}
-        {isMobile && !sidebarCollapsed && (
-          <>
-            <div className="fixed inset-0 z-[39] bg-black/50 backdrop-blur-sm" onClick={toggleSidebar} />
-            <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} />
-          </>
+        {/* Mobile overlay */}
+        <div
+          className="fixed inset-0 z-[39] transition-all duration-300"
+          style={{ opacity: isMobile && !sidebarCollapsed ? 1 : 0, pointerEvents: isMobile && !sidebarCollapsed ? 'auto' : 'none' }}
+          onClick={toggleSidebar}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        </div>
+        {isMobile && (
+          <AppSidebar darkMode={darkMode} collapsed={false} onToggleCollapse={toggleSidebar} isMobile={true} mobileOpen={!sidebarCollapsed} />
         )}
         <div style={{ marginLeft: isMobile ? 0 : sidebarW, transition: 'margin-left 0.32s cubic-bezier(0.34,1.1,0.64,1)' }}>
           <AppHeader darkMode={darkMode} toggleTheme={toggleTheme} loading={loading} onRefresh={fetchData} isMobile={isMobile} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={toggleSidebar} />
