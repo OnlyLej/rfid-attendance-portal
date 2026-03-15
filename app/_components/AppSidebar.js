@@ -138,7 +138,7 @@ function SectionLabel({ label, darkMode, collapsed }) {
 function UserCard({ darkMode, collapsed, userInfo, userType }) {
   const initial = (userInfo?.fullName || userInfo?.username || 'U').charAt(0).toUpperCase();
   return (
-    <div className={`flex-shrink-0 border-t px-3 py-3 ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`}>
+    <div className={`flex-shrink-0 border-t px-3 py-3 ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`} style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
       <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
         <div
           className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-[13px] font-black shadow-md"
@@ -201,9 +201,12 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile }) {
   return (
     <>
       <aside
-        className="fixed left-0 top-0 h-screen z-40 flex flex-col overflow-hidden"
+        className="fixed left-0 top-0 z-40 flex flex-col overflow-hidden"
         style={{
           width: isMobile ? SIDEBAR_W_EXPANDED : (isCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED),
+          height: '100vh',
+          // Use dvh when supported so mobile browser chrome doesn't cut off the bottom
+          ...(typeof CSS !== 'undefined' && CSS.supports?.('height', '100dvh') ? { height: '100dvh' } : {}),
           transition: 'width 0.32s cubic-bezier(0.34,1.1,0.64,1)',
           background: darkMode ? 'linear-gradient(180deg,#0a0e1c 0%,#060914 100%)' : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)',
           borderRight: darkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.07)',
