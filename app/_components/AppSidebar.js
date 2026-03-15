@@ -204,13 +204,7 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
         className="fixed left-0 top-0 z-40 flex flex-col overflow-hidden"
         style={{
           width: isMobile ? SIDEBAR_W_EXPANDED : (isCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED),
-          height: '100vh',
-          ...(typeof CSS !== 'undefined' && CSS.supports?.('height', '100dvh') ? { height: '100dvh' } : {}),
-          // On mobile: slide in/out via translateX on the fixed element itself
-          transform: isMobile ? (mobileOpen ? 'translateX(0)' : `translateX(-${SIDEBAR_W_EXPANDED}px)`) : 'none',
-          transition: isMobile
-            ? 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)'
-            : 'width 0.32s cubic-bezier(0.34,1.1,0.64,1)',
+          transition: 'width 0.32s cubic-bezier(0.34,1.1,0.64,1)',
           background: darkMode ? 'linear-gradient(180deg,#0a0e1c 0%,#060914 100%)' : 'linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)',
           borderRight: darkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.07)',
           boxShadow: darkMode ? '4px 0 40px rgba(0,0,0,0.5)' : '4px 0 24px rgba(0,0,0,0.06)',
