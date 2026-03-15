@@ -98,20 +98,49 @@ function useReveal(t = 0.08) {
   return [ref, vis];
 }
 
-function TypedText({ words, className }) {
-  const [idx, setIdx] = useState(0);
-  const [text, setText] = useState('');
-  const [del, setDel] = useState(false);
+const TYPED_WORDS = [
+  'Built for Philippine schools.',
+  'No more clipboards.',
+  'Instant & accurate.',
+  'Parents see it live.',
+  'Real-time RFID scanning.',
+  'Works on ESP8266 & ESP32.',
+  'Auto-logs every arrival.',
+  'Export to Excel anytime.',
+  'Zero manual entry.',
+  'Attendance in under 200ms.',
+];
+
+function TypedText({ words: _words, className }) {
+  // Use a stable ref so inline array props don't break the loop
+  const wordsRef = React.useRef(_words || TYPED_WORDS);
+  const words = wordsRef.current;
+
+  const [idx,    setIdx]    = useState(0);
+  const [text,   setText]   = useState('');
+  const [del,    setDel]    = useState(false);
   const [paused, setPaused] = useState(false);
+
   useEffect(() => {
-    if (paused) { const t = setTimeout(() => setPaused(false), 1400); return () => clearTimeout(t); }
+    if (paused) {
+      const t = setTimeout(() => setPaused(false), 1200);
+      return () => clearTimeout(t);
+    }
     const w = words[idx % words.length];
     const t = setTimeout(() => {
-      if (!del) { setText(w.slice(0, text.length+1)); if (text.length+1===w.length){setPaused(true);setDel(true);} }
-      else { setText(w.slice(0,text.length-1)); if (text.length===0){setDel(false);setIdx(i=>i+1);} }
-    }, del ? 38 : 75);
+      if (!del) {
+        const next = w.slice(0, text.length + 1);
+        setText(next);
+        if (next.length === w.length) { setPaused(true); setDel(true); }
+      } else {
+        const next = w.slice(0, text.length - 1);
+        setText(next);
+        if (next.length === 0) { setDel(false); setIdx(i => (i + 1) % words.length); }
+      }
+    }, del ? 32 : 68);
     return () => clearTimeout(t);
-  }, [text, del, idx, words, paused]);
+  }, [text, del, idx, paused]);
+
   return <span className={className}>{text}<span className="opacity-60 animate-pulse">|</span></span>;
 }
 
@@ -376,7 +405,7 @@ export default function LandingPage() {
 
           <p className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed font-medium transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-8'} ${dark?'text-gray-400':'text-gray-500'}`} style={{ transitionDelay:'160ms' }}>
             RFID card taps replace manual roll-calls.{' '}
-            <TypedText words={['Built for Philippine schools.','No more clipboards.','Instant & accurate.','Parents see it live.']} className={`font-bold ${dark?'text-sky-400':'text-sky-600'}`}/>
+            <TypedText words={TYPED_WORDS} className={`font-bold ${dark?'text-sky-400':'text-sky-600'}`}/>
           </p>
 
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-6'}`} style={{ transitionDelay:'240ms' }}>
@@ -842,7 +871,7 @@ export default function LandingPage() {
         .animate-spin-24     { animation: spin-24  24s linear infinite; }
         .animate-spin-18-rev { animation: spin-18r 18s linear infinite; }
 
-        .marquee-strip { animation: marquee 34s linear infinite; }
+        .marquee-strip { animation: marquee 18s linear infinite; }
         .marquee-strip:hover { animation-play-state: paused; }
 
         .mouse-scroll-icon {
