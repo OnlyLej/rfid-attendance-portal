@@ -1,4 +1,5 @@
 import { AppProvider } from './_lib/AppContext';
+import ClientProviders from './_components/ClientProviders';
 import './globals.css';
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -70,7 +71,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AppProvider>
-          {children}
+          <ClientProviders>{children}</ClientProviders>
           <Analytics />
           <SpeedInsights />
         </AppProvider>

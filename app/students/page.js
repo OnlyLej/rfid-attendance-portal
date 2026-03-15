@@ -6,6 +6,7 @@ import PageShell from '../_components/PageShell';
 import { Skeleton, EmptyState, StatusBadge } from '../_components/ui';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
 import { useState, useMemo } from 'react';
+import StudentProfileModal from '../_components/StudentProfileModal';
 import { Search, Users, UserCheck, UserX, GraduationCap, Hash, X } from 'lucide-react';
 
 const PH_TZ = 'Asia/Manila';
@@ -21,7 +22,7 @@ function getStudentStats(studentId, logs) {
   return { isPresent, lastSeen, totalDays };
 }
 
-function StudentRow({ student, logs, darkMode, idx }) {
+function StudentRow({ student, logs, darkMode, idx, onClick }) {
   const { isPresent, lastSeen, totalDays } = useMemo(() => getStudentStats(student.studentId, logs), [student.studentId, logs]);
   const lastSeenStr = lastSeen
     ? parsePhTimestamp(lastSeen)?.toLocaleDateString('en-PH', { timeZone: PH_TZ, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -29,7 +30,8 @@ function StudentRow({ student, logs, darkMode, idx }) {
 
   return (
     <div
-      className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 transition-all duration-200 hover:scale-[1.001]
+      onClick={onClick}
+      className={`flex items-center gap-4 px-5 py-4 border-b last:border-0 transition-all duration-200 hover:scale-[1.001] cursor-pointer
         ${darkMode ? 'border-white/[0.04] hover:bg-white/[0.03]' : 'border-gray-50 hover:bg-slate-50/70'}`}
       style={{ animationDelay: `${idx * 25}ms` }}
     >
@@ -84,6 +86,7 @@ export default function StudentsPage() {
   const { students, logs, loading, fetchData } = useApp();
 
   const [search, setSearch] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [classFilter, setClassFilter] = useState('all');
 
   const classes = useMemo(() => ['all', ...new Set(students.map(s => s.class).filter(Boolean)).values()], [students]);
@@ -175,7 +178,7 @@ export default function StudentsPage() {
                 ))
               : filtered.length === 0
                 ? <div className="py-16"><EmptyState icon={Users} title="No students found" body="Try adjusting your search or filter." darkMode={darkMode} /></div>
-                : filtered.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} />)
+                : filtered.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} onClick={() => setSelectedStudent(s)} />)
             }
 
             {/* Footer count */}
@@ -187,6 +190,15 @@ export default function StudentsPage() {
           </div>
         </div>
       </PageShell>
+      {/* Student profile modal */}
+      {selectedStudent && (
+        <StudentProfileModal
+          student={selectedStudent}
+          logs={logs}
+          darkMode={darkMode}
+          onClose={() => setSelectedStudent(null)}
+        />
+      )}
     </RouteGuard>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Calendar, Users, TrendingUp, BarChart3, Activity, UserCheck, UserX,
-  Target, Award, ArrowUp, ArrowDown, Minus, Loader2,
+  Target, Award, ArrowUp, ArrowDown, Minus, Loader2, Trophy,
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis,
@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, toPhDateStr, getPhLocalDate } from '../_lib/data';
 import { Skeleton, ChartSkeleton, Card } from './ui';
+import AttendanceHeatmap from './AttendanceHeatmap';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -291,6 +292,27 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
   const axisColor  = darkMode ? '#334155' : '#94a3b8';
   const chartH     = isMobile ? 220 : 260;
   const weekAvg    = dailyData.length > 0 ? Math.round(dailyData.reduce((s, d) => s + d.attendanceRate, 0) / dailyData.length) : 0;
+
+  if (!loading && (!students || students.length === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5 ${darkMode ? 'bg-white/[0.04]' : 'bg-sky-50'}`} style={{ boxShadow: '0 0 0 8px rgba(14,165,233,0.08)' }}>
+          <BarChart3 size={36} className="text-sky-400" />
+        </div>
+        <h2 className={`text-xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>No data yet</h2>
+        <p className={`text-sm max-w-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your portal is ready. Once students are registered and RFID scans come in, your dashboard will populate automatically.</p>
+        <div className={`border rounded-2xl p-5 max-w-sm w-full text-left space-y-3 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
+          <p className={`text-xs font-black uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Getting started</p>
+          {[['1','Set GOOGLE_APPS_SCRIPT_URL in .env'],['2','Register students in your Google Sheet'],['3','Connect RFID hardware and start scanning']].map(([n,t]) => (
+            <div key={n} className="flex items-start gap-3">
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${darkMode ? 'bg-white/8 text-gray-300' : 'bg-sky-100 text-sky-700'}`}>{n}</span>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -575,6 +597,49 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
           </Card>
         ))}
       </div>
+
+      {/* ── Class Leaderboard ── */}
+      {!loading && classComparisonData.length > 1 && (
+        <Card darkMode={darkMode} delay={450} hover>
+          <div className="p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Trophy size={15} className="text-amber-500" />
+              </div>
+              <h3 className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>Class Leaderboard</h3>
+              <span className={`ml-auto text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${darkMode ? 'bg-white/6 text-gray-500' : 'bg-gray-100 text-gray-400'}`}>Today</span>
+            </div>
+            <div className="space-y-2">
+              {classComparisonData.slice(0, 8).map((cls, i) => {
+                const medals = ['🥇','🥈','🥉'];
+                const medal = medals[i] || null;
+                const barColor = cls.attendanceRate >= 90 ? '#10b981' : cls.attendanceRate >= 70 ? '#f59e0b' : '#f43f5e';
+                return (
+                  <div key={cls.fullName} className={`flex items-center gap-3 p-2.5 rounded-xl transition-colors ${darkMode ? 'hover:bg-white/[0.04]' : 'hover:bg-gray-50'}`}>
+                    <span className="w-6 text-center text-sm flex-shrink-0">
+                      {medal || <span className={`text-xs font-black ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{i + 1}</span>}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className={`text-xs font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{cls.fullName}</p>
+                        <p className="text-xs font-black ml-2 flex-shrink-0" style={{ color: barColor }}>{cls.attendanceRate}%</p>
+                      </div>
+                      <div className={`h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`}>
+                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${cls.attendanceRate}%`, background: barColor }} />
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-semibold flex-shrink-0 w-14 text-right ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{cls.present}/{cls.total}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ── Attendance Heatmap ── */}
+      <AttendanceHeatmap logs={logs} darkMode={darkMode} title="School-wide Attendance This Year" />
+
     </div>
   );
 }

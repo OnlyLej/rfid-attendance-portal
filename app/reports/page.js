@@ -6,7 +6,7 @@ import PageShell from '../_components/PageShell';
 import { Skeleton } from '../_components/ui';
 import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../_lib/data';
 import { useMemo, useState } from 'react';
-import { BarChart3, Download, FileText, TrendingUp, Users, Calendar, ChevronDown } from 'lucide-react';
+import { BarChart3, Download, FileText, TrendingUp, Users, Calendar, ChevronDown, Printer } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import ExcelJS from 'exceljs';
 
@@ -28,6 +28,13 @@ export default function ReportsPage() {
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapse();
   const { students, logs, classes, loading, fetchData } = useApp();
   const [range, setRange] = useState('30');
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+  const handlePrint = () => {
+    setShowPrintPreview(true);
+    setTimeout(() => window.print(), 300);
+  };
+
   const [exporting, setExporting] = useState(false);
 
   const today = getPhTodayStr();
@@ -110,6 +117,14 @@ export default function ReportsPage() {
                   <option value="60">Last 60 days</option>
                 </select>
               </div>
+              <button
+                onClick={handlePrint}
+                title="Print report"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95 border ${darkMode ? 'border-white/8 text-gray-300 hover:bg-white/[0.06]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Printer size={14} />
+                Print
+              </button>
               <button
                 onClick={handleExport}
                 disabled={exporting || loading}

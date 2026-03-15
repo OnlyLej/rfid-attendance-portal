@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { Search, X, ArrowUpDown, RefreshCw, Clock } from 'lucide-react';
+import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
 import {
   RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton,
@@ -81,6 +81,7 @@ export default function ClassroomMonitorTab({
 }) {
   const [sortBy,         setSortBy]         = useState('name');
   const [showSort,       setShowSort]       = useState(false);
+  const [viewMode,       setViewMode]       = useState('card');
   const [lastRefreshed,  setLastRefreshed]  = useState(Date.now());
   const sortRef = useRef(null);
 
@@ -346,13 +347,65 @@ export default function ClassroomMonitorTab({
           actionLabel="Clear search"
           darkMode={darkMode}
         />
+      ) : viewMode === 'grid' ? (
+        <div className="space-y-4">
+          {filteredSorted.map(cn => {
+            const classStudents = students.filter(s => s.class === cn);
+            const query = searchQuery?.toLowerCase() || '';
+            const shown = query
+              ? classStudents.filter(s => s.name?.toLowerCase().includes(query) || s.studentId?.toString().includes(query))
+              : classStudents;
+            const { counts } = classStats[cn] || { counts: { in:0, out:0, 'no-log':0 } };
+            return (
+              <div key={cn} className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
+                <div className={`px-4 py-3 flex items-center justify-between border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
+                  <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{cn}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-emerald-500">{counts.in} IN</span>
+                    <span className="text-[10px] font-bold text-rose-500">{counts.out} OUT</span>
+                    <span className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{counts['no-log']} absent</span>
+                  </div>
+                </div>
+                <div className="p-3 flex flex-wrap gap-2">
+                  {shown.slice().sort((a,b) => {
+                    const order = { in:0, out:1, 'no-log':2 };
+                    return (order[getStudentTodayStatus(a.studentId)] - order[getStudentTodayStatus(b.studentId)]) || a.name.localeCompare(b.name);
+                  }).map(student => {
+                    const status = getStudentTodayStatus(student.studentId);
+                    const lastSeen = getStudentLastSeen(student.studentId);
+                    const initial = (student.name || '?').charAt(0).toUpperCase();
+                    const bg = status === 'in' ? 'linear-gradient(135deg,#10b981,#059669)' : status === 'out' ? 'linear-gradient(135deg,#f43f5e,#e11d48)' : darkMode ? '#1e2333' : '#e5e7eb';
+                    const dot = status === 'in' ? '#10b981' : status === 'out' ? '#f43f5e' : '#9ca3af';
+                    return (
+                      <div key={student.studentId}
+                        title={`${student.name} | ID: ${student.studentId} | ${status === 'in' ? 'IN' : status === 'out' ? 'OUT' : 'Absent'}${lastSeen ? ' | ' + lastSeen : ''}`}
+                        className="flex flex-col items-center gap-1 w-11 cursor-default">
+                        <div className="relative">
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shadow-sm"
+                            style={{ background: bg, color: (status === 'no-log' && !darkMode) ? '#9ca3af' : 'white' }}>
+                            {initial}
+                          </div>
+                          {status === 'in' && <div className="absolute inset-0 rounded-xl bg-emerald-500/30 animate-ping" style={{ animationDuration: '2s' }} />}
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+                            style={{ background: dot, borderColor: darkMode ? '#0a0e1c' : '#fff' }} />
+                        </div>
+                        <p className={`text-[9px] font-semibold text-center leading-tight w-full truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          {student.name.split(' ')[0]}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredSorted.map((cn, idx) => {
             const { counts, rate, total } = classStats[cn] || { counts: { in: 0, out: 0, 'no-log': 0 }, rate: 0, total: 0 };
             const filteredSt  = getFilteredStudents(cn);
             const isExpanded  = selectedClass === cn;
-            
             const spark       = classSparklines[cn] || [];
             const sparkColor  = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
             const rateGrad    = rate >= 80 ? 'from-emerald-400 to-emerald-600' : rate >= 60 ? 'from-amber-400 to-amber-500' : 'from-rose-400 to-rose-600';
