@@ -11,7 +11,7 @@ const RIDAP_ASCII = `
 ██║  ██║██║██████╔╝██║  ██║██║     
 ╚═╝  ╚═╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝     %c
 
-        %cmade by lejel%c
+        %cmade by Lejel%c
 `;
 
 export default function ClientProviders({ children }) {
@@ -27,7 +27,7 @@ export default function ClientProviders({ children }) {
       ''
     );
     console.log(
-      '%cRFID Attendance Portal · built with ❤️ · https://github.com',
+      '%cRFID Attendance Portal · built with ❤️ · https://ridap.vercel.app',
       'color:#10b981; font-family:monospace; font-size:11px;'
     );
 
