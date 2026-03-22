@@ -155,27 +155,6 @@ All timestamps from the API are Philippine Standard Time (UTC+8), formatted as:
 
 No UTC offset is included. The portal handles this by appending `+08:00` at parse time.
 
-
-
-## 📁 Project Structure
-
-```
-├── app/
-│   ├── api/
-│   │   ├── auth/route.ts #  Login        
-│   │   │  validates credentials, issues 
-│   │   │   session token
-│   │   └── proxy/route.ts     # Forwards 
-│   │   authenticated requests to the GAS 
-│   │   backend
-│   └── page.tsx               # All UI 
-│          components (dashboard, logs, 
-│          monitor, parent view)
-├── public/
-│   └── favicon.ico
-└── .env.local    # Local environment variables (not committed)
-```
-
 ---
 
 ## 👤 User Roles
