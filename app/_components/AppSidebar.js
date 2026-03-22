@@ -48,7 +48,7 @@ function checkActive(item, pathname, search) {
   return pathname === item.href || pathname.startsWith(item.href + '/');
 }
 
-function SidebarLogo({ collapsed, darkMode }) {
+function SidebarLogo({ darkMode }) {
   const [imgErr, setImgErr] = useState(false);
   return (
     <div className="flex items-center gap-3 overflow-hidden min-w-0">
@@ -61,12 +61,10 @@ function SidebarLogo({ collapsed, darkMode }) {
           : <img src="/favicon.ico" alt="Logo" className="w-full h-full object-cover" onError={() => setImgErr(true)} />
         }
       </div>
-      {!collapsed && (
-        <div className="min-w-0">
-          <p className={`text-[13px] font-black tracking-tight leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Portal</p>
-          <p className={`text-[10px] font-semibold leading-tight truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Attendance System</p>
-        </div>
-      )}
+      <div className="min-w-0">
+        <p className={`text-[13px] font-black tracking-tight leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Portal</p>
+        <p className={`text-[10px] font-semibold leading-tight truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Attendance System</p>
+      </div>
     </div>
   );
 }
@@ -206,7 +204,6 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
           width: isMobile ? SIDEBAR_W_EXPANDED : (isCollapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W_EXPANDED),
           height: '100vh',
           ...(typeof CSS !== 'undefined' && CSS.supports?.('height', '100dvh') ? { height: '100dvh' } : {}),
-          // On mobile: slide in/out via translateX on the fixed element itself
           transform: isMobile ? (mobileOpen ? 'translateX(0)' : `translateX(-${SIDEBAR_W_EXPANDED}px)`) : 'none',
           transition: isMobile
             ? 'transform 0.32s cubic-bezier(0.34,1.1,0.64,1)'
@@ -220,12 +217,20 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
         <div className="h-[2px] flex-shrink-0" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
 
         {/* Header */}
-        <div className={`flex-shrink-0 flex items-center gap-2 px-3 py-4 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          <SidebarLogo collapsed={isCollapsed} darkMode={darkMode} />
+        <div className="flex-shrink-0 flex items-center px-3 py-4" style={{ justifyContent: isCollapsed ? 'center' : 'space-between' }}>
+          {/* Logo — hidden when collapsed */}
+          {!isCollapsed && <SidebarLogo darkMode={darkMode} />}
+
+          {/* Toggle button — centered when collapsed, right-aligned when expanded */}
           <button
             onClick={onToggleCollapse}
-            title={isCollapsed ? 'Expand' : 'Collapse'}
-            className={`flex-shrink-0 p-1.5 rounded-lg transition-all hover:scale-110 active:scale-90 ${darkMode ? 'text-gray-600 hover:text-gray-300 hover:bg-white/[0.06]' : 'text-gray-400 hover:text-gray-700 hover:bg-black/[0.06]'}`}
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={[
+              'flex-shrink-0 p-1.5 rounded-lg transition-all hover:scale-110 active:scale-90',
+              darkMode
+                ? 'text-gray-600 hover:text-gray-300 hover:bg-white/[0.06]'
+                : 'text-gray-400 hover:text-gray-700 hover:bg-black/[0.06]',
+            ].join(' ')}
           >
             {isCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
           </button>
