@@ -1,33 +1,39 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { normalizeId, getPhTodayStr, getPhLocalDate } from '../_lib/data';
 
 const PH_TZ = 'Asia/Manila';
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DAY_LABELS   = ['','Mon','','Wed','','Fri',''];
+const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function getColor(count, darkMode) {
-  if (count === 0) return darkMode ? '#1e2333' : '#f1f5f9';
-  if (count === 1) return '#bbf7d0';
+  if (count === 0) return darkMode ? '#1e2a1e' : '#e9f5e9';
+  if (count === 1) return '#86efac';
   if (count === 2) return '#4ade80';
   if (count <= 4)  return '#16a34a';
   return '#14532d';
 }
 
+function getBorderColor(count, darkMode) {
+  if (count === 0) return darkMode ? '#2a3a2a' : '#d4ebd4';
+  if (count === 1) return '#4ade80';
+  if (count === 2) return '#22c55e';
+  if (count <= 4)  return '#15803d';
+  return '#166534';
+}
+
 export default function AttendanceHeatmap({ logs, studentId, darkMode, title = 'Attendance This Year' }) {
   const todayStr = getPhTodayStr();
   const currentYear = new Date().getFullYear();
+  const [selectedCell, setSelectedCell] = useState(null);
 
-  // Build a full Jan 1 → Dec 31 grid for the current year,
-  // padded with empty cells so the first column starts on Sunday.
   const weeks = useMemo(() => {
     const nid = studentId ? normalizeId(studentId) : null;
     const filteredLogs = nid
       ? logs.filter(l => l.studentId && normalizeId(l.studentId) === nid)
       : logs;
 
-    // Count unique students per day (teacher view) or scans per day (student view)
     const dayCount = {};
     filteredLogs.forEach(l => {
       const d = getPhLocalDate(l.timestamp);
@@ -40,22 +46,15 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
       }
     });
 
-    // Normalize Sets → numbers
     const counts = {};
     Object.entries(dayCount).forEach(([d, v]) => {
       counts[d] = v instanceof Set ? v.size : v;
     });
 
-    // Jan 1 of current year
     const jan1 = new Date(currentYear, 0, 1);
-    // Day-of-week for Jan 1 (0 = Sun)
     const startDow = jan1.getDay();
-
-    // Dec 31 of current year
     const dec31 = new Date(currentYear, 11, 31);
-
-    // Total days in year + leading padding so week columns align to Sunday
-    const totalDays = Math.ceil((dec31 - jan1) / 86400000) + 1; // 365 or 366
+    const totalDays = Math.ceil((dec31 - jan1) / 86400000) + 1;
     const totalCells = startDow + totalDays;
     const totalWeeks = Math.ceil(totalCells / 7);
 
@@ -64,14 +63,12 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
       const week = [];
       for (let d = 0; d < 7; d++) {
         const cellIndex = w * 7 + d;
-        const dayOffset = cellIndex - startDow; // negative = padding before Jan 1
+        const dayOffset = cellIndex - startDow;
 
         if (dayOffset < 0 || dayOffset >= totalDays) {
-          // Padding cell — outside the year
           week.push({ isPadding: true, date: null });
         } else {
           const date = new Date(currentYear, 0, 1 + dayOffset);
-          // Use en-CA for YYYY-MM-DD format in PH timezone
           const dateStr = date.toLocaleDateString('en-CA', { timeZone: PH_TZ });
           const isFuture = dateStr > todayStr;
           week.push({
@@ -81,10 +78,16 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
             isFuture,
             isToday: dateStr === todayStr,
             month: date.getMonth(),
-            day: date.getDay(),
+            dayOfWeek: date.getDay(),
             label: date.toLocaleDateString('en-PH', {
               timeZone: PH_TZ,
-              weekday: 'short',
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            shortLabel: date.toLocaleDateString('en-PH', {
+              timeZone: PH_TZ,
               month: 'short',
               day: 'numeric',
             }),
@@ -96,13 +99,11 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
     return result;
   }, [logs, studentId, todayStr, currentYear]);
 
-  // Month label: place at the first week-column where that month first appears
   const monthPositions = useMemo(() => {
     const seen = new Set();
     const positions = [];
     weeks.forEach((week, wi) => {
-      // Use first non-padding cell in the week
-      const firstReal = week.find(d => !d.isPadding && !d.isFuture);
+      const firstReal = week.find(d => !d.isPadding);
       if (firstReal && !seen.has(firstReal.month)) {
         seen.add(firstReal.month);
         positions.push({ wi, label: MONTH_LABELS[firstReal.month] });
@@ -111,35 +112,108 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
     return positions;
   }, [weeks]);
 
-  // Total days present this year (any count > 0, up to today)
   const totalPresent = useMemo(() => {
     return weeks.flat().filter(c => !c.isPadding && !c.isFuture && c.count > 0).length;
   }, [weeks]);
 
-  const cellSize = 11;
-  const gap = 2;
+  // All days with attendance for the select dropdown
+  const presentDays = useMemo(() => {
+    return weeks.flat()
+      .filter(c => !c.isPadding && !c.isFuture && c.count > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [weeks]);
+
+  const cellSize = 16;
+  const gap = 3;
   const step = cellSize + gap;
 
+  const handleCellClick = (cell) => {
+    if (cell.isPadding || cell.isFuture) return;
+    setSelectedCell(prev => prev?.date === cell.date ? null : cell);
+  };
+
+  const handleSelectChange = (e) => {
+    const dateStr = e.target.value;
+    if (!dateStr) { setSelectedCell(null); return; }
+    const found = weeks.flat().find(c => c.date === dateStr);
+    if (found) setSelectedCell(found);
+  };
+
   return (
-    <div className={`border rounded-2xl p-5 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</p>
-        <p className={`text-xs font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-          <span className="font-black" style={{ color: '#16a34a' }}>{totalPresent}</span> days this year
-        </p>
+    <div
+      className={`border rounded-2xl p-6 ${darkMode ? 'bg-white/[0.04] border-white/10' : 'bg-white border-gray-200/80 shadow-sm'}`}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <p className={`text-base font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</p>
+          <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            <span className="font-black text-green-500">{totalPresent}</span>
+            <span className="font-medium"> days present in {currentYear}</span>
+          </p>
+        </div>
+
+        {/* Select box */}
+        <div className="relative">
+          <select
+            onChange={handleSelectChange}
+            value={selectedCell?.date || ''}
+            className={`
+              text-xs font-semibold rounded-lg px-3 py-2 pr-8 appearance-none cursor-pointer
+              border transition-all outline-none
+              ${darkMode
+                ? 'bg-white/10 border-white/15 text-white hover:bg-white/15'
+                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'}
+            `}
+            style={{ minWidth: 210 }}
+          >
+            <option value="">— Jump to a day —</option>
+            {presentDays.map(d => (
+              <option key={d.date} value={d.date}>
+                {d.label} · {d.count} scan{d.count !== 1 ? 's' : ''}
+              </option>
+            ))}
+          </select>
+          <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>▼</span>
+        </div>
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <div style={{ minWidth: weeks.length * step + 24 }}>
+      {/* Selected day info banner */}
+      {selectedCell && !selectedCell.isFuture && !selectedCell.isPadding && (
+        <div className={`
+          flex items-center gap-3 mb-5 px-4 py-3 rounded-xl text-sm border transition-all
+          ${darkMode
+            ? 'bg-green-950/60 border-green-800/60 text-green-300'
+            : 'bg-green-50 border-green-200 text-green-800'}
+        `}>
+          <span className="text-base">📅</span>
+          <div className="flex-1 min-w-0">
+            <span className="font-black">{selectedCell.label}</span>
+            <span className={`ml-2 text-xs font-semibold ${darkMode ? 'text-green-500' : 'text-green-600'}`}>
+              {selectedCell.count === 0
+                ? '— No attendance recorded'
+                : `· ${selectedCell.count} scan${selectedCell.count !== 1 ? 's' : ''} recorded`}
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedCell(null)}
+            className={`text-xl leading-none shrink-0 ${darkMode ? 'text-green-600 hover:text-green-400' : 'text-green-400 hover:text-green-600'}`}
+          >×</button>
+        </div>
+      )}
+
+      {/* Heatmap */}
+      <div className="overflow-x-auto pb-2">
+        <div style={{ minWidth: weeks.length * step + 44 }}>
 
           {/* Month labels */}
-          <div className="flex mb-1" style={{ paddingLeft: 24 }}>
+          <div className="flex mb-2" style={{ paddingLeft: 40 }}>
             {weeks.map((_, wi) => {
               const pos = monthPositions.find(p => p.wi === wi);
               return (
                 <div key={wi} style={{ width: step, flexShrink: 0 }}>
                   {pos && (
-                    <span className={`text-[9px] font-bold ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                    <span className={`text-[10px] font-bold tracking-wide ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                       {pos.label}
                     </span>
                   )}
@@ -149,15 +223,14 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
           </div>
 
           {/* Grid */}
-          <div className="flex gap-0">
-
-            {/* Day-of-week labels */}
-            <div className="flex flex-col mr-1" style={{ gap }}>
+          <div className="flex">
+            {/* Day-of-week labels — all 7 shown */}
+            <div className="flex flex-col shrink-0" style={{ gap, marginRight: 6 }}>
               {DAY_LABELS.map((l, i) => (
                 <div
                   key={i}
-                  style={{ height: cellSize, width: 18, flexShrink: 0 }}
-                  className={`text-[9px] font-bold flex items-center justify-end pr-0.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}
+                  style={{ height: cellSize, width: 30 }}
+                  className={`text-[9px] font-bold flex items-center justify-end pr-1 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}
                 >
                   {l}
                 </div>
@@ -167,42 +240,76 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
             {/* Week columns */}
             {weeks.map((week, wi) => (
               <div key={wi} className="flex flex-col" style={{ gap, marginRight: gap }}>
-                {week.map((cell, di) => (
-                  <div
-                    key={di}
-                    title={
-                      cell.isPadding || cell.isFuture
-                        ? ''
-                        : `${cell.label}: ${cell.count} scan${cell.count !== 1 ? 's' : ''}`
-                    }
-                    style={{
-                      width: cellSize,
-                      height: cellSize,
-                      borderRadius: 2,
-                      flexShrink: 0,
-                      background: cell.isPadding || cell.isFuture
-                        ? 'transparent'
-                        : getColor(cell.count, darkMode),
-                      outline: cell.isToday ? '2px solid #0ea5e9' : 'none',
-                      outlineOffset: 1,
-                      opacity: cell.isPadding || cell.isFuture ? 0 : 1,
-                    }}
-                  />
-                ))}
+                {week.map((cell, di) => {
+                  const isSelected = selectedCell?.date === cell.date;
+                  return (
+                    <div
+                      key={di}
+                      onClick={() => handleCellClick(cell)}
+                      title={
+                        cell.isPadding || cell.isFuture
+                          ? ''
+                          : `${cell.label}\n${cell.count === 0 ? 'No scans' : `${cell.count} scan${cell.count !== 1 ? 's' : ''}`}`
+                      }
+                      style={{
+                        width: cellSize,
+                        height: cellSize,
+                        borderRadius: 3,
+                        flexShrink: 0,
+                        background: cell.isPadding
+                          ? 'transparent'
+                          : cell.isFuture
+                            ? (darkMode ? '#181f18' : '#f4faf4')
+                            : getColor(cell.count, darkMode),
+                        border: cell.isPadding
+                          ? 'none'
+                          : cell.isFuture
+                            ? `1px solid ${darkMode ? '#232d23' : '#e2f0e2'}`
+                            : isSelected
+                              ? '2px solid #f59e0b'
+                              : cell.isToday
+                                ? '2px solid #0ea5e9'
+                                : `1px solid ${getBorderColor(cell.count, darkMode)}`,
+                        opacity: cell.isPadding ? 0 : cell.isFuture ? 0.35 : 1,
+                        cursor: cell.isPadding || cell.isFuture ? 'default' : 'pointer',
+                        transition: 'transform 0.1s ease, box-shadow 0.1s ease',
+                        transform: isSelected ? 'scale(1.3)' : 'scale(1)',
+                        boxShadow: isSelected ? '0 0 0 2px #f59e0b44' : 'none',
+                        position: 'relative',
+                        zIndex: isSelected ? 2 : 1,
+                      }}
+                    />
+                  );
+                })}
               </div>
             ))}
           </div>
 
           {/* Legend */}
-          <div className={`flex items-center gap-2 mt-3 text-[9px] font-bold ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+          <div className={`flex items-center flex-wrap gap-x-3 gap-y-2 mt-4 text-[10px] font-bold ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
             <span>Less</span>
             {[0, 1, 2, 3, 5].map(c => (
               <div
                 key={c}
-                style={{ width: cellSize, height: cellSize, borderRadius: 2, background: getColor(c, darkMode), flexShrink: 0 }}
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  borderRadius: 3,
+                  background: getColor(c, darkMode),
+                  border: `1px solid ${getBorderColor(c, darkMode)}`,
+                  flexShrink: 0,
+                }}
               />
             ))}
             <span>More</span>
+            <span className="ml-3 flex items-center gap-1.5">
+              <div style={{ width: cellSize, height: cellSize, borderRadius: 3, background: 'transparent', border: '2px solid #0ea5e9', flexShrink: 0 }} />
+              Today
+            </span>
+            <span className="flex items-center gap-1.5">
+              <div style={{ width: cellSize, height: cellSize, borderRadius: 3, background: 'transparent', border: '2px solid #f59e0b', flexShrink: 0 }} />
+              Selected
+            </span>
           </div>
 
         </div>
