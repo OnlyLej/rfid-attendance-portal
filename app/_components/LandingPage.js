@@ -164,7 +164,6 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
     <div className="fixed inset-0 z-[60] flex">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative ml-auto w-[280px] sm:w-80 h-full flex flex-col shadow-2xl animate-slide-left ${darkMode ? 'bg-[#080d1a]' : 'bg-white'}`}>
-        <div className="h-1 w-full" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
         <div className={`flex items-center justify-between px-5 py-4 border-b ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
           <div className="flex items-center gap-2.5"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode?'text-white':'text-gray-900'}`}>RFID Attendance</span></div>
           <button onClick={onClose} className={`p-2 rounded-xl transition-all hover:rotate-90 ${darkMode?'hover:bg-white/8 text-gray-400':'hover:bg-gray-100 text-gray-500'}`}><X size={18}/></button>
@@ -185,7 +184,7 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
         <div className={`p-4 border-t ${darkMode?'border-white/6':'border-gray-100'}`}>
           <button onClick={()=>{onClose();onSignIn();}}
             className="w-full py-3.5 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 relative overflow-hidden group text-sm"
-            style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+            style={{ background:'#0ea5e9' }}>
             <LogIn size={15}/> Sign In to Portal
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
           </button>
