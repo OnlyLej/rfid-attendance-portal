@@ -74,15 +74,14 @@ function useTodayStatus(logs, studentId) {
 /* ── Today status badge ── */
 function TodayBadge({ status, darkMode }) {
   const map = {
-    in:     { label:'IN',     cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot:'bg-emerald-500', pulse:true  },
-    out:    { label:'OUT',    cls: 'bg-rose-500/10 text-rose-600 border-rose-500/20',           dot:'bg-rose-500',    pulse:false },
-    absent: { label:'Absent', cls: darkMode?'bg-white/5 text-gray-400 border-white/8':'bg-gray-50 text-gray-500 border-gray-200', dot:'bg-gray-400', pulse:false },
+    in:     { label:'IN',     cls: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot:'bg-emerald-500'  },
+    out:    { label:'OUT',    cls: 'bg-rose-500/10 text-rose-600 border-rose-500/20',           dot:'bg-rose-500' },
+    absent: { label:'Absent', cls: darkMode?'bg-white/5 text-gray-400 border-white/8':'bg-gray-50 text-gray-500 border-gray-200', dot:'bg-gray-400' },
   };
   const cfg = map[status] || map.absent;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-bold border ${cfg.cls}`}>
       <span className={`relative w-1.5 h-1.5 rounded-full ${cfg.dot}`}>
-        {cfg.pulse && <span className={`absolute inset-0 rounded-full ${cfg.dot} animate-ping opacity-60`} />}
       </span>
       Today: {cfg.label}
     </span>
@@ -246,7 +245,7 @@ export default function ParentLogsTab({
                 <button onClick={() => setSelectedChildId('all')}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all hover:scale-105 active:scale-95
                     ${selectedChildId==='all' ? 'text-white border-transparent shadow-sm shadow-sky-500/25' : darkMode?'border-white/8 text-gray-300 hover:border-white/16':'border-gray-200 text-gray-600 hover:border-gray-300'}`}
-                  style={selectedChildId==='all' ? {background:'linear-gradient(135deg,#0ea5e9,#7c3aed)'} : {}}
+                  style={selectedChildId==='all' ? {background:'#0ea5e9'} : {}}
                 >
                   <Users size={12} /> All
                 </button>
@@ -279,7 +278,7 @@ export default function ParentLogsTab({
               <div className={`rounded-2xl p-4 border mb-4 ${darkMode?'bg-white/[0.03] border-white/6':'bg-slate-50 border-gray-100'}`}>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                    style={{ background: '#0ea5e9' }}>
                     <User size={17} className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">

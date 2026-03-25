@@ -129,7 +129,7 @@ export default function ReportsPage() {
                 onClick={handleExport}
                 disabled={exporting || loading}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg shadow-sky-500/20"
-                style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}
+                style={{ background: '#0ea5e9' }}
               >
                 <Download size={14} />
                 {exporting ? 'Exporting…' : 'Export'}

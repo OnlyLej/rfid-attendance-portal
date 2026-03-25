@@ -140,7 +140,7 @@ function UserCard({ darkMode, collapsed, userInfo, userType }) {
       <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
         <div
           className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-[13px] font-black shadow-md"
-          style={{ background: userType === 'teacher' ? 'linear-gradient(135deg,#0ea5e9,#7c3aed)' : 'linear-gradient(135deg,#10b981,#0ea5e9)' }}
+          style={{ background: userType === 'teacher' ? '#0ea5e9' : '#10b981' }}
         >
           {initial}
         </div>
@@ -167,7 +167,6 @@ function LogoutModal({ darkMode, onConfirm, onCancel }) {
         className={`relative w-full max-w-sm rounded-2xl border overflow-hidden ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
         style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.4)', animation: 'sidebar-modal .3s cubic-bezier(.34,1.5,.64,1) both' }}
       >
-        <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#f43f5e,#f59e0b)' }} />
         <div className="p-7 text-center">
           <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/15 flex items-center justify-center mx-auto mb-4">
             <LogOut size={24} className="text-rose-500" />
@@ -213,9 +212,6 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
           boxShadow: darkMode ? '4px 0 40px rgba(0,0,0,0.5)' : '4px 0 24px rgba(0,0,0,0.06)',
         }}
       >
-        {/* Top accent line */}
-        <div className="h-[2px] flex-shrink-0" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
-
         {/* Header */}
         <div className="flex-shrink-0 flex items-center px-3 py-4" style={{ justifyContent: isCollapsed ? 'center' : 'space-between' }}>
           {/* Logo — hidden when collapsed */}

@@ -131,7 +131,7 @@ export default function CalendarPage() {
           {activeChild && (
             <div className={`border rounded-2xl p-4 flex items-center gap-4 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-black shadow-md"
-                style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                style={{ background: '#7c3aed' }}>
                 {(activeChild.name || '?').charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">

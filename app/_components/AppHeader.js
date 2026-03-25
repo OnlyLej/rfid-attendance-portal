@@ -73,7 +73,6 @@ function ShortcutsModal({ darkMode, onClose }) {
       <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onClose} />
       <div className={`relative w-full max-w-xs rounded-2xl border overflow-hidden ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
         style={{ boxShadow: '0 32px 80px rgba(0,0,0,0.35)', animation: 'hdr-modal .3s cubic-bezier(.34,1.5,.64,1) both' }}>
-        <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed)' }} />
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -109,7 +108,6 @@ function NotificationsPanel({ darkMode, onClose, notifications, onMarkAllRead })
   return (
     <div className={`absolute right-0 top-full mt-2 w-[22rem] z-50 rounded-2xl border overflow-hidden ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200/80'}`}
       style={{ boxShadow: '0 20px 56px rgba(0,0,0,0.25)', animation: 'hdr-slide-down .2s ease-out both' }}>
-      <div className="h-0.5" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
       <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
         <div className="flex items-center gap-2">
           <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>Notifications</p>
@@ -219,8 +217,6 @@ export default function AppHeader({
   return (
     <>
       <header className={`sticky top-0 z-30 border-b backdrop-blur-2xl transition-all duration-300 ${darkMode ? 'bg-[#050810]/90 border-white/6' : 'bg-white/90 border-black/6'} shadow-[0_1px_0_rgba(0,0,0,0.05)] ${isMobile && scrollDir === 'down' ? '-translate-y-full' : 'translate-y-0'}`}>
-        {/* Loading bar — no gradient color on top normally, only shows when loading */}
-        <div className="h-0.5 w-full transition-opacity duration-300" style={{ opacity: loading ? 1 : 0, background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981,#0ea5e9)', backgroundSize: '300% 100%', animation: 'hdr-sweep 1.8s linear infinite' }} />
         <div className="px-4 sm:px-5">
           <div className="h-14 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -230,10 +226,6 @@ export default function AppHeader({
                 </button>
               )}
               <div className="flex items-center gap-2 min-w-0">
-                <span className="relative flex h-2 w-2 flex-shrink-0">
-                  <span className="animate-ping absolute h-2 w-2 rounded-full bg-emerald-400 opacity-70" />
-                  <span className="relative rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
                 <p className={`text-sm font-black tracking-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{pageTitle}</p>
               </div>
               {!isMobile && mounted && (

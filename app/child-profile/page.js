@@ -94,7 +94,7 @@ export default function ChildProfilePage() {
           {/* Profile card */}
           <div className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
             {/* Hero bar */}
-            <div className="h-24 relative" style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed,#10b981)' }}>
+            <div className="h-24 relative" style={{ background: '#0ea5e9' }}>
               <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%,rgba(255,255,255,0.3) 0%,transparent 50%)' }} />
             </div>
 
@@ -103,7 +103,7 @@ export default function ChildProfilePage() {
               {/* Avatar */}
               <div className="flex items-end justify-between -mt-10 mb-4">
                 <div className="w-20 h-20 rounded-2xl border-4 flex items-center justify-center text-white text-3xl font-black shadow-xl"
-                  style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)', borderColor: darkMode ? '#0a0e1c' : '#fff' }}>
+                  style={{ background: '#7c3aed', borderColor: darkMode ? '#0a0e1c' : '#fff' }}>
                   {loading ? '?' : initial}
                 </div>
                 <span className={`px-3 py-1.5 rounded-full text-xs font-black border flex items-center gap-1.5

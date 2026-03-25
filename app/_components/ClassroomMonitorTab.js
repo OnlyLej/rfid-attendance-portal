@@ -205,7 +205,6 @@ export default function ClassroomMonitorTab({
 
       {/* ── Overview banner ── */}
       <div className={`relative overflow-hidden rounded-2xl border p-4 ${darkMode ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
-        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: 'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }} />
         {loading && (
           <div className="absolute top-0.5 left-0 right-0 h-0.5 animate-pulse" style={{ background: 'linear-gradient(90deg,transparent,#0ea5e9,transparent)', backgroundSize: '200%', animation: 'shimmer-bar 1.5s linear infinite' }} />
         )}
@@ -250,7 +249,7 @@ export default function ClassroomMonitorTab({
         {/* Overall progress bar */}
         <div className={`mt-3 h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`}>
           <div className="h-full rounded-full transition-all duration-1000 ease-out"
-            style={{ width: loading ? '0%' : `${overallStats.rate}%`, background: 'linear-gradient(90deg,#0ea5e9,#10b981)' }} />
+            style={{ width: loading ? '0%' : `${overallStats.rate}%`, background: '#10b981' }} />
         </div>
       </div>
 
@@ -315,13 +314,12 @@ export default function ClassroomMonitorTab({
       <div className="flex items-center gap-4 flex-wrap">
         <span className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Legend:</span>
         {[
-          { label: 'IN — Present',    dot: 'bg-emerald-500', pulse: true  },
-          { label: 'OUT — Left',      dot: 'bg-rose-500',    pulse: false },
-          { label: 'Absent',          dot: 'bg-gray-400',    pulse: false },
+          { label: 'IN — Present',    dot: 'bg-emerald-500' },
+          { label: 'OUT — Left',      dot: 'bg-rose-500' },
+          { label: 'Absent',          dot: 'bg-gray-400' },
         ].map((l, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${l.dot} relative`}>
-              {l.pulse && <div className={`absolute inset-0 rounded-full ${l.dot} animate-ping opacity-60`} />}
             </div>
             <span className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{l.label}</span>
           </div>
@@ -374,7 +372,7 @@ export default function ClassroomMonitorTab({
                     const status = getStudentTodayStatus(student.studentId);
                     const lastSeen = getStudentLastSeen(student.studentId);
                     const initial = (student.name || '?').charAt(0).toUpperCase();
-                    const bg = status === 'in' ? 'linear-gradient(135deg,#10b981,#059669)' : status === 'out' ? 'linear-gradient(135deg,#f43f5e,#e11d48)' : darkMode ? '#1e2333' : '#e5e7eb';
+                    const bg = status === 'in' ? '#10b981' : status === 'out' ? 'linear-gradient(135deg,#f43f5e,#e11d48)' : darkMode ? '#1e2333' : '#e5e7eb';
                     const dot = status === 'in' ? '#10b981' : status === 'out' ? '#f43f5e' : '#9ca3af';
                     return (
                       <div key={student.studentId}
@@ -408,7 +406,7 @@ export default function ClassroomMonitorTab({
             const isExpanded  = selectedClass === cn;
             const spark       = classSparklines[cn] || [];
             const sparkColor  = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
-            const rateGrad    = rate >= 80 ? 'from-emerald-400 to-emerald-600' : rate >= 60 ? 'from-amber-400 to-amber-500' : 'from-rose-400 to-rose-600';
+            const rateGrad    = rate >= 80 ? 'bg-emerald-600' : rate >= 60 ? 'bg-amber-500' : 'bg-rose-600';
 
             return (
               <div key={cn}
@@ -421,9 +419,6 @@ export default function ClassroomMonitorTab({
                   }`}
                 
               >
-                {/* Top accent */}
-                <div className="h-0.5 w-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: `linear-gradient(90deg,${sparkColor},${sparkColor}44)` }} />
 
                 <button onClick={() => {
                   const next = isExpanded ? null : cn;
@@ -487,10 +482,6 @@ export default function ClassroomMonitorTab({
                     <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                       {filteredSt.length} students
                     </span>
-                    <div className="flex gap-3">
-                      <span className="text-[10px] font-bold text-emerald-500">{counts.in} IN</span>
-                      <span className="text-[10px] font-bold text-rose-500">{counts.out} OUT</span>
-                    </div>
                   </div>
 
                   <div className="max-h-72 overflow-y-auto">
@@ -514,7 +505,6 @@ export default function ClassroomMonitorTab({
                           >
                             <div className="relative flex-shrink-0">
                               <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-                              {status === 'in' && <div className={`absolute inset-0 rounded-full ${cfg.dot} animate-ping opacity-50`} />}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>

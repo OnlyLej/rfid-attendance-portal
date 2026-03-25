@@ -98,10 +98,6 @@ const StatCard = ({ icon: Icon, label, value, color, darkMode, delay = 0, numeri
         ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      {/* Top gradient accent */}
-      <div
-        className={`absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r ${c.gradient}`}
-      />
       {/* Glow */}
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"
@@ -303,7 +299,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         <p className={`text-sm max-w-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your portal is ready. Once students are registered and RFID scans come in, your dashboard will populate automatically.</p>
         <div className={`border rounded-2xl p-5 max-w-sm w-full text-left space-y-3 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
           <p className={`text-xs font-black uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Getting started</p>
-          {[['1','Set GOOGLE_APPS_SCRIPT_URL in .env'],['2','Register students in your Google Sheet'],['3','Connect RFID hardware and start scanning']].map(([n,t]) => (
+          {[['1','Register students in your Google Sheet'],['2','Connect RFID hardware and start scanning']].map(([n,t]) => (
             <div key={n} className="flex items-start gap-3">
               <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${darkMode ? 'bg-white/8 text-gray-300' : 'bg-sky-100 text-sky-700'}`}>{n}</span>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t}</p>
@@ -483,8 +479,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
                   <BarChart data={classComparisonData} layout="vertical" margin={{ top: 4, right: 50, left: 8, bottom: 0 }}>
                     <defs>
                       <linearGradient id="classGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="5%"  stopColor="#6366f1" stopOpacity={1}    />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.85} />
+                        <stop stopColor="#6366f1" />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
@@ -569,7 +564,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
                 <div className={`h-2 rounded-full overflow-hidden mb-3 ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`}>
                   <div
                     className="h-full rounded-full transition-all duration-1000"
-                    style={{ width: `${classComparisonData[0].attendanceRate}%`, background: 'linear-gradient(90deg,#f59e0b,#10b981)' }}
+                    style={{ width: `${classComparisonData[0].attendanceRate}%`, background: '#10b981' }}
                   />
                 </div>
                 {classComparisonData.length > 1 && (

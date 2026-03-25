@@ -71,7 +71,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
         style={{ boxShadow:'0 32px 80px rgba(0,0,0,0.4)', animation:'profile-modal .3s cubic-bezier(.34,1.5,.64,1) both' }}
       >
         {/* Hero */}
-        <div className="h-20 flex-shrink-0 relative" style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+        <div className="h-20 flex-shrink-0 relative" style={{ background:'#0ea5e9' }}>
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage:'radial-gradient(circle at 20% 50%,rgba(255,255,255,0.4) 0%,transparent 60%)' }} />
           <button onClick={onClose} className={`absolute top-3 right-3 p-1.5 rounded-xl transition-all hover:scale-110 active:scale-90 bg-white/10 hover:bg-white/20 text-white`}>
             <X size={15} />
@@ -82,7 +82,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
         <div className="px-5 pb-4 flex-shrink-0 relative">
           <div className="-mt-8 mb-3 flex items-end justify-between">
             <div className="w-16 h-16 rounded-2xl border-4 flex items-center justify-center text-white text-2xl font-black shadow-xl"
-              style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)', borderColor: darkMode?'#0d1220':'white' }}>
+              style={{ background:'#7c3aed', borderColor: darkMode?'#0d1220':'white' }}>
               {initial}
             </div>
             <span className={`px-2.5 py-1 rounded-full text-xs font-black border flex items-center gap-1.5 ${isPresent ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/15'}`}>

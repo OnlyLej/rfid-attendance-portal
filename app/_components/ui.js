@@ -438,9 +438,6 @@ export function StatusBadge({ status }) {
           : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
         }`}
     >
-      {isIn && (
-        <span className="absolute top-1.5 left-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping opacity-60" />
-      )}
       <span className={`relative w-1.5 h-1.5 rounded-full ${isIn ? 'bg-emerald-500' : 'bg-rose-500'}`} />
       {status}
     </span>

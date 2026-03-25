@@ -348,10 +348,6 @@ export default function LandingPage() {
           <div className="flex items-center gap-2.5 flex-shrink-0">
             <div className="relative">
               <AppLogo size="sm"/>
-              <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-70"/>
-                <span className={`relative rounded-full h-2.5 w-2.5 bg-emerald-500 border-2 ${dark?'border-[#050810]':'border-white'}`}/>
-              </span>
             </div>
             <span className={`font-black text-sm tracking-tight ${dark?'text-white':'text-gray-900'}`}>RFID Attendance</span>
           </div>
@@ -370,7 +366,7 @@ export default function LandingPage() {
             </button>
             <button onClick={()=>setModal(true)}
               className="hidden sm:flex relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden items-center gap-1.5 shadow-lg shadow-sky-500/30 transition-all duration-200 hover:scale-105 active:scale-95 group"
-              style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+              style={{ background:'#0ea5e9' }}>
               <LogIn size={14}/> Sign In
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
             </button>
@@ -383,22 +379,12 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 pt-28 pb-20 sm:pt-36 sm:pb-24 md:pt-44 md:pb-32" style={{ zIndex:1 }}>
-        {/* Live badge */}
-        <div className={`flex justify-center mb-7 transition-all duration-600 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-5'}`}>
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border backdrop-blur-sm ${dark?'bg-emerald-500/10 border-emerald-500/25 text-emerald-400':'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
-            <span className="relative flex h-2 w-2 flex-shrink-0">
-              <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75"/>
-              <span className="relative rounded-full h-2 w-2 bg-emerald-500"/>
-            </span>
-            System live — {stats.present} students active
-          </div>
-        </div>
 
         <div className="text-center max-w-4xl mx-auto space-y-5">
           <h1 className={`font-black tracking-tighter leading-[0.9] transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-10'}`}
             style={{ fontSize:'clamp(2.4rem,8vw,4.8rem)', transitionDelay:'80ms' }}>
             <span className={dark?'text-white':'text-gray-900'}>School attendance,</span><br/>
-            <span style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 48%,#10b981 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+            <span style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
               finally automated.
             </span>
           </h1>
@@ -411,9 +397,8 @@ export default function LandingPage() {
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 transition-all duration-700 ${heroVis?'opacity-100 translate-y-0':'opacity-0 translate-y-6'}`} style={{ transitionDelay:'240ms' }}>
             <button onClick={()=>setModal(true)}
               className="group relative px-7 py-4 text-sm font-bold text-white rounded-2xl overflow-hidden shadow-2xl shadow-sky-500/35 transition-all duration-300 hover:scale-105 active:scale-98 flex items-center justify-center gap-2"
-              style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 100%)' }}>
+              style={{ background:'#0ea5e9' }}>
               <LogIn size={15}/> Access Your Portal
-              <ArrowRight size={15} className="transition-transform duration-300 group-hover:translate-x-1"/>
               <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
             </button>
             <button onClick={()=>scrollTo('how-it-works')}
@@ -440,8 +425,6 @@ export default function LandingPage() {
               style={{ transitionDelay:`${440+i*80}ms` }}>
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none"
                 style={{ background:`radial-gradient(circle at 50% 0%,${s.dim},transparent 72%)` }}/>
-              <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-2xl origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500"
-                style={{ background:`linear-gradient(90deg,${s.accent},${s.accent}55)` }}/>
               <s.icon size={18} className="mx-auto mb-2.5 transition-transform duration-300 group-hover:scale-110" style={{ color:s.accent }}/>
               <div className={`text-2xl sm:text-3xl font-black tabular-nums flex items-baseline justify-center gap-0.5 ${dark?'text-white':'text-gray-900'}`}>
                 {isBot ? <StaticNum value={s.val} prefix={s.prefix} suffix={s.suffix}/> : (
@@ -465,21 +448,6 @@ export default function LandingPage() {
           </button>
         </div>
       </section>
-
-      {/* ── MARQUEE ── */}
-      <div className={`relative py-3.5 overflow-hidden border-y ${dark?'border-white/6 bg-white/[0.02]':'border-gray-200/60 bg-white/70'}`} style={{ zIndex:1 }}>
-        <div className="flex gap-10 marquee-strip whitespace-nowrap select-none">
-          {[0,1,2,3].flatMap(gi =>
-            ['ESP8266/ESP32 Hardware','RFID RC522','Google Apps Script','Real-Time Sync','Parent Portal','Excel Export','TLS 1.3 Encrypted','PH Timezone','Multi-Role Auth','Live Dashboard']
-              .map((t,i) => (
-                <span key={`${gi}-${i}`} className={`text-[11px] font-bold uppercase tracking-[0.16em] flex items-center gap-3 ${dark?'text-gray-600':'text-gray-400'}`}>
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background:['#0ea5e9','#7c3aed','#10b981','#f59e0b'][i%4] }}/>
-                  {t}
-                </span>
-              ))
-          )}
-        </div>
-      </div>
 
       {/* ── FEATURES ── */}
       <section id="features" ref={featRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex:1 }}>
@@ -562,7 +530,6 @@ export default function LandingPage() {
             style={{ minHeight:360, transitionDelay:'200ms' }}>
             {features.map((f,i)=>(
               <div key={i} className={`transition-all duration-500 ${featIdx===i?'opacity-100 relative':'opacity-0 absolute inset-0 pointer-events-none'}`}>
-                <div className={`h-1.5 bg-gradient-to-r ${f.gradient}`}/>
                 <div className="p-7">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-gradient-to-br ${f.gradient}`} style={{ boxShadow:`0 8px 32px ${f.glow}40` }}>
                     <f.icon size={26} className="text-white"/>
@@ -594,7 +561,7 @@ export default function LandingPage() {
             </div>
             <h2 className={`font-black tracking-tight leading-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.9rem,5vw,3.2rem)' }}>
               Tap to dashboard<br/>
-              <span style={{ background:'linear-gradient(135deg,#0ea5e9,#10b981)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>in 200 milliseconds.</span>
+              <span style={{ background:'#10b981', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>in 200 milliseconds.</span>
             </h2>
           </div>
           <div className="relative">
@@ -715,41 +682,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section ref={ctaRef} className="relative max-w-4xl mx-auto px-4 sm:px-5 pb-20 sm:pb-28" style={{ zIndex:1 }}>
-        <div className={`relative overflow-hidden rounded-3xl p-8 sm:p-14 text-center border transition-all duration-700 ${ctaVis?'opacity-100 translate-y-0 scale-100':'opacity-0 translate-y-8 scale-[0.98]'} ${dark?'border-white/8':'border-transparent'}`}
-          style={{ background: dark?'linear-gradient(135deg,rgba(14,165,233,0.07),rgba(124,58,237,0.07))':'linear-gradient(135deg,#eff6ff,#f5f3ff)' }}>
-          <div className="absolute top-0 left-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 animate-slow-pulse pointer-events-none" style={{ background:'radial-gradient(circle,#0ea5e9,transparent)' }}/>
-          <div className="absolute bottom-0 right-1/4 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none" style={{ background:'radial-gradient(circle,#7c3aed,transparent)', animation:'slow-pulse 3.5s ease-in-out infinite 1.8s' }}/>
-          <div className="absolute top-5 right-5 w-20 h-20 rounded-full border-2 border-dashed opacity-[0.08] animate-spin-24" style={{ borderColor:'#0ea5e9' }}/>
-          <div className="absolute bottom-5 left-5 w-14 h-14 rounded-full border border-dashed opacity-[0.07] animate-spin-18-rev" style={{ borderColor:'#7c3aed' }}/>
-          <div className="relative z-10">
-            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-5 ${dark?'bg-white/5 border-white/12 text-sky-400':'bg-sky-50 border-sky-200 text-sky-600'}`}>
-              <Sparkles size={11} className="animate-pulse"/> Ready to transform attendance?
-            </div>
-            <h2 className={`font-black tracking-tight mb-4 leading-tight ${dark?'text-white':'text-gray-900'}`} style={{ fontSize:'clamp(1.8rem,5vw,3rem)' }}>
-              Start tracking smarter
-            </h2>
-            <p className={`text-sm sm:text-base mb-8 max-w-md mx-auto ${dark?'text-gray-400':'text-gray-500'}`}>
-              Sign in to access live dashboards, parent portals, and one-click reports — all powered by your RFID readers.
-            </p>
-            <button onClick={()=>setModal(true)}
-              className="inline-flex items-center gap-2.5 px-8 sm:px-10 py-4 text-sm sm:text-base font-bold text-white rounded-2xl shadow-2xl shadow-sky-500/35 transition-all duration-300 hover:scale-105 active:scale-98 group relative overflow-hidden"
-              style={{ background:'linear-gradient(135deg,#0ea5e9 0%,#7c3aed 100%)' }}>
-              Access Portal <ArrowRight size={17} className="transition-transform duration-300 group-hover:translate-x-1"/>
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
-            </button>
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-7 text-xs sm:text-sm">
-              {[{icon:ShieldCheck,t:'Secure by default'},{icon:Cloud,t:'99.95% uptime'},{icon:Globe,t:'PH timezone native'}].map((x,i)=>(
-                <div key={i} className={`flex items-center gap-1.5 ${dark?'text-gray-400':'text-gray-500'}`}>
-                  <x.icon size={14} className="text-emerald-500"/><span className="font-semibold">{x.t}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── FOOTER ── */}
       <footer className={`relative border-t py-10 sm:py-12 ${dark?'border-white/6 bg-black/25':'border-gray-100 bg-white'}`} style={{ zIndex:1 }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-5">
@@ -766,20 +698,11 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <div>
-              <p className={`text-xs font-black uppercase tracking-widest mb-3 ${dark?'text-gray-500':'text-gray-400'}`}>Tech Stack</p>
-              <div className="flex flex-wrap gap-1.5">
-                {['ESP8266/ESP32','RFID RC522','GAS API','Next.js','Recharts','ExcelJS'].map(t=>(
-                  <span key={t} className={`text-xs px-2.5 py-1 rounded-lg font-bold cursor-default transition-colors ${dark?'bg-white/5 text-gray-400 hover:bg-white/10':'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{t}</span>
-                ))}
-              </div>
-            </div>
           </div>
           <div className={`border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs ${dark?'border-white/6 text-gray-600':'border-gray-100 text-gray-400'}`}>
             <p>© {new Date().getFullYear()} RFID Attendance Portal. All rights reserved.</p>
             <p className="flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-75"/>
                 <span className="relative rounded-full h-1.5 w-1.5 bg-emerald-500"/>
               </span>
               All systems operational
@@ -793,7 +716,6 @@ export default function LandingPage() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={()=>setModal(false)}/>
           <div className={`relative w-full max-w-md rounded-3xl animate-modal-up mx-4 overflow-hidden ${dark?'bg-[#090e1c] border border-white/12 shadow-2xl':'bg-white border border-gray-200/80 shadow-[0_32px_80px_rgba(0,0,0,0.2)]'}`}>
-            <div className="h-1 w-full" style={{ background:'linear-gradient(90deg,#0ea5e9,#7c3aed,#10b981)' }}/>
             {/* Mobile drag handle */}
             <div className="sm:hidden flex justify-center pt-3 pb-1">
               <div className={`w-10 h-1 rounded-full ${dark?'bg-white/15':'bg-gray-200'}`}/>
@@ -830,7 +752,7 @@ export default function LandingPage() {
                 )}
                 <button type="submit" disabled={loading}
                   className="w-full py-4 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 relative overflow-hidden group transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
-                  style={{ background:'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                  style={{ background:'#0ea5e9' }}>
                   {loading ? <><Loader2 size={16} className="animate-spin"/> Signing in…</> : <><LogIn size={16}/> Sign In</>}
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent"/>
                 </button>
@@ -870,9 +792,6 @@ export default function LandingPage() {
         .animate-slow-pulse  { animation: slow-pulse 3.5s ease-in-out infinite; }
         .animate-spin-24     { animation: spin-24  24s linear infinite; }
         .animate-spin-18-rev { animation: spin-18r 18s linear infinite; }
-
-        .marquee-strip { animation: marquee 18s linear infinite; }
-        .marquee-strip:hover { animation-play-state: paused; }
 
         .mouse-scroll-icon {
           width: 22px; height: 34px; border-radius: 11px;
