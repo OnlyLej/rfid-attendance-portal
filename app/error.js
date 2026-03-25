@@ -93,8 +93,6 @@ export default function GlobalError({ error, reset }) {
               animation: 'err-up 0.4s cubic-bezier(0.34,1.5,0.64,1) both',
             }}
           >
-            {/* Top accent */}
-            <div style={{ height: 3, background: 'linear-gradient(90deg,#f43f5e,#f59e0b,#0ea5e9)' }} />
 
             <div style={{ padding: '2rem' }}>
               {/* Icon + title */}
@@ -128,7 +126,7 @@ export default function GlobalError({ error, reset }) {
                   style={{
                     flex: 1, minWidth: 120, padding: '12px 20px',
                     borderRadius: 14, border: 'none', cursor: 'pointer',
-                    background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)',
+                    background: '#0ea5e9',
                     color: 'white', fontWeight: 800, fontSize: 13,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'opacity 0.2s, transform 0.15s',
@@ -247,9 +245,6 @@ export default function GlobalError({ error, reset }) {
             }}>
               <span style={{ fontSize: 11, color: dk ? '#334155' : '#cbd5e1', fontWeight: 600 }}>
                 RFID Attendance Portal
-              </span>
-              <span style={{ fontSize: 11, color: dk ? '#1e293b' : '#e2e8f0', fontWeight: 600 }}>
-                made by lejel
               </span>
             </div>
           </div>

@@ -11,16 +11,17 @@ const PH_TZ = 'Asia/Manila';
 
 /* ── Highlight matching text ── */
 function Highlight({ text, query, darkMode }) {
-  if (!query || !text) return <span>{text}</span>;
-  const idx = text.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return <span>{text}</span>;
+  const str = text == null ? '' : String(text);
+  if (!query || !str) return <span>{str}</span>;
+  const idx = str.toLowerCase().indexOf(query.toLowerCase());
+  if (idx === -1) return <span>{str}</span>;
   return (
     <span>
-      {text.slice(0, idx)}
+      {str.slice(0, idx)}
       <mark className={`rounded px-0.5 ${darkMode ? 'bg-sky-500/25 text-sky-300' : 'bg-sky-100 text-sky-800'}`}>
-        {text.slice(idx, idx + query.length)}
+        {str.slice(idx, idx + query.length)}
       </mark>
-      {text.slice(idx + query.length)}
+      {str.slice(idx + query.length)}
     </span>
   );
 }
@@ -85,39 +86,71 @@ export default function ClassroomMonitorTab({
   const [lastRefreshed,  setLastRefreshed]  = useState(Date.now());
   const sortRef = useRef(null);
 
-  // Track refresh for "last updated" display
   useEffect(() => {
     if (!loading) setLastRefreshed(Date.now());
   }, [loading]);
 
-  // Close sort dropdown outside
   useEffect(() => {
     const h = (e) => { if (sortRef.current && !sortRef.current.contains(e.target)) setShowSort(false); };
     document.addEventListener('mousedown', h);
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const getStudentTodayStatus = useCallback((studentId) => {
+  // ─────────────────────────────────────────────────────────
+  // KEY OPTIMIZATION 1: Build a single-pass lookup map for
+  // today's status and last-seen time for every student.
+  // Previously getStudentTodayStatus + getStudentLastSeen
+  // each scanned ALL logs on every render call — O(logs²).
+  // Now it's one O(logs) pass, results cached in a Map.
+  // ─────────────────────────────────────────────────────────
+  const studentLogMap = useMemo(() => {
     const today = getPhTodayStr();
-    const nid   = normalizeId(studentId);
-    const logs_ = logs
-      .filter(l => l.timestamp && l.studentId && normalizeId(l.studentId) === nid && getPhLocalDate(l.timestamp) === today)
-      .sort((a, b) => (parsePhTimestamp(a.timestamp)?.getTime() ?? 0) - (parsePhTimestamp(b.timestamp)?.getTime() ?? 0));
-    if (!logs_.length) return 'no-log';
-    return logs_[logs_.length - 1].status === 'IN' ? 'in' : 'out';
+    // Maps normalizeId(studentId) -> { status: 'in'|'out'|'no-log', lastSeen: string|null }
+    const statusMap  = new Map(); // nid -> { latestTs, latestStatus, latestDate }
+    const lastSeenMap = new Map(); // nid -> { latestTs, timeStr }
+
+    for (const l of logs) {
+      if (!l.timestamp || !l.studentId) continue;
+      const nid = normalizeId(l.studentId);
+      const ts  = parsePhTimestamp(l.timestamp);
+      if (!ts) continue;
+      const tsMs = ts.getTime();
+
+      // last-seen (across all days)
+      const prev = lastSeenMap.get(nid);
+      if (!prev || tsMs > prev.tsMs) {
+        lastSeenMap.set(nid, {
+          tsMs,
+          timeStr: ts.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' }),
+        });
+      }
+
+      // today's status
+      if (getPhLocalDate(l.timestamp) !== today) continue;
+      const prevToday = statusMap.get(nid);
+      if (!prevToday || tsMs > prevToday.tsMs) {
+        statusMap.set(nid, { tsMs, status: l.status === 'IN' ? 'in' : 'out' });
+      }
+    }
+
+    return { statusMap, lastSeenMap };
   }, [logs]);
+
+  // O(1) lookups replacing the old O(n) callbacks
+  const getStudentTodayStatus = useCallback((studentId) => {
+    const nid = normalizeId(studentId);
+    return studentLogMap.statusMap.get(nid)?.status ?? 'no-log';
+  }, [studentLogMap]);
 
   const getStudentLastSeen = useCallback((studentId) => {
     const nid = normalizeId(studentId);
-    const myLogs = logs.filter(l => l.studentId && normalizeId(l.studentId) === nid && l.timestamp);
-    if (!myLogs.length) return null;
-    const sorted = myLogs.sort((a, b) => (parsePhTimestamp(b.timestamp)?.getTime() ?? 0) - (parsePhTimestamp(a.timestamp)?.getTime() ?? 0));
-    const d = parsePhTimestamp(sorted[0].timestamp);
-    if (!d) return null;
-    return d.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' });
-  }, [logs]);
+    return studentLogMap.lastSeenMap.get(nid)?.timeStr ?? null;
+  }, [studentLogMap]);
 
-  // Per-class stats
+  // ─────────────────────────────────────────────────────────
+  // KEY OPTIMIZATION 2: Per-class stats computed once.
+  // Same as before but now getStudentTodayStatus is O(1).
+  // ─────────────────────────────────────────────────────────
   const classStats = useMemo(() => {
     return classes.reduce((acc, cn) => {
       const st = students.filter(s => s.class === cn);
@@ -128,26 +161,65 @@ export default function ClassroomMonitorTab({
     }, {});
   }, [classes, students, getStudentTodayStatus]);
 
-  // 7-day sparkline data per class
+  // ─────────────────────────────────────────────────────────
+  // KEY OPTIMIZATION 3: Sparklines — build a date→Set(nids)
+  // index first so we don't re-scan all logs 7× per class.
+  // ─────────────────────────────────────────────────────────
   const classSparklines = useMemo(() => {
+    // Build date string array for last 7 days
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toLocaleDateString('en-CA', { timeZone: PH_TZ }));
+    }
+
+    // Index: Map<dateStr, Set<normalizedStudentId>> of students who were IN
+    const datePresent = new Map();
+    days.forEach(d => datePresent.set(d, new Set()));
+
+    for (const l of logs) {
+      if (l.status !== 'IN' || !l.studentId || !l.timestamp) continue;
+      const dateStr = getPhLocalDate(l.timestamp);
+      if (datePresent.has(dateStr)) {
+        datePresent.get(dateStr).add(normalizeId(l.studentId));
+      }
+    }
+
+    // Build per-class sparkline using the index
     const result = {};
     classes.forEach(cn => {
-      const st = students.filter(s => s.class === cn);
-      const data = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const phStr = d.toLocaleDateString('en-CA', { timeZone: PH_TZ });
-        const present = new Set(
-          logs.filter(l => l.status === 'IN' && l.studentId && l.timestamp && getPhLocalDate(l.timestamp) === phStr
-            && st.some(s => normalizeId(s.studentId) === normalizeId(l.studentId)))
-            .map(l => normalizeId(l.studentId))
-        ).size;
-        data.push(present);
-      }
-      result[cn] = data;
+      const nids = new Set(students.filter(s => s.class === cn).map(s => normalizeId(s.studentId)));
+      result[cn] = days.map(d => {
+        let count = 0;
+        datePresent.get(d)?.forEach(nid => { if (nids.has(nid)) count++; });
+        return count;
+      });
     });
     return result;
   }, [classes, students, logs]);
+
+  // ─────────────────────────────────────────────────────────
+  // KEY OPTIMIZATION 4: Pre-sort student lists per class
+  // so expanded cards don't sort on every render.
+  // ─────────────────────────────────────────────────────────
+  const STATUS_ORDER = { in: 0, out: 1, 'no-log': 2 };
+
+  const sortedStudentsByClass = useMemo(() => {
+    const map = {};
+    classes.forEach(cn => {
+      map[cn] = students
+        .filter(s => s.class === cn)
+        .slice()
+        .sort((a, b) => {
+          const sa = getStudentTodayStatus(a.studentId);
+          const sb = getStudentTodayStatus(b.studentId);
+          if (STATUS_ORDER[sa] !== STATUS_ORDER[sb]) return STATUS_ORDER[sa] - STATUS_ORDER[sb];
+          return a.name.localeCompare(b.name);
+        });
+    });
+    return map;
+  }, [classes, students, getStudentTodayStatus]);
 
   const filteredSorted = useMemo(() => {
     let list = [...classes];
@@ -168,12 +240,15 @@ export default function ClassroomMonitorTab({
     });
   }, [classes, students, searchQuery, sortBy, classStats]);
 
+  // ─────────────────────────────────────────────────────────
+  // KEY OPTIMIZATION 5: Filter students using pre-sorted list
+  // ─────────────────────────────────────────────────────────
   const getFilteredStudents = useCallback((cn) => {
-    const list = students.filter(s => s.class === cn);
+    const list = sortedStudentsByClass[cn] ?? [];
     if (!searchQuery) return list;
     const q = searchQuery.toLowerCase();
     return list.filter(s => s.name.toLowerCase().includes(q) || normalizeId(s.studentId).includes(q));
-  }, [students, searchQuery]);
+  }, [sortedStudentsByClass, searchQuery]);
 
   const overallStats = useMemo(() => {
     const t = { in: 0, out: 0, 'no-log': 0, total: 0 };
@@ -181,13 +256,12 @@ export default function ClassroomMonitorTab({
     return { ...t, rate: t.total > 0 ? Math.round((t.in / t.total) * 100) : 0 };
   }, [classStats]);
 
-  const statusCfg = {
+  const statusCfg = useMemo(() => ({
     'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/12 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100', label: 'IN',     pulse: true  },
     'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/12 text-rose-400 border-rose-500/20'           : 'bg-rose-50 text-rose-700 border-rose-100',           label: 'OUT',    pulse: false },
     'no-log': { dot: 'bg-gray-400',    badge: darkMode ? 'bg-white/5 text-gray-400 border-white/8'                   : 'bg-gray-50 text-gray-500 border-gray-200',            label: 'Absent', pulse: false },
-  };
+  }), [darkMode]);
 
-  // Time since last refresh
   const [timeSince, setTimeSince] = useState('just now');
   useEffect(() => {
     const id = setInterval(() => {
@@ -236,7 +310,6 @@ export default function ClassroomMonitorTab({
                 <p className={`text-[10px] font-black uppercase tracking-wider ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{s.label}</p>
               </div>
             ))}
-            {/* Rate ring */}
             <div className="relative w-12 h-12 flex-shrink-0">
               <RateRing rate={loading ? 0 : overallStats.rate} size={48} darkMode={darkMode} />
               <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black"
@@ -246,7 +319,6 @@ export default function ClassroomMonitorTab({
             </div>
           </div>
         </div>
-        {/* Overall progress bar */}
         <div className={`mt-3 h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`}>
           <div className="h-full rounded-full transition-all duration-1000 ease-out"
             style={{ width: loading ? '0%' : `${overallStats.rate}%`, background: '#10b981' }} />
@@ -314,13 +386,12 @@ export default function ClassroomMonitorTab({
       <div className="flex items-center gap-4 flex-wrap">
         <span className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Legend:</span>
         {[
-          { label: 'IN — Present',    dot: 'bg-emerald-500' },
-          { label: 'OUT — Left',      dot: 'bg-rose-500' },
-          { label: 'Absent',          dot: 'bg-gray-400' },
+          { label: 'IN — Present', dot: 'bg-emerald-500' },
+          { label: 'OUT — Left',   dot: 'bg-rose-500'    },
+          { label: 'Absent',       dot: 'bg-gray-400'    },
         ].map((l, i) => (
           <div key={i} className="flex items-center gap-1.5">
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${l.dot} relative`}>
-            </div>
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${l.dot}`} />
             <span className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{l.label}</span>
           </div>
         ))}
@@ -348,12 +419,12 @@ export default function ClassroomMonitorTab({
       ) : viewMode === 'grid' ? (
         <div className="space-y-4">
           {filteredSorted.map(cn => {
-            const classStudents = students.filter(s => s.class === cn);
+            const classStudents = sortedStudentsByClass[cn] ?? [];
             const query = searchQuery?.toLowerCase() || '';
             const shown = query
               ? classStudents.filter(s => s.name?.toLowerCase().includes(query) || s.studentId?.toString().includes(query))
               : classStudents;
-            const { counts } = classStats[cn] || { counts: { in:0, out:0, 'no-log':0 } };
+            const { counts } = classStats[cn] || { counts: { in: 0, out: 0, 'no-log': 0 } };
             return (
               <div key={cn} className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
                 <div className={`px-4 py-3 flex items-center justify-between border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
@@ -365,10 +436,7 @@ export default function ClassroomMonitorTab({
                   </div>
                 </div>
                 <div className="p-3 flex flex-wrap gap-2">
-                  {shown.slice().sort((a,b) => {
-                    const order = { in:0, out:1, 'no-log':2 };
-                    return (order[getStudentTodayStatus(a.studentId)] - order[getStudentTodayStatus(b.studentId)]) || a.name.localeCompare(b.name);
-                  }).map(student => {
+                  {shown.map(student => {
                     const status = getStudentTodayStatus(student.studentId);
                     const lastSeen = getStudentLastSeen(student.studentId);
                     const initial = (student.name || '?').charAt(0).toUpperCase();
@@ -400,13 +468,13 @@ export default function ClassroomMonitorTab({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredSorted.map((cn, idx) => {
+          {filteredSorted.map((cn) => {
             const { counts, rate, total } = classStats[cn] || { counts: { in: 0, out: 0, 'no-log': 0 }, rate: 0, total: 0 };
-            const filteredSt  = getFilteredStudents(cn);
-            const isExpanded  = selectedClass === cn;
-            const spark       = classSparklines[cn] || [];
-            const sparkColor  = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
-            const rateGrad    = rate >= 80 ? 'bg-emerald-600' : rate >= 60 ? 'bg-amber-500' : 'bg-rose-600';
+            const filteredSt = getFilteredStudents(cn);
+            const isExpanded = selectedClass === cn;
+            const spark      = classSparklines[cn] || [];
+            const sparkColor = rate >= 80 ? '#10b981' : rate >= 60 ? '#f59e0b' : '#f43f5e';
+            const rateGrad   = rate >= 80 ? 'bg-emerald-600' : rate >= 60 ? 'bg-amber-500' : 'bg-rose-600';
 
             return (
               <div key={cn}
@@ -417,9 +485,7 @@ export default function ClassroomMonitorTab({
                     ? darkMode ? 'bg-white/[0.06] border-white/16 shadow-xl' : 'bg-white border-gray-300 shadow-xl'
                     : darkMode ? 'bg-white/[0.03] border-white/8 hover:bg-white/[0.06] hover:border-white/14' : 'bg-white border-gray-200/80 shadow-sm hover:border-gray-300 hover:shadow-lg'
                   }`}
-                
               >
-
                 <button onClick={() => {
                   const next = isExpanded ? null : cn;
                   setSelectedClass(next);
@@ -430,9 +496,7 @@ export default function ClassroomMonitorTab({
                       <h3 className={`font-black text-base truncate ${darkMode ? 'text-white' : 'text-gray-900'}`} title={cn}>{cn}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className={`text-xs font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{total} students</p>
-                        {spark.length > 1 && (
-                          <Sparkline data={spark} color={sparkColor} />
-                        )}
+                        {spark.length > 1 && <Sparkline data={spark} color={sparkColor} />}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -477,7 +541,6 @@ export default function ClassroomMonitorTab({
                   ${darkMode ? 'border-white/6' : 'border-gray-100'}
                   ${isExpanded ? 'max-h-[400px]' : 'max-h-0 border-transparent'}`}
                 >
-                  {/* Sub-header */}
                   <div className={`px-5 py-2.5 flex items-center justify-between ${darkMode ? 'bg-white/[0.02]' : 'bg-slate-50/80'}`}>
                     <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                       {filteredSt.length} students
@@ -485,46 +548,37 @@ export default function ClassroomMonitorTab({
                   </div>
 
                   <div className="max-h-72 overflow-y-auto">
-                    {filteredSt
-                      .slice()
-                      .sort((a, b) => {
-                        const order = { in: 0, out: 1, 'no-log': 2 };
-                        const sa = getStudentTodayStatus(a.studentId);
-                        const sb = getStudentTodayStatus(b.studentId);
-                        if (order[sa] !== order[sb]) return order[sa] - order[sb];
-                        return a.name.localeCompare(b.name);
-                      })
-                      .map((student, si) => {
-                        const status   = getStudentTodayStatus(student.studentId);
-                        const lastSeen = getStudentLastSeen(student.studentId);
-                        const cfg      = statusCfg[status];
-                        return (
-                          <div key={si}
-                            className={`flex items-center gap-3 px-5 py-3 border-b last:border-0 transition-colors duration-150
-                              ${darkMode ? 'border-white/[0.04] hover:bg-white/[0.04]' : 'border-gray-100/80 hover:bg-slate-50'}`}
-                          >
-                            <div className="relative flex-shrink-0">
-                              <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                                <Highlight text={student.name} query={searchQuery} darkMode={darkMode} />
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <p className={`text-xs font-mono truncate ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                                  <Highlight text={student.studentId} query={searchQuery} darkMode={darkMode} />
-                                </p>
-                                {lastSeen && status !== 'no-log' && (
-                                  <span className={`text-[10px] flex items-center gap-0.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                                    <Clock size={8} />{lastSeen}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold flex-shrink-0 border ${cfg.badge}`}>{cfg.label}</span>
+                    {filteredSt.map((student, si) => {
+                      const status   = getStudentTodayStatus(student.studentId);
+                      const lastSeen = getStudentLastSeen(student.studentId);
+                      const cfg      = statusCfg[status];
+                      return (
+                        <div key={si}
+                          className={`flex items-center gap-3 px-5 py-3 border-b last:border-0 transition-colors duration-150
+                            ${darkMode ? 'border-white/[0.04] hover:bg-white/[0.04]' : 'border-gray-100/80 hover:bg-slate-50'}`}
+                        >
+                          <div className="relative flex-shrink-0">
+                            <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
                           </div>
-                        );
-                      })}
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                              <Highlight text={student.name} query={searchQuery} darkMode={darkMode} />
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className={`text-xs font-mono truncate ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                                <Highlight text={student.studentId} query={searchQuery} darkMode={darkMode} />
+                              </p>
+                              {lastSeen && status !== 'no-log' && (
+                                <span className={`text-[10px] flex items-center gap-0.5 ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                                  <Clock size={8} />{lastSeen}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-bold flex-shrink-0 border ${cfg.badge}`}>{cfg.label}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
