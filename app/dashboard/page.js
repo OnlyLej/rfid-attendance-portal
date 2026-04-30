@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
   return (
     <RouteGuard allowedRoles={['teacher']}>
-      <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#0f1117]' : 'bg-slate-50/80'}`}>
+      <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-[#0f1117]' : 'bg-white'}`}>
         {/* Sidebar — hidden on mobile */}
         {!isMobile && (
           <AppSidebar

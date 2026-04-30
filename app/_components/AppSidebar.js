@@ -18,11 +18,11 @@ const SIDEBAR_W_COLLAPSED = 64;
 const TEACHER_SECTIONS = {
   main: [
     { id: 'dashboard',  label: 'Dashboard',   icon: LayoutDashboard, color: '#0ea5e9', href: '/dashboard',  matchExact: true  },
-    { id: 'classroom',  label: 'Classroom',   icon: GraduationCap,   color: '#7c3aed', href: '/classroom',  matchExact: false },
-    { id: 'students',   label: 'Students',    icon: Users,           color: '#8b5cf6', href: '/students',   matchExact: false },
-    { id: 'logs',       label: 'Logs',        icon: ClipboardList,   color: '#10b981', href: '/logs',       matchExact: false },
-    { id: 'reports',    label: 'Reports',     icon: BarChart3,       color: '#f59e0b', href: '/reports',    matchExact: false },
-    { id: 'alerts',     label: 'Alerts',      icon: AlertTriangle,   color: '#f43f5e', href: '/alerts',     matchExact: false },
+    { id: 'classroom',  label: 'Classroom',   icon: GraduationCap,   color: '#0ea5e9', href: '/classroom',  matchExact: false },
+    { id: 'students',   label: 'Students',    icon: Users,           color: '#0ea5e9', href: '/students',   matchExact: false },
+    { id: 'logs',       label: 'Logs',        icon: ClipboardList,   color: '#0ea5e9', href: '/logs',       matchExact: false },
+    { id: 'reports',    label: 'Reports',     icon: BarChart3,       color: '#0ea5e9', href: '/reports',    matchExact: false },
+    { id: 'alerts',     label: 'Alerts',      icon: AlertTriangle,   color: '#0ea5e9', href: '/alerts',     matchExact: false },
   ],
   system: [
     { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
@@ -32,9 +32,9 @@ const TEACHER_SECTIONS = {
 const PARENT_SECTIONS = {
   main: [
     { id: 'home',          label: 'Home',          icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
-    { id: 'child-profile', label: 'Child Profile', icon: User,         color: '#7c3aed', href: '/child-profile', matchExact: false },
-    { id: 'calendar',      label: 'Calendar',      icon: CalendarDays, color: '#10b981', href: '/calendar',      matchExact: false },
-    { id: 'progress',      label: 'Progress',      icon: TrendingUp,   color: '#f59e0b', href: '/progress',      matchExact: false },
+    { id: 'child-profile', label: 'Child Profile', icon: User,         color: '#0ea5e9', href: '/child-profile', matchExact: false },
+    { id: 'calendar',      label: 'Calendar',      icon: CalendarDays, color: '#0ea5e9', href: '/calendar',      matchExact: false },
+    { id: 'progress',      label: 'Progress',      icon: TrendingUp,   color: '#0ea5e9', href: '/progress',      matchExact: false },
   ],
   system: [
     { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
@@ -108,9 +108,6 @@ function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
       ].join(' ')}
       style={active ? { background: `linear-gradient(135deg,${item.color}d0,${item.color}88)` } : undefined}
     >
-      {active && !collapsed && (
-        <span className="absolute left-0 top-0 bottom-0 w-[3px] rounded-r-full" style={{ background: 'rgba(255,255,255,0.7)' }} />
-      )}
       <Icon size={17} className="flex-shrink-0" style={{ color: active ? '#fff' : undefined }} />
       {!collapsed && (
         <span className="text-[13px] font-semibold truncate leading-none flex-1">{item.label}</span>
@@ -134,25 +131,20 @@ function SectionLabel({ label, darkMode, collapsed }) {
 }
 
 function UserCard({ darkMode, collapsed, userInfo, userType }) {
-  const initial = (userInfo?.fullName || userInfo?.username || 'U').charAt(0).toUpperCase();
   return (
     <div className={`flex-shrink-0 border-t px-3 py-3 ${darkMode ? 'border-white/[0.06]' : 'border-black/[0.06]'}`} style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))' }}>
       <div className={`flex items-center gap-2.5 ${collapsed ? 'justify-center' : ''}`}>
-        <div
-          className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-[13px] font-black shadow-md"
-          style={{ background: userType === 'teacher' ? '#0ea5e9' : '#10b981' }}
-        >
-          {initial}
-        </div>
-        {!collapsed && (
-          <div className="flex-1 min-w-0">
-            <p className={`text-[12px] font-black truncate leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        {!collapsed ? (
+          <div className="flex-1 min-w-0 px-1">
+            <p className={`text-[13px] font-black truncate leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>
               {userInfo?.fullName || userInfo?.username || 'User'}
             </p>
             <p className={`text-[10px] font-semibold truncate leading-tight capitalize ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               {userType || 'Guest'}
             </p>
           </div>
+        ) : (
+          <User size={18} className={darkMode ? 'text-gray-400' : 'text-gray-500'} />
         )}
       </div>
     </div>
