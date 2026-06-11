@@ -167,7 +167,7 @@ function LogoutModal({ darkMode, onConfirm, onCancel }) {
           <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>You'll need to sign back in.</p>
           <div className="flex gap-2.5">
             <button onClick={onCancel} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Stay</button>
-            <button onClick={onConfirm} className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-rose-500/30" style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}>Sign Out</button>
+            <button onClick={onConfirm} className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95" style={{ background: '#e11d48' }}>Sign Out</button>
           </div>
         </div>
       </div>
