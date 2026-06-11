@@ -27,7 +27,7 @@ export default function ClientProviders({ children }) {
       ''
     );
     console.log(
-      '%cRFID Attendance Portal · built with ❤️ · https://ridap.vercel.app',
+      '%cRFID Attendance Portal · built with ❤️ · https://ridap.lej.qzz.io',
       'color:#10b981; font-family:monospace; font-size:11px;'
     );
 
