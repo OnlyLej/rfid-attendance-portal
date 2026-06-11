@@ -23,7 +23,7 @@ export default function ChildPicker({ children, selectedChildId, onSelect, darkM
                   ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-white',
             ].join(' ')}
-            style={active ? { background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' } : undefined}
+            style={active ? { background: '#7c3aed' } : undefined}
           >
             <span
               className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black flex-shrink-0"
