@@ -63,13 +63,22 @@ export default function AlertsPage() {
   // Late arrivals today (checked in after 8am PH)
   const lateArrivals = useMemo(() => {
     const todayLogs = logs.filter(l => l.status === 'IN' && getPhLocalDate(l.timestamp) === today);
-    return todayLogs.filter(l => {
-      const d = parsePhTimestamp(l.timestamp);
-      if (!d) return false;
-      const h = parseInt(d.toLocaleString('en-PH', { hour: 'numeric', hour12: false, timeZone: PH_TZ }));
-      return h >= LATE_HOUR;
-    }).sort((a, b) => (parsePhTimestamp(b.timestamp)?.getTime() ?? 0) - (parsePhTimestamp(a.timestamp)?.getTime() ?? 0));
-  }, [logs, today]);
+    const firstInByStudent = new Map();
+    for (const l of todayLogs) {
+     const sid = normalizeId(l.studentId);
+     const existing = firstInByStudent.get(sid);
+     const t = parsePhTimestamp(l.timestamp)?.getTime() ?? Infinity;
+     if (!existing || t < (parsePhTimestamp(existing.timestamp)?.getTime() ?? Infinity)) {
+      firstInByStudent.set(sid, l);
+     }
+    }
+    return Array.from(firstInByStudent.values()).filter(l => {
+    const d = parsePhTimestamp(l.timestamp);
+    if (!d) return false;
+    const h = parseInt(d.toLocaleString('en-PH', { hour: 'numeric', hour12: false, timeZone: PH_TZ }));
+    return h >= LATE_HOUR;
+  }).sort((a, b) => (parsePhTimestamp(a.timestamp)?.getTime() ?? 0) - (parsePhTimestamp(b.timestamp)?.getTime() ?? 0));
+ }, [logs, today]);
 
   // Perfect attendance this week
   const perfect = useMemo(() => {
