@@ -260,7 +260,7 @@ export default function ParentLogsTab({
                       style={isActive?{background:`linear-gradient(135deg,${c1},${c2})`}:{}}
                     >
                       <User size={12} />
-                      <span className="max-w-[100px] truncate">{child.name.split(' ')[0]}</span>
+                      <span className="max-w-[100px] truncate">{child.name}</span>
                       {streak >= 3 && <span className="flex items-center gap-0.5"><Flame size={10} className="text-orange-400"/>{streak}</span>}
                       {isActive && <span className="bg-white/25 px-1.5 py-0.5 rounded-full text-[10px] font-black">{child.class}</span>}
                     </button>
@@ -403,7 +403,7 @@ export default function ParentLogsTab({
                       <p className={`text-sm font-black ${darkMode?'text-white':'text-gray-900'}`}>{fmt(log.timestamp,'date')}</p>
                       {hasMulti && selectedChildId==='all' && (
                         <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${darkMode?'bg-white/6 border-white/10 text-gray-300':'bg-gray-100 border-gray-200 text-gray-600'}`}>
-                          {(() => { const c=childrenInfo.find(c=>normalizeId(c.studentId)===normalizeId(log.studentId)); return c?c.name.split(' ')[0]:log.studentId; })()}
+                          {(() => { const c=childrenInfo.find(c=>normalizeId(c.studentId)===normalizeId(log.studentId)); return c?c.name:log.studentId; })()}
                         </span>
                       )}
                     </div>
