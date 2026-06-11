@@ -149,7 +149,7 @@ export default function ChildProfilePage() {
             <StatPill label="30-day Rate"   value={loading ? '—' : `${rate30}%`} icon={TrendingUp}   color={rateColor} darkMode={darkMode} />
             <StatPill label="Days Present"  value={loading ? '—' : totalDays}    icon={CheckCircle}  color="#10b981"  darkMode={darkMode} />
             <StatPill label="Absent (30d)"  value={loading ? '—' : absentDays}   icon={XCircle}      color="#f43f5e"  darkMode={darkMode} />
-            <StatPill label="Rate Badge"    value={loading ? '—' : rate30 >= 95 ? '🏆 Excellent' : rate30 >= 85 ? '⭐ Good' : '📈 Needs improvement'} icon={Award} color="#f59e0b" darkMode={darkMode} />
+            <StatPill label="Rate Badge"    value={loading ? '—' : rate30 >= 95 ? 'Excellent' : rate30 >= 85 ? 'Good' : 'Needs improvement'} icon={Award} color="#f59e0b" darkMode={darkMode} />
           </div>
 
           {/* 14-day spark chart */}
