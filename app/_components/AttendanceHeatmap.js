@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { normalizeId, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 
 const PH_TZ = 'Asia/Manila';
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -79,15 +79,13 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
             isToday: dateStr === todayStr,
             month: date.getMonth(),
             dayOfWeek: date.getDay(),
-            label: date.toLocaleDateString('en-PH', {
-              timeZone: PH_TZ,
+            label: date.toLocaleDateString('en-US', {
               weekday: 'long',
               month: 'long',
               day: 'numeric',
               year: 'numeric',
             }),
-            shortLabel: date.toLocaleDateString('en-PH', {
-              timeZone: PH_TZ,
+            shortLabel: date.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
             }),

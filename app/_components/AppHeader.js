@@ -24,7 +24,7 @@ const PAGE_TITLES = {
 };
 
 function getGreeting() {
-  const h = parseInt(new Date().toLocaleString('en-PH', { hour: 'numeric', hour12: false, timeZone: PH_TZ }));
+  const h = parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false }));
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 

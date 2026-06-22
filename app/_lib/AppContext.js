@@ -8,6 +8,7 @@ const SESSION_TIMEOUT = 30 * 60 * 1000;
 const PH_TZ = 'Asia/Manila';
 
 // ─── Helpers (duplicated here so context has no import cycle with data.js) ────
+// These are PH timezone functions for business logic (comparisons, late calculations)
 const parsePhTimestamp = (str) => {
   if (!str) return null;
   if (typeof str !== 'string') { const d = new Date(str); return isNaN(d.getTime()) ? null : d; }
@@ -19,6 +20,13 @@ const getPhTodayStr = () => new Date().toLocaleDateString('en-CA', { timeZone: P
 const toPhDateStr = (d) => d ? d.toLocaleDateString('en-CA', { timeZone: PH_TZ }) : '';
 const getPhLocalDate = (str) => { const d = parsePhTimestamp(str); return d ? toPhDateStr(d) : ''; };
 const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
+
+// Local timezone display functions (for showing times in user's timezone)
+const formatLocalDateTime = (str) => {
+  const d = parsePhTimestamp(str);
+  if (!d) return '—';
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 
 const calculateWeeklyData = (logData, studentsList) => {
   if (!logData?.length || !studentsList?.length) return [];

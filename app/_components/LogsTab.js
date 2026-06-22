@@ -6,7 +6,7 @@ import {
   ChevronLeft, ChevronRight, Copy, Check,
   ArrowUpDown, ArrowUp, ArrowDown, Users, UserCheck, UserX, Clock,
 } from 'lucide-react';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import { Skeleton, FilterChip, StatusBadge, EmptyState, Pagination } from './ui';
 
 const PH_TZ      = 'Asia/Manila';
@@ -164,10 +164,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
     setExporting(false);
   };
 
-  const formatTs = (ts) => {
-    const d = parsePhTimestamp(ts);
-    return d ? d.toLocaleString('en-PH', { timeZone: PH_TZ, year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-  };
+  const formatTs = (ts) => formatLocalDateTime(ts);
 
   const inputCls = `w-full px-3 py-2.5 rounded-xl text-sm border outline-none transition-all duration-200 font-medium
     ${darkMode ? 'bg-white/[0.04] border-white/8 text-white placeholder-gray-600 focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/15' : 'bg-white border-gray-200 text-gray-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/15'}`;
@@ -287,7 +284,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
                 </button>
               </div>
               <div className="flex items-end">
-                <button onClick={() => { const d = new Date(); d.setDate(d.getDate()-7); setDateStart(d.toLocaleDateString('en-CA',{timeZone:PH_TZ})); setDateEnd(today); }}
+                <button onClick={() => { const d = new Date(); d.setDate(d.getDate()-7); setDateStart(d.toLocaleDateString('en-CA')); setDateEnd(today); }}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/8 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
                   Last 7 days
                 </button>

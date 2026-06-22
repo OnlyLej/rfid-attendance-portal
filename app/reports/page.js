@@ -43,8 +43,8 @@ function buildPrintHTML({ darkMode, range, overallRate, totalPresences, peakDay,
   const rose      = '#f43f5e';
   const violet    = '#7c3aed';
 
-  const printDate = new Date().toLocaleDateString('en-PH', {
-    timeZone: PH_TZ, year: 'numeric', month: 'long', day: 'numeric',
+  const printDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   });
 
@@ -431,7 +431,7 @@ export default function ReportsPage() {
   const dateRange = useMemo(() => {
     return Array.from({ length: rangeNum }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() - (rangeNum - 1 - i));
-      return d.toLocaleDateString('en-CA', { timeZone: PH_TZ });
+      return d.toLocaleDateString('en-CA');
     });
   }, [rangeNum]);
 
@@ -439,7 +439,7 @@ export default function ReportsPage() {
     const dayLogs = logs.filter(l => getPhLocalDate(l.timestamp) === date);
     const present = new Set(dayLogs.filter(l => l.status === 'IN').map(l => normalizeId(l.studentId))).size;
     const d = new Date(date + 'T00:00:00');
-    const label = d.toLocaleDateString('en-PH', { timeZone: PH_TZ, month: 'short', day: 'numeric' });
+    const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return { date, label, present, absent: Math.max(0, students.length - present), rate: students.length > 0 ? Math.round((present / students.length) * 100) : 0 };
   }), [dateRange, logs, students]);
 

@@ -5,7 +5,7 @@ import {
   Calendar, Users, User, Search, Download,
   Copy, Check, Flame, X,
 } from 'lucide-react';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime, formatLocalDate, formatLocalTime } from '../_lib/data';
 import {
   Card, Skeleton, FilterChip, StatusBadge, EmptyState, Pagination,
 } from './ui';
@@ -47,11 +47,11 @@ function calcStreak(logs, studentId) {
       .map(l => getPhLocalDate(l.timestamp)).filter(Boolean)
   )].sort().reverse();
   const today = getPhTodayStr();
-  const yest  = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('en-CA',{timeZone:PH_TZ}); })();
+  const yest  = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('en-CA'); })();
   let streak = 0;
   let expected = days[0]===today ? today : days[0]===yest ? yest : null;
   for (const d of days) {
-    if (d === expected) { streak++; const nd = new Date(expected); nd.setDate(nd.getDate()-1); expected = nd.toLocaleDateString('en-CA',{timeZone:PH_TZ}); }
+    if (d === expected) { streak++; const nd = new Date(expected); nd.setDate(nd.getDate()-1); expected = nd.toLocaleDateString('en-CA'); }
     else break;
   }
   return streak;
@@ -188,11 +188,9 @@ export default function ParentLogsTab({
   };
 
   const fmt = (ts, type) => {
-    const d = parsePhTimestamp(ts);
-    if (!d) return '—';
-    if (type === 'date') return d.toLocaleDateString('en-PH', { timeZone:PH_TZ, weekday:'short', month:'short', day:'numeric' });
-    if (type === 'time') return d.toLocaleTimeString('en-PH', { timeZone:PH_TZ, hour:'2-digit', minute:'2-digit' });
-    return d.toLocaleString('en-PH', { timeZone:PH_TZ });
+    if (type === 'date') return formatLocalDate(ts);
+    if (type === 'time') return formatLocalTime(ts);
+    return formatLocalDateTime(ts);
   };
 
   const inputCls = `w-full px-3 py-2.5 rounded-xl text-sm border outline-none transition-all duration-200 font-medium
@@ -362,8 +360,8 @@ export default function ParentLogsTab({
           <div className="flex gap-2 mt-3 flex-wrap">
             {[
               { label:'Today',       action:()=>{ setDateStart(today); setDateEnd(today); } },
-              { label:'This week',   action:()=>{ const d=new Date(); d.setDate(d.getDate()-7); setDateStart(d.toLocaleDateString('en-CA',{timeZone:PH_TZ})); setDateEnd(today); } },
-              { label:'This month',  action:()=>{ const d=new Date(); setDateStart(new Date(d.getFullYear(),d.getMonth(),1).toLocaleDateString('en-CA',{timeZone:PH_TZ})); setDateEnd(today); } },
+              { label:'This week',   action:()=>{ const d=new Date(); d.setDate(d.getDate()-7); setDateStart(d.toLocaleDateString('en-CA')); setDateEnd(today); } },
+              { label:'This month',  action:()=>{ const d=new Date(); setDateStart(new Date(d.getFullYear(),d.getMonth(),1).toLocaleDateString('en-CA')); setDateEnd(today); } },
               { label:'Clear dates', action:()=>{ setDateStart(''); setDateEnd(''); } },
             ].map(p=>(
               <button key={p.label} onClick={p.action}

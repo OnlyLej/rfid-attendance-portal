@@ -304,7 +304,7 @@ export default function LandingPage() {
   const steps = [
     { n: '01', icon: Wifi, title: 'Student taps RFID card', desc: 'The ESP8266/ESP32 reader detects the card and reads the unique UID in under 50ms.', bgClass: 'bg-sky-500', accent: '#0ea5e9' },
     { n: '02', icon: CloudCog, title: 'WiFi transmission to API', desc: 'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.', bgClass: 'bg-blue-500', accent: '#3b82f6' },
-    { n: '03', icon: Database, title: 'Data stored & classified', desc: 'The log is written to Google Sheets in real time — student name, class, IN/OUT status, PH-timezone timestamp.', bgClass: 'bg-sky-600', accent: '#0284c7' },
+    { n: '03', icon: Database, title: 'Data stored & classified', desc: 'The log is written to Google Sheets in real time — student name, class, IN/OUT status, and timestamp.', bgClass: 'bg-sky-600', accent: '#0284c7' },
     { n: '04', icon: Monitor, title: 'Dashboard updates live', desc: 'Teachers see the attendance count update in real time. Charts, comparisons, and parent portals all reflect the new data.', bgClass: 'bg-blue-600', accent: '#2563eb' },
   ];
 
@@ -388,7 +388,7 @@ export default function LandingPage() {
 
           {/* Trust bar */}
           <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 transition-all duration-700 ${heroVis ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: '340ms' }}>
-            {[{ icon: Globe, t: 'PH Timezone' }, { icon: Zap, t: '<200ms scan' }].map((x, i) => (
+            {[{ icon: Zap, t: '<200ms scan' }].map((x, i) => (
               <div key={i} className={`flex items-center gap-1.5 text-xs font-semibold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
                 <x.icon size={12} className="text-emerald-500" />{x.t}
               </div>

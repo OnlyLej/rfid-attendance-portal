@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { X, Hash, GraduationCap, Clock, TrendingUp, CheckCircle, XCircle, Award, Calendar, Flame } from 'lucide-react';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 const PH_TZ = 'Asia/Manila';
@@ -12,11 +12,11 @@ function calcStreak(logs) {
     logs.filter(l => l.status === 'IN' && l.timestamp).map(l => getPhLocalDate(l.timestamp)).filter(Boolean)
   )].sort().reverse();
   const today = getPhTodayStr();
-  const yest = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('en-CA',{timeZone:PH_TZ}); })();
+  const yest = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toLocaleDateString('en-CA'); })();
   let streak = 0;
   let expected = days[0]===today ? today : days[0]===yest ? yest : null;
   for (const d of days) {
-    if (d === expected) { streak++; const nd = new Date(expected); nd.setDate(nd.getDate()-1); expected = nd.toLocaleDateString('en-CA',{timeZone:PH_TZ}); }
+    if (d === expected) { streak++; const nd = new Date(expected); nd.setDate(nd.getDate()-1); expected = nd.toLocaleDateString('en-CA'); }
     else break;
   }
   return streak;
@@ -33,9 +33,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
 
   const today = getPhTodayStr();
   const isPresent = logs.some(l => l.status === 'IN' && getPhLocalDate(l.timestamp) === today);
-  const lastSeen = logs[0] ? parsePhTimestamp(logs[0].timestamp)?.toLocaleDateString('en-PH', {
-    timeZone: PH_TZ, weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-  }) : null;
+  const lastSeen = logs[0] ? formatLocalDateTime(logs[0].timestamp) : null;
   const totalDays = new Set(logs.map(l => getPhLocalDate(l.timestamp)).filter(Boolean)).size;
   const streak = calcStreak(logs);
 
@@ -44,7 +42,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
     const school = Array.from({length:30}, (_,i) => {
       const d = new Date(); d.setDate(d.getDate()-i);
       if (d.getDay()===0||d.getDay()===6) return null;
-      return d.toLocaleDateString('en-CA',{timeZone:PH_TZ});
+      return d.toLocaleDateString('en-CA');
     }).filter(Boolean);
     const presentSet = new Set(logs.filter(l=>l.status==='IN').map(l=>getPhLocalDate(l.timestamp)));
     return school.length ? Math.round(school.filter(d=>presentSet.has(d)).length/school.length*100) : 0;
@@ -54,8 +52,8 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
   const sparkData = useMemo(() => Array.from({length:14}, (_,i) => {
     const d = new Date(); d.setDate(d.getDate()-(13-i));
     if (d.getDay()===0||d.getDay()===6) return null;
-    const dateStr = d.toLocaleDateString('en-CA',{timeZone:PH_TZ});
-    const label   = d.toLocaleDateString('en-PH',{timeZone:PH_TZ,month:'short',day:'numeric'});
+    const dateStr = d.toLocaleDateString('en-CA');
+    const label   = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
     const present = logs.some(l => getPhLocalDate(l.timestamp) === dateStr);
     return { label, value: present ? 1 : 0 };
   }).filter(Boolean), [logs]);

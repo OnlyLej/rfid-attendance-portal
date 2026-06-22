@@ -25,7 +25,7 @@ function getStudentStats(studentId, logs) {
 function StudentRow({ student, logs, darkMode, idx, onClick }) {
   const { isPresent, lastSeen, totalDays } = useMemo(() => getStudentStats(student.studentId, logs), [student.studentId, logs]);
   const lastSeenStr = lastSeen
-    ? parsePhTimestamp(lastSeen)?.toLocaleDateString('en-PH', { timeZone: PH_TZ, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    ? parsePhTimestamp(lastSeen)?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'No records';
 
   return (

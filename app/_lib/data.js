@@ -5,7 +5,7 @@ import { useState, useCallback } from 'react';
 const PH_TZ = 'Asia/Manila';
 
 /* ── Late threshold: students not checked in BY this hour are marked late ── */
-export const LATE_HOUR = 7; // 7:00 AM — edit this value to change the cutoff
+export const LATE_HOUR = 7; // 7:00 AM PH time — edit this value to change the cutoff
 
 export const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
 
@@ -33,6 +33,7 @@ export const parsePhTimestamp = (str) => {
   return isNaN(d3.getTime()) ? null : d3;
 };
 
+/* ── PH Timezone Functions (for business logic: comparisons, late calculations, etc.) ── */
 export const getPhTodayStr = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: PH_TZ });
 
@@ -45,6 +46,29 @@ export const getPhLocalDate = (str) => {
   const d = parsePhTimestamp(str);
   return d ? toPhDateStr(d) : '';
 };
+
+/* ── Local Timezone Functions (for display: show times in user's timezone) ── */
+export const toLocalDateStr = (date) => {
+  if (!date) return '';
+  return date.toLocaleDateString('en-CA');
+};
+
+export const getLocalDate = (str) => {
+  const d = parsePhTimestamp(str);
+  return d ? toLocalDateStr(d) : '';
+};
+
+export const formatLocalDateTime = (str, options = {}) => {
+  const d = parsePhTimestamp(str);
+  if (!d) return '—';
+  const { dateOnly = false, timeOnly = false } = options;
+  if (dateOnly) return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  if (timeOnly) return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+export const formatLocalTime = (str) => formatLocalDateTime(str, { timeOnly: true });
+export const formatLocalDate = (str) => formatLocalDateTime(str, { dateOnly: true });
 
 export function useAttendanceData(userType) {
   const [logs, setLogs] = useState([]);

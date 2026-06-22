@@ -9,7 +9,7 @@ import {
   LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, toPhDateStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, toPhDateStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import { Skeleton, ChartSkeleton, Card } from './ui';
 import AttendanceHeatmap from './AttendanceHeatmap';
 
@@ -357,7 +357,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
           <div className="p-5">
             <ChartHeader
               icon={BarChart3}
-              title={`Weekly — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric', timeZone: PH_TZ })}`}
+              title={`Weekly — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`}
               color="sky"
               darkMode={darkMode}
             />

@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List } from 'lucide-react';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import {
   RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton,
 } from './ui';
@@ -171,7 +171,7 @@ export default function ClassroomMonitorTab({
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      days.push(d.toLocaleDateString('en-CA', { timeZone: PH_TZ }));
+      days.push(d.toLocaleDateString('en-CA'));
     }
 
     // Index: Map<dateStr, Set<normalizedStudentId>> of students who were IN
