@@ -186,7 +186,6 @@ export default function AttendanceHeatmap({ logs, studentId, darkMode, title = '
             ? 'bg-green-950/60 border-green-800/60 text-green-300'
             : 'bg-green-50 border-green-200 text-green-800'}
         `}>
-          <span className="text-base">📅</span>
           <div className="flex-1 min-w-0">
             <span className="font-black">{selectedCell.label}</span>
             <span className={`ml-2 text-xs font-semibold ${darkMode ? 'text-green-500' : 'text-green-600'}`}>
