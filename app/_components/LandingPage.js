@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import {
   Eye, EyeOff, BarChart3, AlertCircle, Sun, Moon,
   ChevronRight, Shield, Bell, X, LogIn, Sparkles, Zap, ArrowRight,
@@ -10,6 +11,7 @@ import {
   Loader2, Signal, Play
 } from 'lucide-react';
 import { useApp } from '../_lib/AppContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const Odometer = dynamic(() => import('react-odometerjs'), { ssr: false });
 
@@ -156,7 +158,7 @@ function CountUp({ to, suffix = '', prefix = '', duration = 1400 }) {
   return <span ref={ref}>{prefix}{val}{suffix}</span>;
 }
 
-function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
+function MobileDrawer({ open, onClose, darkMode, onSignIn, t }) {
   useEffect(() => { document.body.style.overflow = open ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [open]);
   if (!open) return null;
   const go = (id) => { onClose(); setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 220); };
@@ -165,11 +167,11 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative ml-auto w-[280px] sm:w-80 h-full flex flex-col animate-slide-left ${darkMode ? 'bg-[#080d1a]' : 'bg-white'}`}>
         <div className={`flex items-center justify-between px-5 py-4 border-b ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
-          <div className="flex items-center gap-2.5"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span></div>
+          <div className="flex items-center gap-2.5"><AppLogo size="sm" /><span className={`font-black text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('common.appName')}</span></div>
           <button onClick={onClose} className={`p-2 rounded-xl transition-all hover:rotate-90 ${darkMode ? 'hover:bg-white/8 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}><X size={18} /></button>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {[['features', 'Features'], ['how-it-works', 'How It Works'], ['faq', 'FAQ']].map(([id, lbl]) => (
+          {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', 'FAQ']].map(([id, lbl]) => (
             <button key={id} onClick={() => go(id)}
               className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center justify-between group ${darkMode ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
               {lbl}<ChevronRight size={15} className="opacity-35 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
@@ -178,14 +180,14 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
           <div className={`mx-1 my-3 h-px ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`} />
           {/* Theme toggle in drawer */}
           <button onClick={() => { /* handled by parent */ }} className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center gap-2 ${darkMode ? 'text-gray-300 hover:bg-white/6' : 'text-gray-700 hover:bg-gray-50'}`}>
-            {darkMode ? <><Sun size={15} /> Light mode</> : <><Moon size={15} /> Dark mode</>}
+            {darkMode ? <><Sun size={15} /> {t('common.lightMode')}</> : <><Moon size={15} /> {t('common.darkMode')}</>}
           </button>
         </nav>
         <div className={`p-4 border-t ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
           <button onClick={() => { onClose(); onSignIn(); }}
             className="w-full py-3.5 text-white font-bold rounded-2xl flex items-center justify-center gap-2 relative overflow-hidden group text-sm"
             style={{ background: '#0ea5e9' }}>
-            <LogIn size={15} /> Sign In to Portal
+            <LogIn size={15} /> {t('auth.loginTitle')}
             <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </button>
         </div>
@@ -196,6 +198,7 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn }) {
 
 export default function LandingPage() {
   const { handleLogin } = useApp();
+  const t = useTranslations();
   const [dark, setDark] = useState(false);
   const [modal, setModal] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -295,7 +298,7 @@ export default function LandingPage() {
   const odo = { duration: 100, theme: 'default', auto: false };
 
   const features = [
-    { icon: Cpu, label: 'Hardware Layer', bgClass: 'bg-sky-500', glow: '#0ea5e9', title: 'ESP8266/ESP32 RFID Readers', desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'] },
+    { icon: Cpu, label: 'Hardware Layer', bgClass: 'bg-sky-500', glow: '#0ea5e9', title: t('landing.features'), desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'] },
     { icon: Database, label: 'Secure Backend', bgClass: 'bg-blue-500', glow: '#3b82f6', title: 'Google Apps Script API', desc: 'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.', bullets: ['Session token auth', 'Role-based access control', 'Real-time processing', 'GDPR compliant logging'] },
     { icon: BarChart3, label: 'Analytics', bgClass: 'bg-sky-600', glow: '#0284c7', title: 'Live Dashboard Analytics', desc: 'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.', bullets: ['7-day & monthly trends', 'Class performance ranking', 'Export to Excel/CSV', 'Mobile-responsive'] },
     { icon: Bell, label: 'Parent Portal', bgClass: 'bg-blue-600', glow: '#2563eb', title: 'Real-Time Parent Visibility', desc: 'Parents see their child\'s check-in and check-out in real time. Supports multiple children per account.', bullets: ['Multi-child support', 'Per-child attendance log', 'Historical records', 'Exportable history'] },
@@ -320,7 +323,7 @@ export default function LandingPage() {
   return (
     <div className={`min-h-screen overflow-x-hidden ${dark ? 'bg-[#050810] text-white' : 'bg-[#edf1f9] text-gray-900'}`}>
 
-      <MobileDrawer open={drawer} onClose={() => setDrawer(false)} darkMode={dark} onSignIn={() => setModal(true)} />
+      <MobileDrawer open={drawer} onClose={() => setDrawer(false)} darkMode={dark} onSignIn={() => setModal(true)} t={t} />
 
       {/* ── NAV ── */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-400 ${navHide ? '-translate-y-full' : 'translate-y-0'} backdrop-blur-2xl ${dark ? 'bg-[#050810]/88 border-b border-white/6' : 'bg-white/88 border-b border-black/6'}`}>
@@ -329,10 +332,10 @@ export default function LandingPage() {
             <div className="relative">
               <AppLogo size="sm" />
             </div>
-            <span className={`font-black text-sm tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>RFID Attendance</span>
+            <span className={`font-black text-sm tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>{t('common.appName')}</span>
           </div>
           <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
-            {[['features', 'Features'], ['how-it-works', 'How It Works'], ['faq', 'FAQ']].map(([id, lbl]) => (
+            {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', 'FAQ']].map(([id, lbl]) => (
               <button key={id} onClick={() => scrollTo(id)}
                 className={`relative px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                 {lbl}
@@ -340,13 +343,14 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            <LanguageSwitcher darkMode={dark} />
             <button onClick={toggleDark} className={`p-2 rounded-xl transition-all duration-300 hover:scale-110 hover:rotate-12 ${dark ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'}`}>
               {dark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
             <button onClick={() => setModal(true)}
               className="hidden sm:flex relative px-4 py-2 text-sm font-bold text-white rounded-xl overflow-hidden items-center gap-1.5 transition-all duration-200 hover:scale-105 active:scale-95 group"
               style={{ background: '#0ea5e9' }}>
-              <LogIn size={14} /> Sign In
+              <LogIn size={14} /> {t('common.signIn')}
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </button>
             <button onClick={() => setDrawer(true)} className={`md:hidden p-2 rounded-xl transition-all ${dark ? 'hover:bg-white/6 text-gray-300' : 'hover:bg-black/6 text-gray-600'}`}>
@@ -362,27 +366,27 @@ export default function LandingPage() {
         <div className="text-center max-w-4xl mx-auto space-y-5">
           <h1 className={`font-black tracking-tighter leading-[0.9] transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
             style={{ fontSize: 'clamp(2.4rem,8vw,4.8rem)', transitionDelay: '80ms' }}>
-            <span className={dark ? 'text-white' : 'text-gray-900'}>School attendance,</span><br />
+            <span className={dark ? 'text-white' : 'text-gray-900'}>{t('landing.heroTitle').split(' ').slice(0, 2).join(' ')},</span><br />
             <span className={dark ? 'text-sky-400' : 'text-sky-600'}>
-              finally automated.
+              {t('landing.heroTitle').split(' ').slice(2).join(' ')}
             </span>
           </h1>
 
           <p className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed font-medium transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${dark ? 'text-gray-400' : 'text-gray-500'}`} style={{ transitionDelay: '160ms' }}>
-            RFID card taps replace manual roll-calls.{' '}
-            <TypedText words={TYPED_WORDS} className={`font-bold ${dark ? 'text-sky-400' : 'text-sky-600'}`} />
+            {t('landing.heroDescription')}{' '}
+            <TypedText words={t.raw('landing.typedWords')} className={`font-bold ${dark ? 'text-sky-400' : 'text-sky-600'}`} />
           </p>
 
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: '240ms' }}>
             <button onClick={() => setModal(true)}
               className="group relative px-7 py-4 text-sm font-bold text-white rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 active:scale-98 flex items-center justify-center gap-2"
               style={{ background: '#0ea5e9' }}>
-              <LogIn size={15} /> Access Your Portal
+              <LogIn size={15} /> {t('landing.accessPortal')}
               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </button>
             <button onClick={() => scrollTo('how-it-works')}
               className={`group px-7 py-4 text-sm font-bold rounded-2xl border transition-all duration-300 hover:scale-105 active:scale-98 flex items-center justify-center gap-2 ${dark ? 'border-white/12 text-gray-300 hover:bg-white/6 hover:border-white/22' : 'border-gray-200 text-gray-700 hover:bg-white hover:border-gray-300'}`}>
-              <Play size={13} className="transition-transform group-hover:scale-110" /> See how it works
+              <Play size={13} className="transition-transform group-hover:scale-110" /> {t('landing.seeHowItWorks')}
             </button>
           </div>
 
@@ -399,7 +403,7 @@ export default function LandingPage() {
         {/* Scroll cue */}
         <div className={`hidden sm:flex justify-center mt-10 transition-all duration-700 ${heroVis ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: '900ms' }}>
           <button onClick={() => scrollTo('features')} className={`flex flex-col items-center gap-2 transition-opacity hover:opacity-60 ${dark ? 'text-gray-600' : 'text-gray-400'}`}>
-            <span className="text-[10px] font-bold uppercase tracking-widest">Scroll</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">{t('landing.scroll')}</span>
             <div className="mouse-scroll-icon" />
           </button>
         </div>
@@ -409,10 +413,10 @@ export default function LandingPage() {
       <section id="features" ref={featRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex: 1 }}>
         <div className={`text-center mb-12 transition-all duration-700 ${featVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-4 ${dark ? 'bg-sky-500/10 border-sky-500/25 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'}`}>
-            <Sparkles size={11} className="animate-pulse" /> Platform Features
+            <Sparkles size={11} className="animate-pulse" /> {t('landing.features')}
           </div>
           <h2 className={`font-black tracking-tight leading-tight ${dark ? 'text-white' : 'text-gray-900'}`} style={{ fontSize: 'clamp(1.9rem,5vw,3.2rem)' }}>
-            Everything you need,<br /><span className={dark ? 'text-gray-500' : 'text-gray-400'}>nothing you don't.</span>
+            {t('landing.featuresTitle')}
           </h2>
         </div>
 
@@ -513,11 +517,10 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-5">
           <div className={`text-center mb-12 transition-all duration-700 ${howVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border mb-4 ${dark ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
-              <Zap size={11} /> The Process
+              <Zap size={11} /> {t('landing.process')}
             </div>
             <h2 className={`font-black tracking-tight leading-tight ${dark ? 'text-white' : 'text-gray-900'}`} style={{ fontSize: 'clamp(1.9rem,5vw,3.2rem)' }}>
-              Tap to dashboard<br />
-              <span style={{ background: '#10b981', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>in 200 milliseconds.</span>
+              {t('landing.processTitle')}
             </h2>
           </div>
           <div className="relative">

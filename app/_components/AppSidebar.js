@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard, Users, BarChart3,
   RadioTower, User, CalendarDays,
@@ -17,27 +18,27 @@ const SIDEBAR_W_COLLAPSED = 64;
 
 const TEACHER_SECTIONS = {
   main: [
-    { id: 'dashboard',  label: 'Dashboard',   icon: LayoutDashboard, color: '#0ea5e9', href: '/dashboard',  matchExact: true  },
-    { id: 'classroom',  label: 'Classroom',   icon: GraduationCap,   color: '#0ea5e9', href: '/classroom',  matchExact: false },
-    { id: 'students',   label: 'Students',    icon: Users,           color: '#0ea5e9', href: '/students',   matchExact: false },
-    { id: 'logs',       label: 'Logs',        icon: ClipboardList,   color: '#0ea5e9', href: '/logs',       matchExact: false },
-    { id: 'reports',    label: 'Reports',     icon: BarChart3,       color: '#0ea5e9', href: '/reports',    matchExact: false },
-    { id: 'alerts',     label: 'Alerts',      icon: AlertTriangle,   color: '#0ea5e9', href: '/alerts',     matchExact: false },
+    { id: 'dashboard',  labelKey: 'dashboard',   icon: LayoutDashboard, color: '#0ea5e9', href: '/dashboard',  matchExact: true  },
+    { id: 'classroom',  labelKey: 'classroom',   icon: GraduationCap,   color: '#0ea5e9', href: '/classroom',  matchExact: false },
+    { id: 'students',   labelKey: 'students',    icon: Users,           color: '#0ea5e9', href: '/students',   matchExact: false },
+    { id: 'logs',       labelKey: 'logs',        icon: ClipboardList,   color: '#0ea5e9', href: '/logs',       matchExact: false },
+    { id: 'reports',    labelKey: 'reports',     icon: BarChart3,       color: '#0ea5e9', href: '/reports',    matchExact: false },
+    { id: 'alerts',     labelKey: 'alerts',      icon: AlertTriangle,   color: '#0ea5e9', href: '/alerts',     matchExact: false },
   ],
   system: [
-    { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
+    { id: 'signout', labelKey: 'signOut', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
   ],
 };
 
 const PARENT_SECTIONS = {
   main: [
-    { id: 'home',          label: 'Home',          icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
-    { id: 'child-profile', label: 'Child Profile', icon: User,         color: '#0ea5e9', href: '/child-profile', matchExact: false },
-    { id: 'calendar',      label: 'Calendar',      icon: CalendarDays, color: '#0ea5e9', href: '/calendar',      matchExact: false },
-    { id: 'progress',      label: 'Progress',      icon: TrendingUp,   color: '#0ea5e9', href: '/progress',      matchExact: false },
+    { id: 'home',          labelKey: 'home',          icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
+    { id: 'child-profile', labelKey: 'childProfile', icon: User,         color: '#0ea5e9', href: '/child-profile', matchExact: false },
+    { id: 'calendar',      labelKey: 'calendar',      icon: CalendarDays, color: '#0ea5e9', href: '/calendar',      matchExact: false },
+    { id: 'progress',      labelKey: 'progress',      icon: TrendingUp,   color: '#0ea5e9', href: '/progress',      matchExact: false },
   ],
   system: [
-    { id: 'signout', label: 'Sign Out', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
+    { id: 'signout', labelKey: 'signOut', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
   ],
 };
 
@@ -48,7 +49,7 @@ function checkActive(item, pathname, search) {
   return pathname === item.href || pathname.startsWith(item.href + '/');
 }
 
-function SidebarLogo({ darkMode }) {
+function SidebarLogo({ darkMode, t }) {
   const [imgErr, setImgErr] = useState(false);
   return (
     <div className="flex items-center gap-3 overflow-hidden min-w-0">
@@ -62,21 +63,22 @@ function SidebarLogo({ darkMode }) {
         }
       </div>
       <div className="min-w-0">
-        <p className={`text-[13px] font-black tracking-tight leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>RFID Portal</p>
-        <p className={`text-[10px] font-semibold leading-tight truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Attendance System</p>
+        <p className={`text-[13px] font-black tracking-tight leading-tight truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('common.appName')}</p>
+        <p className={`text-[10px] font-semibold leading-tight truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('common.appSubtitle')}</p>
       </div>
     </div>
   );
 }
 
-function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
+function NavItem({ item, active, darkMode, collapsed, onSignOut, t }) {
   const Icon = item.icon;
+  const label = t(`nav.${item.labelKey}`);
 
   if (item.isSignOut) {
     return (
       <button
         onClick={onSignOut}
-        title={collapsed ? item.label : undefined}
+        title={collapsed ? label : undefined}
         className={[
           'relative flex items-center gap-3 w-full rounded-xl transition-colors duration-150 select-none overflow-hidden',
           collapsed ? 'px-0 py-2.5 justify-center' : 'px-3 py-2.5',
@@ -87,7 +89,7 @@ function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
       >
         <Icon size={17} className="flex-shrink-0" />
         {!collapsed && (
-          <span className="text-[13px] font-semibold truncate leading-none flex-1">{item.label}</span>
+          <span className="text-[13px] font-semibold truncate leading-none flex-1">{label}</span>
         )}
       </button>
     );
@@ -96,7 +98,7 @@ function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
   return (
     <Link
       href={item.href}
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? label : undefined}
       className={[
         'relative flex items-center gap-3 w-full rounded-xl transition-colors duration-150 select-none overflow-hidden',
         collapsed ? 'px-0 py-2.5 justify-center' : 'px-3 py-2.5',
@@ -110,7 +112,7 @@ function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
     >
       <Icon size={17} className="flex-shrink-0" style={{ color: active ? '#fff' : undefined }} />
       {!collapsed && (
-        <span className="text-[13px] font-semibold truncate leading-none flex-1">{item.label}</span>
+        <span className="text-[13px] font-semibold truncate leading-none flex-1">{label}</span>
       )}
       {!collapsed && item.badge > 0 && (
         <span className="ml-auto min-w-[18px] h-[18px] rounded-full text-white text-[10px] font-black flex items-center justify-center px-1 flex-shrink-0" style={{ background: '#f43f5e' }}>
@@ -121,11 +123,11 @@ function NavItem({ item, active, darkMode, collapsed, onSignOut }) {
   );
 }
 
-function SectionLabel({ label, darkMode, collapsed }) {
+function SectionLabel({ labelKey, darkMode, collapsed, t }) {
   if (collapsed) return <div className={`mx-3 my-2 h-px ${darkMode ? 'bg-white/[0.07]' : 'bg-black/[0.07]'}`} />;
   return (
     <p className={`px-3 pt-4 pb-1.5 text-[10px] font-black uppercase tracking-[0.12em] select-none ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-      {label}
+      {t(`nav.${labelKey}`)}
     </p>
   );
 }
@@ -151,7 +153,7 @@ function UserCard({ darkMode, collapsed, userInfo, userType }) {
   );
 }
 
-function LogoutModal({ darkMode, onConfirm, onCancel }) {
+function LogoutModal({ darkMode, onConfirm, onCancel, t }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onCancel} />
@@ -163,11 +165,11 @@ function LogoutModal({ darkMode, onConfirm, onCancel }) {
           <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/15 flex items-center justify-center mx-auto mb-4">
             <LogOut size={24} className="text-rose-500" />
           </div>
-          <h3 className={`text-lg font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Sign out?</h3>
-          <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>You'll need to sign back in.</p>
+          <h3 className={`text-lg font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('auth.logoutConfirm')}</h3>
+          <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('auth.logoutMessage')}</p>
           <div className="flex gap-2.5">
-            <button onClick={onCancel} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Stay</button>
-            <button onClick={onConfirm} className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95" style={{ background: '#e11d48' }}>Sign Out</button>
+            <button onClick={onCancel} className={`flex-1 py-3 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/10 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{t('auth.stay')}</button>
+            <button onClick={onConfirm} className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95" style={{ background: '#e11d48' }}>{t('auth.signOutBtn')}</button>
           </div>
         </div>
       </div>
@@ -180,6 +182,7 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
   const pathname     = usePathname();
   const searchParams = useSearchParams();
   const search       = searchParams.toString();
+  const t = useTranslations();
   const [showLogout, setShowLogout] = useState(false);
 
   const tree        = userType === 'teacher' ? TEACHER_SECTIONS : PARENT_SECTIONS;
@@ -207,7 +210,7 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
         {/* Header */}
         <div className="flex-shrink-0 flex items-center px-3 py-4" style={{ justifyContent: isCollapsed ? 'center' : 'space-between' }}>
           {/* Logo — hidden when collapsed */}
-          {!isCollapsed && <SidebarLogo darkMode={darkMode} />}
+          {!isCollapsed && <SidebarLogo darkMode={darkMode} t={t} />}
 
           {/* Toggle button — centered when collapsed, right-aligned when expanded */}
           <button
@@ -226,17 +229,17 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
 
         {/* Scrollable nav */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 sidebar-scroll">
-          <SectionLabel label="Menu" darkMode={darkMode} collapsed={isCollapsed} />
+          <SectionLabel labelKey="menu" darkMode={darkMode} collapsed={isCollapsed} t={t} />
           <div className="space-y-0.5">
             {mainItems.map(item => (
-              <NavItem key={item.id} item={item} active={checkActive(item, pathname, search)} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} />
+              <NavItem key={item.id} item={item} active={checkActive(item, pathname, search)} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} t={t} />
             ))}
           </div>
 
-          <SectionLabel label="Account" darkMode={darkMode} collapsed={isCollapsed} />
+          <SectionLabel labelKey="account" darkMode={darkMode} collapsed={isCollapsed} t={t} />
           <div className="space-y-0.5">
             {systemItems.map(item => (
-              <NavItem key={item.id} item={item} active={false} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} />
+              <NavItem key={item.id} item={item} active={false} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} t={t} />
             ))}
           </div>
         </nav>
@@ -250,6 +253,7 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
           darkMode={darkMode}
           onConfirm={() => { setShowLogout(false); handleLogout(); }}
           onCancel={() => setShowLogout(false)}
+          t={t}
         />
       )}
 

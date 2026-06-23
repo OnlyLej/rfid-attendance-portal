@@ -1,0 +1,195 @@
+{
+  "common": {
+    "appName": "RFID Attendance Portal",
+    "appSubtitle": "Sistema ng Attendance",
+    "loading": "Naglo-load...",
+    "refresh": "I-refresh",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "signIn": "Mag-sign In",
+    "signOut": "Mag-sign Out",
+    "logout": "Logout",
+    "cancel": "Kanselahin",
+    "confirm": "Kumpirmahin",
+    "save": "I-save",
+    "delete": "Alisin",
+    "edit": "I-edit",
+    "close": "Isara",
+    "search": "Maghanap",
+    "filter": "I-filter",
+    "export": "I-export",
+    "back": "Bumalik",
+    "next": "Susunod",
+    "previous": "Nakaraan",
+    "submit": "I-submit",
+    "username": "Username",
+    "password": "Password",
+    "email": "Email",
+    "name": "Pangalan",
+    "date": "Petsa",
+    "time": "Oras",
+    "status": "Status",
+    "actions": "Mga Aksyon"
+  },
+  "greetings": {
+    "morning": "Magandang umaga",
+    "afternoon": "Magandang hapon",
+    "evening": "Magandang gabi"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "classroom": "Klase",
+    "students": "Mga Estudyante",
+    "logs": "Mga Log",
+    "reports": "Mga Ulat",
+    "alerts": "Mga Alerto",
+    "home": "Home",
+    "childProfile": "Profile ng Bata",
+    "calendar": "Kalendaryo",
+    "progress": "Progreso",
+    "menu": "Menu",
+    "account": "Account"
+  },
+  "auth": {
+    "loginTitle": "Mag-sign In sa Portal",
+    "loginSubtitle": "I-access ang iyong dashboard ng attendance",
+    "usernamePlaceholder": "Ilagay ang iyong username",
+    "passwordPlaceholder": "Ilagay ang iyong password",
+    "showPassword": "Ipakita ang password",
+    "hidePassword": "Itago ang password",
+    "invalidCredentials": "Hindi valid ang mga kredensyal",
+    "loginSuccess": "Tagumpay ang login",
+    "logoutConfirm": "Mag-sign out?",
+    "logoutMessage": "Kailangan mong mag-sign in ulit.",
+    "stay": "Manatili",
+    "signOutBtn": "Mag-sign Out"
+  },
+  "landing": {
+    "heroTitle": "RFID Attendance Portal",
+    "heroSubtitle": "Real-time attendance management para sa mga paaralang Pilipino.",
+    "heroDescription": "Ang pag-tap ng RFID card ay kapalit ng manual roll-calls.",
+    "accessPortal": "I-access ang Iyong Portal",
+    "seeHowItWorks": "Tingnan kung paano ito gumagana",
+    "scroll": "I-scroll",
+    "features": "Mga Feature ng Platform",
+    "featuresTitle": "Lahat ng kailangan mo, wala kang hindi kailangan.",
+    "process": "Ang Proseso",
+    "processTitle": "Tap to dashboard sa loob ng 200 milliseconds.",
+    "metrics": {
+      "studentsTracked": "Mga estudyanteng na-track",
+      "scanAccuracy": "Accuracy ng scan",
+      "responseTime": "Response time",
+      "availability": "Availability ng system"
+    },
+    "typedWords": [
+      "Ginawa para sa mga paaralang Pilipino.",
+      "Wala nang clipboards.",
+      "Instant at accurate.",
+      "Nakikita ito ng mga magulang live.",
+      "Real-time RFID scanning.",
+      "Gumagana sa ESP8266 & ESP32.",
+      "Auto-logs ang bawat pagdating.",
+      "I-export sa Excel kahit kailan.",
+      "Zero manual entry.",
+      "Attendance sa ilalim ng 200ms."
+    ]
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalStudents": "Kabuuan ng mga Estudyante",
+    "presentToday": "Narito Ngayon",
+    "absentToday": "Absent Ngayon",
+    "attendanceRate": "Rate ng Attendance",
+    "weeklyStats": "Mga Statistiko Lingguhan",
+    "monthlyStats": "Mga Statistiko Buwanan",
+    "recentActivity": "Kamakailang Aktibidad",
+    "classComparison": "Paghahambing ng Klase"
+  },
+  "classroom": {
+    "title": "Klase",
+    "selectClass": "Pumili ng Klase",
+    "allStudents": "Lahat ng mga Estudyante",
+    "present": "Narito",
+    "absent": "Absent",
+    "late": "Late",
+    "excused": "Excused"
+  },
+  "logs": {
+    "title": "Mga Log at Ulat",
+    "attendanceLogs": "Mga Log ng Attendance",
+    "dateRange": "Sakop ng Petsa",
+    "startDate": "Petsa ng Simula",
+    "endDate": "Petsa ng Pagtatapos",
+    "exportToExcel": "I-export sa Excel",
+    "filterByClass": "I-filter ayon sa Klase",
+    "filterByStatus": "I-filter ayon sa Status",
+    "allClasses": "Lahat ng mga Klase",
+    "allStatuses": "Lahat ng mga Status"
+  },
+  "students": {
+    "title": "Mga Estudyante",
+    "addStudent": "Magdagdag ng Estudyante",
+    "editStudent": "I-edit ang Estudyante",
+    "studentId": "ID ng Estudyante",
+    "studentName": "Pangalan ng Estudyante",
+    "classSection": "Klase/Seksyon",
+    "rfidCard": "Numero ng RFID Card",
+    "parentContact": "Kontak ng Magulang"
+  },
+  "reports": {
+    "title": "Mga Ulat",
+    "generateReport": "Gumawa ng Ulat",
+    "attendanceReport": "Ulat ng Attendance",
+    "summaryReport": "Ulat ng Buod",
+    "customReport": "Custom na Ulat"
+  },
+  "alerts": {
+    "title": "Mga Alerto",
+    "noAlerts": "Walang alerto",
+    "markAsRead": "Markahan bilang Nabasa",
+    "deleteAlert": "Alisin ang Alerto"
+  },
+  "parent": {
+    "title": "Portal ng Magulang",
+    "welcome": "Mabuhay",
+    "yourChild": "Ang Iyong Anak",
+    "attendanceHistory": "Kasaysayan ng Attendance",
+    "todayStatus": "Status Ngayon",
+    "totalRecords": "Kabuuan ng mga Record",
+    "attendancePercentage": "Porsyento ng Attendance"
+  },
+  "childProfile": {
+    "title": "Profile ng Bata",
+    "personalInfo": "Personal na Impormasyon",
+    "attendanceSummary": "Buod ng Attendance",
+    "recentLogs": "Kamakailang mga Log"
+  },
+  "calendar": {
+    "title": "Kalendaryo",
+    "monthView": "Tingnan ayon sa Buwan",
+    "weekView": "Tingnan ayon sa Linggo",
+    "dayView": "Tinginan ayon sa Araw",
+    "present": "Narito",
+    "absent": "Absent",
+    "late": "Late"
+  },
+  "progress": {
+    "title": "Progreso",
+    "attendanceTrend": "Trend ng Attendance",
+    "monthlyComparison": "Paghahambing Buwanan",
+    "improvement": "Pagpapabuti",
+    "decline": "Pagbaba"
+  },
+  "errors": {
+    "general": "Nagkaroon ng error",
+    "networkError": "Error sa network. Pakicheck ang iyong koneksyon.",
+    "unauthorized": "Hindi awtorisadong access",
+    "notFound": "Hindi nakita ang pahina",
+    "serverError": "Error sa server. Pakisubukan ulit mamaya."
+  },
+  "language": {
+    "switch": "Lumipat ng Wika",
+    "english": "English",
+    "filipino": "Filipino"
+  }
+}

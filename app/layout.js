@@ -1,9 +1,3 @@
-import { AppProvider } from './_lib/AppContext';
-import ClientProviders from './_components/ClientProviders';
-import './globals.css';
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-
 export const metadata = {
   metadataBase: new URL('https://ridap.vercel.app'),
   title: 'RFID Attendance Portal',
@@ -67,36 +61,5 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>
-        <AppProvider>
-          <ClientProviders>{children}</ClientProviders>
-          <Analytics />
-          <SpeedInsights />
-        </AppProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebApplication',
-              name: 'RFID Attendance Portal',
-              url: 'https://ridap.vercel.app',
-              description: 'Real-time RFID-powered attendance management for Philippine schools.',
-              "applicationCategory": "EducationalApplication", 
-              publisher: {
-                '@type': 'Organization',
-                name: 'RFID Attendance Portal',
-                logo: {
-                  '@type': 'ImageObject',
-                  url: 'https://ridap.vercel.app/apple-touch-icon.png',
-                },
-              },
-            }),
-          }}
-        />
-      </body>
-    </html>
-  );
+  return children;
 }
