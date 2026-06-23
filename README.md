@@ -11,12 +11,21 @@ A Next.js web dashboard for real-time school attendance tracking powered by a Go
 cp .env.example .env.local
 ```
 
-2. Edit `.env.local` with your Google Apps Script deployment URL:
+2. Edit `.env.local` with the following environment variables:
 ```env
+ERROR_REPORT_TOKEN=your_error_report_token
+NEXT_PUBLIC_ERROR_REPORT_TOKEN=your_public_error_report_token
+DISCORD_WEBHOOK_URL=your_discord_webhook_url
 GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 ```
 
-This is the only environment variable the portal needs. Both API routes read from it.
+**Required variables:**
+- `GOOGLE_APPS_SCRIPT_URL`: Your Google Apps Script deployment URL (required for API functionality)
+
+**Optional variables:**
+- `ERROR_REPORT_TOKEN`: Token for error reporting service
+- `NEXT_PUBLIC_ERROR_REPORT_TOKEN`: Public token for client-side error reporting
+- `DISCORD_WEBHOOK_URL`: Discord webhook for error notifications
 
 ---
 
