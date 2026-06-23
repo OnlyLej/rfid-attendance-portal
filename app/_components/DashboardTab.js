@@ -169,7 +169,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() - i);
       const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
-      const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: PH_TZ });
+      const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: getDisplayTimezone() });
       const dayLogs = logs.filter(log => { if (!log.timestamp) return false; return getPhLocalDate(log.timestamp) === targetPhStr; });
       const presentStudents = new Set(dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId)));
       const present = presentStudents.size;
@@ -195,8 +195,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       const logPhStr = toPhDateStr(logDate);
       const [ly, lm] = logPhStr.split('-').map(Number);
       if (ly !== currentYear || lm - 1 !== currentMonth) return;
-      const phLocal = new Date(logDate.toLocaleString('en-US', { timeZone: PH_TZ }));
-      const week = getWeekOfMonth(phLocal);
+      const week = getWeekOfMonth(logDate);
       if (!weekMap.has(week)) weekMap.set(week, new Set());
       weekMap.get(week).add(normalizeId(log.studentId));
     });
@@ -226,9 +225,8 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       logs.forEach(log => {
         if (log.status !== 'IN' || !log.studentId || !log.timestamp) return;
         const logDate = parsePhTimestamp(log.timestamp); if (!logDate) return;
-        const phLocal = new Date(logDate.toLocaleString('en-US', { timeZone: PH_TZ }));
-        if (phLocal.getFullYear() !== targetYear || phLocal.getMonth() !== targetMonth) return;
-        const dow = phLocal.getDay(); if (dow === 0 || dow === 6) return;
+        if (logDate.getFullYear() !== targetYear || logDate.getMonth() !== targetMonth) return;
+        const dow = logDate.getDay(); if (dow === 0 || dow === 6) return;
         const dateStr = toPhDateStr(logDate);
         if (!dayStudentMap.has(dateStr)) dayStudentMap.set(dateStr, new Set());
         dayStudentMap.get(dateStr).add(normalizeId(log.studentId));

@@ -22,10 +22,28 @@ const getPhLocalDate = (str) => { const d = parsePhTimestamp(str); return d ? to
 const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
 
 // Local timezone display functions (for showing times in user's timezone)
+let detectedTimezone = null;
+const getDisplayTimezone = () => {
+  if (detectedTimezone) return detectedTimezone;
+  // Try to get from localStorage
+  try {
+    const cached = localStorage.getItem('detectedTimezone');
+    if (cached) {
+      const cachedData = JSON.parse(cached);
+      if (Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000) {
+        detectedTimezone = cachedData.timezone;
+        return cachedData.timezone;
+      }
+    }
+  } catch (e) {}
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
+
 const formatLocalDateTime = (str) => {
   const d = parsePhTimestamp(str);
   if (!d) return '—';
-  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const tz = getDisplayTimezone();
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: tz });
 };
 
 const calculateWeeklyData = (logData, studentsList) => {
@@ -34,7 +52,7 @@ const calculateWeeklyData = (logData, studentsList) => {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() - (6 - i));
     const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
-    const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: PH_TZ });
+    const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: getDisplayTimezone() });
     const dayLogs = logData.filter(l => getPhLocalDate(l.timestamp) === targetPhStr);
     const present = new Set(dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId))).size;
     return { name: dayName, present, absent: Math.max(0, studentsList.length - present), attendanceRate: studentsList.length > 0 ? Math.round((present / studentsList.length) * 100) : 0 };

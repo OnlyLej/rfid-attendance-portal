@@ -121,7 +121,7 @@ export default function ClassroomMonitorTab({
       if (!prev || tsMs > prev.tsMs) {
         lastSeenMap.set(nid, {
           tsMs,
-          timeStr: ts.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' }),
+          timeStr: ts.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         });
       }
 

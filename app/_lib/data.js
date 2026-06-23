@@ -9,6 +9,56 @@ export const LATE_HOUR = 7; // 7:00 AM PH time — edit this value to change the
 
 export const normalizeId = (id) => (id ?? '').toString().trim().toLowerCase();
 
+/* ── IP-based Timezone Detection ── */
+let detectedTimezone = null;
+let timezonePromise = null;
+
+export const detectTimezone = async () => {
+  // Check cache first
+  const cached = localStorage.getItem('detectedTimezone');
+  if (cached) {
+    const cachedData = JSON.parse(cached);
+    // Cache for 24 hours
+    if (Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000) {
+      detectedTimezone = cachedData.timezone;
+      return cachedData.timezone;
+    }
+  }
+
+  // Return existing promise if already detecting
+  if (timezonePromise) {
+    return timezonePromise;
+  }
+
+  timezonePromise = (async () => {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      const timezone = data.timezone;
+      
+      if (timezone) {
+        detectedTimezone = timezone;
+        localStorage.setItem('detectedTimezone', JSON.stringify({
+          timezone,
+          timestamp: Date.now()
+        }));
+        return timezone;
+      }
+    } catch (error) {
+      console.warn('Failed to detect timezone from IP:', error);
+    }
+    
+    // Fallback to browser timezone
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  })();
+
+  return timezonePromise;
+};
+
+export const getDisplayTimezone = () => {
+  return detectedTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
+
 export const parsePhTimestamp = (str) => {
   if (!str) return null;
   if (typeof str !== 'string') {
@@ -50,7 +100,8 @@ export const getPhLocalDate = (str) => {
 /* ── Local Timezone Functions (for display: show times in user's timezone) ── */
 export const toLocalDateStr = (date) => {
   if (!date) return '';
-  return date.toLocaleDateString('en-CA');
+  const tz = getDisplayTimezone();
+  return date.toLocaleDateString('en-CA', { timeZone: tz });
 };
 
 export const getLocalDate = (str) => {
@@ -61,10 +112,11 @@ export const getLocalDate = (str) => {
 export const formatLocalDateTime = (str, options = {}) => {
   const d = parsePhTimestamp(str);
   if (!d) return '—';
+  const tz = getDisplayTimezone();
   const { dateOnly = false, timeOnly = false } = options;
-  if (dateOnly) return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  if (timeOnly) return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (dateOnly) return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz });
+  if (timeOnly) return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: tz });
 };
 
 export const formatLocalTime = (str) => formatLocalDateTime(str, { timeOnly: true });
