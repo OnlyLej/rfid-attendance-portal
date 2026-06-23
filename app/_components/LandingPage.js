@@ -366,7 +366,7 @@ export default function LandingPage() {
         <div className="text-center max-w-4xl mx-auto space-y-5">
           <h1 className={`font-black tracking-tighter leading-[0.9] transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
             style={{ fontSize: 'clamp(2.4rem,8vw,4.8rem)', transitionDelay: '80ms' }}>
-            <span className={dark ? 'text-white' : 'text-gray-900'}>{t('landing.heroTitle').split(' ').slice(0, 2).join(' ')},</span><br />
+            <span className={dark ? 'text-white' : 'text-gray-900'}>{t('landing.heroTitle').split(' ').slice(0, 2).join(' ')}</span><br />
             <span className={dark ? 'text-sky-400' : 'text-sky-600'}>
               {t('landing.heroTitle').split(' ').slice(2).join(' ')}
             </span>
