@@ -5,6 +5,6 @@ export default function robots() {
       allow: '/',
       disallow: ['/dashboard', '/classroom', '/logs', '/parent'],
     },
-    sitemap: 'https://ridap.vercel.app/sitemap.xml',
+    sitemap: 'https://ridap.lej.qzz.io/sitemap.xml',
   };
 }

@@ -1,7 +1,7 @@
 export default function sitemap() {
   return [
     {
-      url: 'https://ridap.vercel.app',
+      url: 'https://ridap.lej.qzz.io',
       changeFrequency: 'monthly',
       priority: 1,
     },

@@ -1,5 +1,5 @@
 export const metadata = {
-  metadataBase: new URL('https://ridap.vercel.app'),
+  metadataBase: new URL('https://ridap.lej.qzz.io'),
   title: 'RFID Attendance Portal',
   description: "RFID Attendance Portal is a real-time attendance management system for Philippine schools. Teachers get live dashboards, classroom monitoring, and Excel export. Parents can track their child's daily attendance through a dedicated parent portal.",
   keywords: ['attendance', 'RFID', 'school', 'Philippines', 'dashboard', 'parent portal'],
@@ -10,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
-    url: 'https://ridap.vercel.app',
+    url: 'https://ridap.lej.qzz.io',
     siteName: 'RFID Attendance Portal',
     locale: 'en_PH',
     type: 'website',
@@ -55,7 +55,7 @@ export const metadata = {
   links: [
     {
       rel: 'canonical',
-      url: 'https://ridap.vercel.app',
+      url: 'https://ridap.lej.qzz.io',
     },
   ],
 };
