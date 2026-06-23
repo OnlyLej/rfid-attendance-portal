@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useApp } from './_lib/AppContext';
-import LandingPage from './_components/LandingPage';
+import { useApp } from '../_lib/AppContext';
+import LandingPage from '../_components/LandingPage';
 
 export default function Home() {
   const { authenticated, userType, mounted } = useApp();

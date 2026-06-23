@@ -1,11 +1,11 @@
 'use client';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
-import PageShell from '../_components/PageShell';
-import { normalizeId, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePageLayout';
+import PageShell from '../../_components/PageShell';
+import { normalizeId, getPhTodayStr, getPhLocalDate } from '../../_lib/data';
 import { useMemo, useState, useEffect } from 'react';
-import ChildPicker from '../_components/ChildPicker';
+import ChildPicker from '../../_components/ChildPicker';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PH_TZ = 'Asia/Manila';

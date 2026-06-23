@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import AppHeader from '../_components/AppHeader';
-import AppSidebar from '../_components/AppSidebar';
-import ParentLogsTab from '../_components/ParentLogsTab';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import AppHeader from '../../_components/AppHeader';
+import AppSidebar from '../../_components/AppSidebar';
+import ParentLogsTab from '../../_components/ParentLogsTab';
 import ExcelJS from 'exceljs';
-import { normalizeId, getPhTodayStr } from '../_lib/data';
+import { normalizeId, getPhTodayStr } from '../../_lib/data';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);

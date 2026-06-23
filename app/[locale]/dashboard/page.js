@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import AppHeader from '../_components/AppHeader';
-import AppSidebar from '../_components/AppSidebar';
-import DashboardTab from '../_components/DashboardTab';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import AppHeader from '../../_components/AppHeader';
+import AppSidebar from '../../_components/AppSidebar';
+import DashboardTab from '../../_components/DashboardTab';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);

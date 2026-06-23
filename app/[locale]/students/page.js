@@ -1,12 +1,12 @@
 'use client';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
-import PageShell from '../_components/PageShell';
-import { Skeleton, EmptyState, StatusBadge } from '../_components/ui';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePageLayout';
+import PageShell from '../../_components/PageShell';
+import { Skeleton, EmptyState, StatusBadge } from '../../_components/ui';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../../_lib/data';
 import { useState, useMemo } from 'react';
-import StudentProfileModal from '../_components/StudentProfileModal';
+import StudentProfileModal from '../../_components/StudentProfileModal';
 import { Search, Users, UserCheck, UserX, GraduationCap, Hash, X } from 'lucide-react';
 
 const PH_TZ = 'Asia/Manila';
