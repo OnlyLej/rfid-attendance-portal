@@ -26,5 +26,9 @@
     "eslint": "^10",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4"
+  },
+  "overrides": {
+    "minimatch": "^3.1.4",
+    "brace-expansion": "^2.0.1"
   }
 }
