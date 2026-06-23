@@ -1,22 +1,35 @@
-# 📡 RFID Attendance Portal
+# RFID Attendance Portal
 
 A Next.js web dashboard for real-time school attendance tracking powered by a Google Apps Script backend.
 
 ---
 
-## ⚙️ Environment Setup
+## Environment Setup
 
-Create a `.env.local` file in the project root:
+1. Copy the example environment file:
+```bash
+cp .env.example .env.local
+```
 
+2. Edit `.env.local` with the following environment variables:
 ```env
+ERROR_REPORT_TOKEN=your_error_report_token
+NEXT_PUBLIC_ERROR_REPORT_TOKEN=your_public_error_report_token
+DISCORD_WEBHOOK_URL=your_discord_webhook_url
 GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 ```
 
-That's the only environment variable the portal needs. Both API routes read from it.
+**Required variables:**
+- `GOOGLE_APPS_SCRIPT_URL`: Your Google Apps Script deployment URL (required for API functionality)
+
+**Optional variables:**
+- `ERROR_REPORT_TOKEN`: Token for error reporting service
+- `NEXT_PUBLIC_ERROR_REPORT_TOKEN`: Public token for client-side error reporting
+- `DISCORD_WEBHOOK_URL`: Discord webhook for error notifications
 
 ---
 
-## 🔌 API Routes
+## API Routes
 
 ### `POST /api/auth`
 
@@ -64,10 +77,10 @@ X-Session-Token: abc123...
 
 | Parameter | Required | Description |
 |---|---|---|
-| `action` | ✅ | GAS function to call (see actions below) |
-| `sessionToken` | ✅ | Session token from login |
-| `startDate` | ➖ | Filter start date — `yyyy-MM-dd` |
-| `endDate` | ➖ | Filter end date — `yyyy-MM-dd` |
+| `action` | ✅ | function to call (see actions below) |
+| `sessionToken` | ✅ession token from login |
+| `startDate` | ➖ | Filt— `yyyy-MM-dd` |
+| `endDate` | ➖date — `yyyy-MM-dd` |
 
 ---
 
@@ -130,7 +143,7 @@ GET /api/proxy?action=getClasses&sessionToken=abc123
 
 ---
 
-## 🔐 How Authentication Works
+##w Authentication Works
 
 ```
 1. Client POSTs credentials  →  /api/auth
@@ -145,7 +158,7 @@ The session token is created and validated entirely by Google Apps Script. The N
 
 ---
 
-## 📝 Timestamp Format
+##mestamp Format
 
 All timestamps from the API are Philippine Standard Time (UTC+8), formatted as:
 
@@ -180,13 +193,23 @@ No UTC offset is included. The portal handles this by appending `+08:00` at pars
 
 ---
 
-## 🌏 Timezone
+## Timezone
 
-All data is displayed in **Philippine Standard Time (UTC+8)**. Timestamps from the backend are parsed by appending `+08:00` before constructing a `Date` object, so the portal displays correctly regardless of the user's local timezone.
+The portal automatically detects your timezone from your IP address and displays all times accordingly. This means:
+
+- **Display times** (timestamps, day names, dates) are shown in your detected timezone
+- **Business logic** (late calculations, date comparisons) remains tied to Philippine Standard Time (UTC+8)
+- **VPN support**: When using a VPN, times will display according to your VPN location
+
+**How it works:**
+1. On app load, the portal calls `ipapi.co` to detect timezone from your IP
+2. The detected timezone is cached in localStorage for 24 hours to avoid repeated API calls
+3. If the API fails, it falls back to your browser's timezone setting
+4. All timestamps from the backend are Philippine Standard Time (UTC+8), formatted as `"2025-02-21 08:14:00"`
 
 ---
 
-## 📦 Key Dependencies
+## Key Dependencies
 
 | Package | Purpose |
 |---|---|
@@ -195,9 +218,3 @@ All data is displayed in **Philippine Standard Time (UTC+8)**. Timestamps from t
 | `exceljs` | Excel export |
 | `lucide-react` | Icons |
 | `tailwindcss` | Styling |
-
----
-
-## 📄 License
-
-MIT © 2026 RFID Attendance Portal
