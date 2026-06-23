@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useApp } from './_lib/AppContext';
 import { RadioTower, ArrowLeft, Home, Shield, WifiOff, Zap, AlertCircle } from 'lucide-react';
 
 export default function NotFound() {
-  const { authenticated, userType, mounted } = useApp();
   const [darkMode, setDarkMode] = useState(false);
   const [glitch, setGlitch] = useState(false);
   const [pulseAnim, setPulseAnim] = useState(false);
@@ -54,13 +52,7 @@ export default function NotFound() {
     return () => clearInterval(id);
   }, []);
 
-  const homeHref = !mounted || !authenticated
-    ? '/'
-    : userType === 'teacher'
-    ? '/dashboard'
-    : userType === 'parent'
-    ? '/parent'
-    : '/';
+  const homeHref = '/';
 
   return (
     <div
@@ -233,7 +225,7 @@ export default function NotFound() {
                 style={{ background: 'linear-gradient(135deg, #0ea5e9, #7c3aed)' }}
               >
                 <Home size={15} className="transition-transform duration-300 group-hover:rotate-12" />
-                {authenticated ? 'Back to Dashboard' : 'Go to Login'}
+                Go to Home
               </Link>
               <button
                 onClick={() => window.history.back()}
