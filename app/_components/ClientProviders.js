@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { ToastProvider } from './ui';
+import { detectTimezone } from '../_lib/data';
 
 
 const RIDAP_ASCII = `
@@ -18,6 +19,9 @@ export default function ClientProviders({ children }) {
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
+    // Detect timezone from IP on mount
+    detectTimezone().catch(console.error);
+
     // Easter egg 🥚
     console.log(
       RIDAP_ASCII,

@@ -169,7 +169,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() - i);
       const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
-      const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: getDisplayTimezone() });
       const dayLogs = logs.filter(log => { if (!log.timestamp) return false; return getPhLocalDate(log.timestamp) === targetPhStr; });
       const presentStudents = new Set(dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId)));
       const present = presentStudents.size;
