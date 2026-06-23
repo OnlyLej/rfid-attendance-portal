@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import {
@@ -41,14 +42,6 @@ function Sparkline({ data, color = '#10b981' }) {
   );
 }
 
-/* ── Sort options ── */
-const SORT_OPTIONS = [
-  { value: 'name',  label: 'A → Z'           },
-  { value: 'rate',  label: 'Top attendance'   },
-  { value: 'total', label: 'Most students'    },
-  { value: 'alpha', label: 'Z → A'            },
-];
-
 /* ── Skeleton card ── */
 function ClassCardSkeleton({ darkMode }) {
   return (
@@ -80,7 +73,15 @@ export default function ClassroomMonitorTab({
   loading = false,
   onToast,
 }) {
+  const t = useTranslations();
   const [sortBy,         setSortBy]         = useState('name');
+
+  const SORT_OPTIONS = [
+    { value: 'name',  label: t('classroom.sortAZ')           },
+    { value: 'rate',  label: t('classroom.sortTopAttendance')   },
+    { value: 'total', label: t('classroom.sortMostStudents')    },
+    { value: 'alpha', label: t('classroom.sortZA')            },
+  ];
   const [showSort,       setShowSort]       = useState(false);
   const [viewMode,       setViewMode]       = useState('card');
   const [lastRefreshed,  setLastRefreshed]  = useState(Date.now());
@@ -257,22 +258,22 @@ export default function ClassroomMonitorTab({
   }, [classStats]);
 
   const statusCfg = useMemo(() => ({
-    'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/12 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100', label: 'IN',     pulse: true  },
-    'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/12 text-rose-400 border-rose-500/20'           : 'bg-rose-50 text-rose-700 border-rose-100',           label: 'OUT',    pulse: false },
-    'no-log': { dot: 'bg-gray-400',    badge: darkMode ? 'bg-white/5 text-gray-400 border-white/8'                   : 'bg-gray-50 text-gray-500 border-gray-200',            label: 'Absent', pulse: false },
-  }), [darkMode]);
+    'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/12 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100', label: t('classroom.inLabel'),     pulse: true  },
+    'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/12 text-rose-400 border-rose-500/20'           : 'bg-rose-50 text-rose-700 border-rose-100',           label: t('classroom.outLabel'),    pulse: false },
+    'no-log': { dot: 'bg-gray-400',    badge: darkMode ? 'bg-white/5 text-gray-400 border-white/8'                   : 'bg-gray-50 text-gray-500 border-gray-200',            label: t('classroom.absentSmall'), pulse: false },
+  }), [darkMode, t]);
 
   const [timeSince, setTimeSince] = useState('just now');
   useEffect(() => {
     const id = setInterval(() => {
       const s = Math.floor((Date.now() - lastRefreshed) / 1000);
-      if (s < 60) setTimeSince('just now');
-      else if (s < 3600) setTimeSince(`${Math.floor(s / 60)}m ago`);
-      else setTimeSince(`${Math.floor(s / 3600)}h ago`);
+      if (s < 60) setTimeSince(t('classroom.justNow'));
+      else if (s < 3600) setTimeSince(`${Math.floor(s / 60)}${t('classroom.minutesAgo')}`);
+      else setTimeSince(`${Math.floor(s / 3600)}${t('classroom.hoursAgo')}`);
     }, 10000);
-    setTimeSince('just now');
+    setTimeSince(t('classroom.justNow'));
     return () => clearInterval(id);
-  }, [lastRefreshed]);
+  }, [lastRefreshed, t]);
 
   return (
     <div className="space-y-5">
@@ -285,23 +286,23 @@ export default function ClassroomMonitorTab({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <p className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>School Overview — Today</p>
-              {!loading && <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Updated {timeSince}</span>}
+              <p className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('classroom.schoolOverview')}</p>
+              {!loading && <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{t('classroom.updated')} {timeSince}</span>}
               {loading && <RefreshCw size={10} className="text-sky-500 animate-spin" />}
             </div>
             {loading ? (
               <Skeleton darkMode={darkMode} className="h-8 w-40 rounded-lg mt-1" />
             ) : (
               <p className={`text-2xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                <AnimatedNumber value={overallStats.in} /> <span className={`text-base font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>/ {overallStats.total} enrolled</span>
+                <AnimatedNumber value={overallStats.in} /> <span className={`text-base font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>/ {overallStats.total} {t('classroom.enrolled')}</span>
               </p>
             )}
           </div>
           <div className="flex items-center gap-5 flex-wrap">
             {[
-              { label: 'Present', value: overallStats.in,        color: 'text-emerald-500' },
-              { label: 'Out',     value: overallStats.out,       color: 'text-rose-500'    },
-              { label: 'Absent',  value: overallStats['no-log'], color: darkMode ? 'text-gray-400' : 'text-gray-500' },
+              { label: t('classroom.present'), value: overallStats.in,        color: 'text-emerald-500' },
+              { label: t('classroom.outLabel'),     value: overallStats.out,       color: 'text-rose-500'    },
+              { label: t('classroom.absentLabel'),  value: overallStats['no-log'], color: darkMode ? 'text-gray-400' : 'text-gray-500' },
             ].map((s, i) => (
               <div key={i} className="text-center">
                 {loading ? <Skeleton darkMode={darkMode} className="h-7 w-8 rounded mx-auto" /> : (
@@ -334,7 +335,7 @@ export default function ClassroomMonitorTab({
           <Search size={15} className={darkMode ? 'text-gray-500' : 'text-gray-400'} />
           <input
             type="text"
-            placeholder="Search class, student, or ID…"
+            placeholder={t('classroom.searchPlaceholder')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className={`flex-1 bg-transparent text-sm outline-none font-medium
@@ -384,11 +385,11 @@ export default function ClassroomMonitorTab({
 
       {/* Legend + count */}
       <div className="flex items-center gap-4 flex-wrap">
-        <span className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Legend:</span>
+        <span className={`text-xs font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{t('classroom.legend')}</span>
         {[
-          { label: 'IN — Present', dot: 'bg-emerald-500' },
-          { label: 'OUT — Left',   dot: 'bg-rose-500'    },
-          { label: 'Absent',       dot: 'bg-gray-400'    },
+          { label: t('classroom.inPresent'), dot: 'bg-emerald-500' },
+          { label: t('classroom.outLeft'),   dot: 'bg-rose-500'    },
+          { label: t('classroom.absentLabel'),       dot: 'bg-gray-400'    },
         ].map((l, i) => (
           <div key={i} className="flex items-center gap-1.5">
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${l.dot}`} />
@@ -396,7 +397,7 @@ export default function ClassroomMonitorTab({
           </div>
         ))}
         <span className={`ml-auto text-xs font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-          {filteredSorted.length} {filteredSorted.length === 1 ? 'class' : 'classes'}
+          {filteredSorted.length} {filteredSorted.length === 1 ? t('classroom.class') : t('classroom.classes')}
         </span>
       </div>
 
@@ -410,10 +411,10 @@ export default function ClassroomMonitorTab({
       ) : filteredSorted.length === 0 ? (
         <EmptyState
           icon={Search}
-          title={searchQuery ? `No classes match "${searchQuery}"` : 'No classes yet'}
-          body={searchQuery ? 'Try a different search term or clear the filter.' : undefined}
+          title={searchQuery ? `${t('classroom.noClassesMatch')} "${searchQuery}"` : t('classroom.noClasses')}
+          body={searchQuery ? t('classroom.tryDifferent') : undefined}
           action={searchQuery ? () => setSearchQuery('') : undefined}
-          actionLabel="Clear search"
+          actionLabel={t('classroom.clearSearch')}
           darkMode={darkMode}
         />
       ) : viewMode === 'grid' ? (
@@ -430,9 +431,9 @@ export default function ClassroomMonitorTab({
                 <div className={`px-4 py-3 flex items-center justify-between border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
                   <p className={`text-sm font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{cn}</p>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold text-emerald-500">{counts.in} IN</span>
-                    <span className="text-[10px] font-bold text-rose-500">{counts.out} OUT</span>
-                    <span className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{counts['no-log']} absent</span>
+                    <span className="text-[10px] font-bold text-emerald-500">{counts.in} {t('classroom.inLabel')}</span>
+                    <span className="text-[10px] font-bold text-rose-500">{counts.out} {t('classroom.outLabel')}</span>
+                    <span className={`text-[10px] font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{counts['no-log']} {t('classroom.absentSmall')}</span>
                   </div>
                 </div>
                 <div className="p-3 flex flex-wrap gap-2">
@@ -444,7 +445,7 @@ export default function ClassroomMonitorTab({
                     const dot = status === 'in' ? '#10b981' : status === 'out' ? '#f43f5e' : '#9ca3af';
                     return (
                       <div key={student.studentId}
-                        title={`${student.name} | ID: ${student.studentId} | ${status === 'in' ? 'IN' : status === 'out' ? 'OUT' : 'Absent'}${lastSeen ? ' | ' + lastSeen : ''}`}
+                        title={`${student.name} | ID: ${student.studentId} | ${status === 'in' ? t('classroom.inLabel') : status === 'out' ? t('classroom.outLabel') : t('classroom.absentLabel')}${lastSeen ? ' | ' + lastSeen : ''}`}
                         className="flex flex-col items-center gap-1 w-11 cursor-default">
                         <div className="relative">
                           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shadow-sm"
@@ -489,13 +490,13 @@ export default function ClassroomMonitorTab({
                 <button onClick={() => {
                   const next = isExpanded ? null : cn;
                   setSelectedClass(next);
-                  if (next) onToast?.('info', cn, `${counts.in} present · ${counts.out} out · ${counts['no-log']} absent`);
+                  if (next) onToast?.('info', cn, `${counts.in} ${t('classroom.students')} · ${counts.out} ${t('classroom.outLabel')} · ${counts['no-log']} ${t('classroom.absentSmall')}`);
                 }} className="w-full p-5 text-left">
                   <div className="flex items-start justify-between mb-4">
                     <div className="min-w-0 flex-1 pr-3">
                       <h3 className={`font-black text-base truncate ${darkMode ? 'text-white' : 'text-gray-900'}`} title={cn}>{cn}</h3>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <p className={`text-xs font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{total} students</p>
+                        <p className={`text-xs font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{total} {t('classroom.students')}</p>
                         {spark.length > 1 && <Sparkline data={spark} color={sparkColor} />}
                       </div>
                     </div>

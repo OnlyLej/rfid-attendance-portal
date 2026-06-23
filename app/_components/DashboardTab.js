@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Calendar, Users, TrendingUp, BarChart3, Activity, UserCheck, UserX,
   Target, Award, ArrowUp, ArrowDown, Minus, Loader2, Trophy,
@@ -161,6 +162,7 @@ const ChartHeader = ({ icon: Icon, title, badge, color = 'sky', darkMode }) => {
 
 /* ── Main ── */
 export default function DashboardTab({ darkMode, stats, weekData, students, logs, classes, loading }) {
+  const t = useTranslations();
   const isMobile = useIsMobile();
 
   /* ── Data derivations (unchanged logic) ── */
@@ -294,11 +296,11 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mb-5 ${darkMode ? 'bg-white/[0.04]' : 'bg-sky-50'}`} style={{ boxShadow: '0 0 0 8px rgba(14,165,233,0.08)' }}>
           <BarChart3 size={36} className="text-sky-400" />
         </div>
-        <h2 className={`text-xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>No data yet</h2>
-        <p className={`text-sm max-w-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Your portal is ready. Once students are registered and RFID scans come in, your dashboard will populate automatically.</p>
+        <h2 className={`text-xl font-black mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('dashboard.noData')}</h2>
+        <p className={`text-sm max-w-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('dashboard.noDataDesc')}</p>
         <div className={`border rounded-2xl p-5 max-w-sm w-full text-left space-y-3 ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
-          <p className={`text-xs font-black uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Getting started</p>
-          {[['1','Register students in your Google Sheet'],['2','Connect RFID hardware and start scanning']].map(([n,t]) => (
+          <p className={`text-xs font-black uppercase tracking-widest mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('dashboard.gettingStarted')}</p>
+          {[['1', t('dashboard.step1')], ['2', t('dashboard.step2')]].map(([n,t]) => (
             <div key={n} className="flex items-start gap-3">
               <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black flex-shrink-0 ${darkMode ? 'bg-white/8 text-gray-300' : 'bg-sky-100 text-sky-700'}`}>{n}</span>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t}</p>
@@ -330,7 +332,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               />
             ))}
           </div>
-          Syncing attendance data…
+          {t('dashboard.syncing')}
           <Loader2 size={14} className="animate-spin ml-auto opacity-60" />
         </div>
       )}
@@ -338,11 +340,11 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {[
-          { label: 'Total Students', value: `${stats.totalStudents}`, numericValue: stats.totalStudents, icon: Users,     color: 'blue',   delay: 0   },
-          { label: 'Present Today',  value: `${stats.presentToday}`,  numericValue: stats.presentToday,  icon: UserCheck, color: 'green',  delay: 60  },
-          { label: 'Absent Today',   value: `${stats.absentToday}`,   numericValue: stats.absentToday,   icon: UserX,     color: 'red',    delay: 120 },
-          { label: "Today's Rate",   value: `${stats.attendanceRate}%`, numericValue: stats.attendanceRate, icon: TrendingUp, color: 'purple', delay: 180 },
-          { label: 'Week Average',   value: `${weekAvg}%`,            numericValue: weekAvg,             icon: Calendar,  color: 'indigo', delay: 240 },
+          { label: t('dashboard.totalStudents'), value: `${stats.totalStudents}`, numericValue: stats.totalStudents, icon: Users,     color: 'blue',   delay: 0   },
+          { label: t('dashboard.presentToday'),  value: `${stats.presentToday}`,  numericValue: stats.presentToday,  icon: UserCheck, color: 'green',  delay: 60  },
+          { label: t('dashboard.absentToday'),   value: `${stats.absentToday}`,   numericValue: stats.absentToday,   icon: UserX,     color: 'red',    delay: 120 },
+          { label: t('dashboard.todaysRate'),   value: `${stats.attendanceRate}%`, numericValue: stats.attendanceRate, icon: TrendingUp, color: 'purple', delay: 180 },
+          { label: t('dashboard.weekAverage'),   value: `${weekAvg}%`,            numericValue: weekAvg,             icon: Calendar,  color: 'indigo', delay: 240 },
         ].map((s, i) => (
           <StatCard key={i} {...s} darkMode={darkMode} />
         ))}
@@ -356,7 +358,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
           <div className="p-5">
             <ChartHeader
               icon={BarChart3}
-              title={`Weekly — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`}
+              title={`${t('dashboard.weeklyChart')} — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`}
               color="sky"
               darkMode={darkMode}
             />
@@ -386,7 +388,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2">
                   <BarChart3 size={28} className={darkMode ? 'text-gray-700' : 'text-gray-200'} />
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No data for this month</p>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('dashboard.noDataForMonth')}</p>
                 </div>
               )}
             </div>
@@ -396,7 +398,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         {/* Last 7 days area chart */}
         <Card darkMode={darkMode} delay={150} hover>
           <div className="p-5">
-            <ChartHeader icon={Activity} title="Last 7 Days" badge="Daily attendance" color="emerald" darkMode={darkMode} />
+            <ChartHeader icon={Activity} title={t('dashboard.last7Days')} badge={t('dashboard.dailyAttendance')} color="emerald" darkMode={darkMode} />
             <div style={{ height: chartH }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : dailyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -423,7 +425,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2">
                   <Activity size={28} className={darkMode ? 'text-gray-700' : 'text-gray-200'} />
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No data yet</p>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('dashboard.noData')}</p>
                 </div>
               )}
             </div>
@@ -433,7 +435,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         {/* Monthly trend */}
         <Card darkMode={darkMode} delay={200} hover>
           <div className="p-5">
-            <ChartHeader icon={TrendingUp} title="Monthly Trend" badge="6 months" color="violet" darkMode={darkMode} />
+            <ChartHeader icon={TrendingUp} title={t('dashboard.monthlyTrend')} badge={t('dashboard.months6')} color="violet" darkMode={darkMode} />
             <div style={{ height: chartH }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : monthlyData.some(m => m.avgPresent !== null && m.avgPresent > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -461,7 +463,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2">
                   <TrendingUp size={28} className={darkMode ? 'text-gray-700' : 'text-gray-200'} />
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No monthly data yet</p>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('dashboard.noMonthlyData')}</p>
                 </div>
               )}
             </div>
@@ -471,7 +473,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         {/* Class performance */}
         <Card darkMode={darkMode} delay={250} hover>
           <div className="p-5">
-            <ChartHeader icon={Target} title="Class Performance Today" color="indigo" darkMode={darkMode} />
+            <ChartHeader icon={Target} title={t('dashboard.classPerformance')} color="indigo" darkMode={darkMode} />
             <div style={{ height: chartH }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : classComparisonData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -493,7 +495,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2">
                   <Target size={28} className={darkMode ? 'text-gray-700' : 'text-gray-200'} />
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>No class data today</p>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('dashboard.noClassData')}</p>
                 </div>
               )}
             </div>
@@ -505,14 +507,14 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           {
-            title: "Today's Summary",
+            title: t('dashboard.todaysSummary'),
             icon: Calendar, iconColor: 'text-sky-500', iconBg: 'bg-sky-500/10',
             content: (
               <div className="space-y-3">
                 {[
-                  { label: 'Check-ins (IN)',     value: stats.presentToday },
-                  { label: 'Checked Out (OUT)',  value: stats.absentToday,         red: true },
-                  { label: 'Attendance Rate',    value: `${stats.attendanceRate}%`, green: true },
+                  { label: t('dashboard.checkins'),     value: stats.presentToday },
+                  { label: t('dashboard.checkedOut'),  value: stats.absentToday,         red: true },
+                  { label: t('dashboard.attendanceRate'),    value: `${stats.attendanceRate}%`, green: true },
                 ].map((r, i) => (
                   <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
                     <span className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.label}</span>
@@ -524,14 +526,14 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
             delay: 300,
           },
           {
-            title: 'Week Snapshot',
+            title: t('dashboard.weekSnapshot'),
             icon: TrendingUp, iconColor: 'text-emerald-500', iconBg: 'bg-emerald-500/10',
             content: (
               <div className="space-y-3">
                 {[
-                  { label: 'Avg Daily Present', value: dailyData.length > 0 ? Math.round(dailyData.reduce((s,d) => s+d.present, 0) / dailyData.length) : 0 },
-                  { label: 'Avg Rate',           value: `${weekAvg}%`,                                                                                         purple: true },
-                  { label: 'Best Day',           value: dailyData.length > 0 && dailyData.some(d => d.present > 0) ? dailyData.reduce((m,d) => d.present > m.present ? d : m, dailyData[0]).name : '—', green: true },
+                  { label: t('dashboard.avgDailyPresent'), value: dailyData.length > 0 ? Math.round(dailyData.reduce((s,d) => s+d.present, 0) / dailyData.length) : 0 },
+                  { label: t('dashboard.avgRate'),           value: `${weekAvg}%`,                                                                                         purple: true },
+                  { label: t('dashboard.bestDay'),           value: dailyData.length > 0 && dailyData.some(d => d.present > 0) ? dailyData.reduce((m,d) => d.present > m.present ? d : m, dailyData[0]).name : '—', green: true },
                 ].map((r, i) => (
                   <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
                     <span className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.label}</span>
@@ -543,7 +545,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
             delay: 350,
           },
           {
-            title: 'Top Class Today',
+            title: t('dashboard.topClass'),
             icon: Award, iconColor: 'text-amber-500', iconBg: 'bg-amber-500/10',
             content: classComparisonData.length > 0 ? (
               <div>
@@ -553,7 +555,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
                       {classComparisonData[0].fullName}
                     </p>
                     <p className={`text-xs mt-0.5 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      {classComparisonData[0].present} present / {classComparisonData[0].total} total
+                      {classComparisonData[0].present} {t('dashboard.present')} / {classComparisonData[0].total} {t('dashboard.total')}
                     </p>
                   </div>
                   <span className={`text-2xl font-black flex-shrink-0 ${classComparisonData[0].attendanceRate >= 90 ? 'text-emerald-500' : classComparisonData[0].attendanceRate >= 70 ? 'text-amber-500' : 'text-rose-500'}`}>

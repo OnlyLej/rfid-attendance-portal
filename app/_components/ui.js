@@ -460,7 +460,7 @@ export function EmptyState({ icon: Icon, title, body, action, actionLabel, darkM
         <button
           onClick={action}
           className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/25"
-          style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}
+          style={{ background: '#0ea5e9' }}
         >
           {actionLabel}
         </button>

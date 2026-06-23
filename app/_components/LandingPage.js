@@ -100,22 +100,11 @@ function useReveal(t = 0.08) {
   return [ref, vis];
 }
 
-const TYPED_WORDS = [
-  'Built for Philippine schools.',
-  'No more clipboards.',
-  'Instant & accurate.',
-  'Parents see it live.',
-  'Real-time RFID scanning.',
-  'Works on ESP8266 & ESP32.',
-  'Auto-logs every arrival.',
-  'Export to Excel anytime.',
-  'Zero manual entry.',
-  'Attendance in under 200ms.',
-];
+// TYPED_WORDS now loaded from i18n via t.raw('landing.typedWords')
 
-function TypedText({ words: _words, className }) {
+function TypedText({ words: _words, className, t }) {
   // Use a stable ref so inline array props don't break the loop
-  const wordsRef = React.useRef(_words || TYPED_WORDS);
+  const wordsRef = React.useRef(_words || t.raw('landing.typedWords'));
   const words = wordsRef.current;
 
   const [idx, setIdx] = useState(0);
@@ -171,7 +160,7 @@ function MobileDrawer({ open, onClose, darkMode, onSignIn, t }) {
           <button onClick={onClose} className={`p-2 rounded-xl transition-all hover:rotate-90 ${darkMode ? 'hover:bg-white/8 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}><X size={18} /></button>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', 'FAQ']].map(([id, lbl]) => (
+          {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', t('landing.faq')]].map(([id, lbl]) => (
             <button key={id} onClick={() => go(id)}
               className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-bold transition-all flex items-center justify-between group ${darkMode ? 'text-gray-300 hover:bg-white/6 hover:text-white' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}`}>
               {lbl}<ChevronRight size={15} className="opacity-35 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
@@ -298,26 +287,26 @@ export default function LandingPage() {
   const odo = { duration: 100, theme: 'default', auto: false };
 
   const features = [
-    { icon: Cpu, label: 'Hardware Layer', bgClass: 'bg-sky-500', glow: '#0ea5e9', title: t('landing.features'), desc: 'Physical RFID scanners at every entry point. Students tap their card and attendance is logged in under 200ms — no manual input, no errors.', bullets: ['Dual-band WiFi transmission', 'OLED status display', 'Audio & visual feedback', 'Tamper-resistant casing'] },
-    { icon: Database, label: 'Secure Backend', bgClass: 'bg-blue-500', glow: '#3b82f6', title: 'Google Apps Script API', desc: 'Role-based API endpoints process every scan instantly. Data is encrypted at rest and in transit, with full audit trails.', bullets: ['Session token auth', 'Role-based access control', 'Real-time processing', 'GDPR compliant logging'] },
-    { icon: BarChart3, label: 'Analytics', bgClass: 'bg-sky-600', glow: '#0284c7', title: 'Live Dashboard Analytics', desc: 'Beautiful charts, daily/weekly/monthly trends, and class comparisons. Export any view to Excel in one click.', bullets: ['7-day & monthly trends', 'Class performance ranking', 'Export to Excel/CSV', 'Mobile-responsive'] },
-    { icon: Bell, label: 'Parent Portal', bgClass: 'bg-blue-600', glow: '#2563eb', title: 'Real-Time Parent Visibility', desc: 'Parents see their child\'s check-in and check-out in real time. Supports multiple children per account.', bullets: ['Multi-child support', 'Per-child attendance log', 'Historical records', 'Exportable history'] },
+    { icon: Cpu, label: t('landing.featureDetails.hardwareLayer'), bgClass: 'bg-sky-500', glow: '#0ea5e9', title: t('landing.featureDetails.analytics'), desc: t('landing.featureDetails.hardwareDesc'), bullets: t.raw('landing.featureDetails.hardwareBullets') },
+    { icon: Database, label: t('landing.featureDetails.secureBackend'), bgClass: 'bg-blue-500', glow: '#3b82f6', title: 'Google Apps Script API', desc: t('landing.featureDetails.backendDesc'), bullets: t.raw('landing.featureDetails.backendBullets') },
+    { icon: BarChart3, label: t('landing.featureDetails.analytics'), bgClass: 'bg-sky-600', glow: '#0284c7', title: t('landing.featureDetails.analytics'), desc: t('landing.featureDetails.analyticsDesc'), bullets: t.raw('landing.featureDetails.analyticsBullets') },
+    { icon: Bell, label: t('landing.featureDetails.parentPortal'), bgClass: 'bg-blue-600', glow: '#2563eb', title: t('landing.featureDetails.parentPortal'), desc: t('landing.featureDetails.parentPortalDesc'), bullets: t.raw('landing.featureDetails.parentPortalBullets') },
   ];
 
   const steps = [
-    { n: '01', icon: Wifi, title: 'Student taps RFID card', desc: 'The ESP8266/ESP32 reader detects the card and reads the unique UID in under 50ms.', bgClass: 'bg-sky-500', accent: '#0ea5e9' },
-    { n: '02', icon: CloudCog, title: 'WiFi transmission to API', desc: 'The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.', bgClass: 'bg-blue-500', accent: '#3b82f6' },
-    { n: '03', icon: Database, title: 'Data stored & classified', desc: 'The log is written to Google Sheets in real time — student name, class, IN/OUT status, and timestamp.', bgClass: 'bg-sky-600', accent: '#0284c7' },
-    { n: '04', icon: Monitor, title: 'Dashboard updates live', desc: 'Teachers see the attendance count update in real time. Charts, comparisons, and parent portals all reflect the new data.', bgClass: 'bg-blue-600', accent: '#2563eb' },
+    { n: '01', icon: Wifi, title: t('landing.steps.step1Title'), desc: t('landing.steps.step1Desc'), bgClass: 'bg-sky-500', accent: '#0ea5e9' },
+    { n: '02', icon: CloudCog, title: t('landing.steps.step2Title'), desc: t('landing.steps.step2Desc'), bgClass: 'bg-blue-500', accent: '#3b82f6' },
+    { n: '03', icon: Database, title: t('landing.steps.step3Title'), desc: t('landing.steps.step3Desc'), bgClass: 'bg-sky-600', accent: '#0284c7' },
+    { n: '04', icon: Monitor, title: t('landing.steps.step4Title'), desc: t('landing.steps.step4Desc'), bgClass: 'bg-blue-600', accent: '#2563eb' },
   ];
 
   const faqs = [
-    { q: 'What RFID hardware is required?', a: 'Any standard 125kHz or 13.56MHz RFID card/fob works. Reader units run on ESP8266/ESP32 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.' },
-    { q: 'How is student data protected?', a: 'All data is encrypted in transit (TLS 1.3) and at rest. Session tokens expire after 30 minutes of inactivity. No personally identifiable data is stored on the hardware itself.' },
-    { q: 'Can parents access admin features?', a: "No. The parent portal is strictly read-only, scoped to their own children's records. Teachers and administrators have separate credential tiers." },
-    { q: 'Can one parent account track multiple children?', a: 'Yes. A parent account can be linked to multiple students. The portal shows a child-selector to switch between individual views or see all records combined.' },
-    { q: 'What happens if the WiFi goes down?', a: 'The ESP8266/ESP32 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.' },
-    { q: 'How do I export attendance records?', a: 'Click Export on any filtered view in the Logs tab. Records download as a formatted Excel (.xlsx) file with color-coded statuses and auto-filters pre-applied.' },
+    { q: t('landing.faqItems.hardwareQ'), a: t('landing.faqItems.hardwareA') },
+    { q: t('landing.faqItems.dataProtectionQ'), a: t('landing.faqItems.dataProtectionA') },
+    { q: t('landing.faqItems.parentAccessQ'), a: t('landing.faqItems.parentAccessA') },
+    { q: t('landing.faqItems.multipleChildrenQ'), a: t('landing.faqItems.multipleChildrenA') },
+    { q: t('landing.faqItems.wifiDownQ'), a: t('landing.faqItems.wifiDownA') },
+    { q: t('landing.faqItems.exportQ'), a: t('landing.faqItems.exportA') },
   ];
 
   return (
@@ -335,7 +324,7 @@ export default function LandingPage() {
             <span className={`font-black text-sm tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>{t('common.appName')}</span>
           </div>
           <div className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
-            {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', 'FAQ']].map(([id, lbl]) => (
+            {[['features', t('landing.features')], ['how-it-works', t('landing.process')], ['faq', t('landing.faq')]].map(([id, lbl]) => (
               <button key={id} onClick={() => scrollTo(id)}
                 className={`relative px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all duration-200 group ${dark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-900'}`}>
                 {lbl}
@@ -374,7 +363,7 @@ export default function LandingPage() {
 
           <p className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed font-medium transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${dark ? 'text-gray-400' : 'text-gray-500'}`} style={{ transitionDelay: '160ms' }}>
             {t('landing.heroDescription')}{' '}
-            <TypedText words={t.raw('landing.typedWords')} className={`font-bold ${dark ? 'text-sky-400' : 'text-sky-600'}`} />
+            <TypedText words={t.raw('landing.typedWords')} t={t} className={`font-bold ${dark ? 'text-sky-400' : 'text-sky-600'}`} />
           </p>
 
           <div className={`flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 transition-all duration-700 ${heroVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`} style={{ transitionDelay: '240ms' }}>
@@ -392,7 +381,7 @@ export default function LandingPage() {
 
           {/* Trust bar */}
           <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 transition-all duration-700 ${heroVis ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: '340ms' }}>
-            {[{ icon: Zap, t: '<200ms scan' }].map((x, i) => (
+            {[{ icon: Zap, t: t('landing.trustBadge') }].map((x, i) => (
               <div key={i} className={`flex items-center gap-1.5 text-xs font-semibold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>
                 <x.icon size={12} className="text-emerald-500" />{x.t}
               </div>
