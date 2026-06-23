@@ -48,7 +48,8 @@
     "calendar": "Kalendaryo",
     "progress": "Progreso",
     "menu": "Menu",
-    "account": "Account"
+    "account": "Account",
+    "signOut": "Mag-sign Out"
   },
   "auth": {
     "loginTitle": "Mag-sign In sa Portal",

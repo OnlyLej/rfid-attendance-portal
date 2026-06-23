@@ -48,7 +48,8 @@
     "calendar": "Calendar",
     "progress": "Progress",
     "menu": "Menu",
-    "account": "Account"
+    "account": "Account",
+    "signOut": "Sign Out"
   },
   "auth": {
     "loginTitle": "Sign In to Portal",
