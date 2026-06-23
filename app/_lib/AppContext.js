@@ -34,7 +34,7 @@ const calculateWeeklyData = (logData, studentsList) => {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() - (6 - i));
     const targetPhStr = targetDate.toLocaleDateString('en-CA', { timeZone: PH_TZ });
-    const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: PH_TZ });
+    const dayName = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
     const dayLogs = logData.filter(l => getPhLocalDate(l.timestamp) === targetPhStr);
     const present = new Set(dayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId))).size;
     return { name: dayName, present, absent: Math.max(0, studentsList.length - present), attendanceRate: studentsList.length > 0 ? Math.round((present / studentsList.length) * 100) : 0 };
