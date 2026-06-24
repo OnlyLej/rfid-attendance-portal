@@ -29,6 +29,47 @@ GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exe
 
 ---
 
+## Test API
+
+A mock API is available for testing.
+
+**Base URL:** `https://api.lej.qzz.io`
+
+To use it, set your `GOOGLE_APPS_SCRIPT_URL` in `.env.local` to the mock API URL:
+
+```env
+GOOGLE_APPS_SCRIPT_URL=https://api.lej.qzz.io
+```
+
+### Test Credentials
+
+| Username | Password | Role |
+|---|---|---|
+| `teacher1` | `test123` | Teacher |
+| `parent1` | `test123` | Parent |
+
+### Available Endpoints
+
+**Login:**
+```
+POST https://api.lej.qzz.io
+Body: { "username": "teacher1", "password": "test123" }
+```
+
+**Dashboard Stats:**
+```
+GET https://api.lej.qzz.io?action=getDashboardStats&sessionToken=mock-token
+```
+
+**Classes:**
+```
+GET https://api.lej.qzz.io?action=getClasses&sessionToken=mock-token
+```
+
+> ⚠️ The test API returns static mock data only. It does not persist any changes.
+
+---
+
 ## API Routes
 
 ### `POST /api/auth`
