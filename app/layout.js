@@ -53,6 +53,12 @@ export const metadata = {
     languages: {
       'en': 'https://ridap.lej.qzz.io/en',
       'tl': 'https://ridap.lej.qzz.io/tl',
+      'ceb': 'https://ridap.lej.qzz.io/ceb',
+      'ilo': 'https://ridap.lej.qzz.io/ilo',
+      'hil': 'https://ridap.lej.qzz.io/hil',
+      'war': 'https://ridap.lej.qzz.io/war',
+      'pam': 'https://ridap.lej.qzz.io/pam',
+      'bik': 'https://ridap.lej.qzz.io/bik',
       'x-default': 'https://ridap.lej.qzz.io',
     },
   },
