@@ -362,7 +362,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
               color="sky"
               darkMode={darkMode}
             />
-            <div style={{ height: chartH }}>
+            <div style={{ width: '100%', height: `${chartH}px` }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : weeklyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={weeklyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barCategoryGap="35%">
@@ -399,7 +399,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         <Card darkMode={darkMode} delay={150} hover>
           <div className="p-5">
             <ChartHeader icon={Activity} title={t('dashboard.last7Days')} badge={t('dashboard.dailyAttendance')} color="emerald" darkMode={darkMode} />
-            <div style={{ height: chartH }}>
+            <div style={{ width: '100%', height: `${chartH}px` }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : dailyData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dailyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -436,7 +436,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         <Card darkMode={darkMode} delay={200} hover>
           <div className="p-5">
             <ChartHeader icon={TrendingUp} title={t('dashboard.monthlyTrend')} badge={t('dashboard.months6')} color="violet" darkMode={darkMode} />
-            <div style={{ height: chartH }}>
+            <div style={{ width: '100%', height: `${chartH}px` }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : monthlyData.some(m => m.avgPresent !== null && m.avgPresent > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -474,7 +474,7 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
         <Card darkMode={darkMode} delay={250} hover>
           <div className="p-5">
             <ChartHeader icon={Target} title={t('dashboard.classPerformance')} color="indigo" darkMode={darkMode} />
-            <div style={{ height: chartH }}>
+            <div style={{ width: '100%', height: `${chartH}px` }}>
               {loading ? <ChartSkeleton darkMode={darkMode} /> : classComparisonData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={classComparisonData} layout="vertical" margin={{ top: 4, right: 50, left: 8, bottom: 0 }}>

@@ -195,7 +195,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
             {!isMobile && t('logs.filters')}
             {chips.length > 0 && (
               <span className="w-5 h-5 rounded-full text-white text-[10px] font-black flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                style={{ background: '#0ea5e9' }}>
                 {chips.length}
               </span>
             )}

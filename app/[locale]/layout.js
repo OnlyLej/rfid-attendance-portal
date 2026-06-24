@@ -10,10 +10,6 @@ import { notFound } from 'next/navigation';
 import { localeCodes } from '../_lib/locales';
 export const dynamic = 'force-dynamic';
 
-export function generateStaticParams() {
-  return localeCodes.map(locale => ({ locale }));
-}
-
 export default async function LocaleLayout({ children, params }) {
   const { locale } = await params;
   if (!localeCodes.includes(locale)) notFound();
@@ -21,19 +17,14 @@ export default async function LocaleLayout({ children, params }) {
   const messages = await getMessages({ locale });
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body className="antialiased">
-        <NextIntlClientProvider messages={messages}>
-          <AppProvider>
-            <ClientProviders>{children}</ClientProviders>
-            <Analytics />
-            <SpeedInsights />
-          </AppProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <>
+      <NextIntlClientProvider messages={messages}>
+        <AppProvider>
+          <ClientProviders>{children}</ClientProviders>
+          <Analytics />
+          <SpeedInsights />
+        </AppProvider>
+      </NextIntlClientProvider>
+    </>
   );
 }
