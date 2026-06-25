@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import {
-  RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton,
+  RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton
 } from './ui';
 
 const PH_TZ = 'Asia/Manila';
@@ -490,7 +490,9 @@ export default function ClassroomMonitorTab({
                 <button onClick={() => {
                   const next = isExpanded ? null : cn;
                   setSelectedClass(next);
-                  if (next) onToast?.('info', cn, `${counts.in} ${t('classroom.students')} · ${counts.out} ${t('classroom.outLabel')} · ${counts['no-log']} ${t('classroom.absentSmall')}`);
+                  if (next) {
+                    onToast?.('info', cn, `${counts.in} present · ${counts.out} out · ${counts['no-log']} absent`);
+                  }
                 }} className="w-full p-5 text-left">
                   <div className="flex items-start justify-between mb-4">
                     <div className="min-w-0 flex-1 pr-3">
@@ -540,7 +542,7 @@ export default function ClassroomMonitorTab({
                 {/* Expanded student list */}
                 <div className={`overflow-hidden transition-all duration-500 ease-in-out border-t
                   ${darkMode ? 'border-white/6' : 'border-gray-100'}
-                  ${isExpanded ? 'max-h-[400px]' : 'max-h-0 border-transparent'}`}
+                  ${isExpanded ? 'max-h-[600px]' : 'max-h-0 border-transparent'}`}
                 >
                   <div className={`px-5 py-2.5 flex items-center justify-between ${darkMode ? 'bg-white/[0.02]' : 'bg-slate-50/80'}`}>
                     <span className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
@@ -548,7 +550,7 @@ export default function ClassroomMonitorTab({
                     </span>
                   </div>
 
-                  <div className="max-h-72 overflow-y-auto">
+                  <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
                     {filteredSt.map((student, si) => {
                       const status   = getStudentTodayStatus(student.studentId);
                       const lastSeen = getStudentLastSeen(student.studentId);

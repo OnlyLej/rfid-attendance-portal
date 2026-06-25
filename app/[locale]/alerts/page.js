@@ -7,6 +7,7 @@ import { Skeleton, EmptyState } from '../../_components/ui';
 import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp, LATE_HOUR } from '../../_lib/data';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, UserX, Clock, Flame, CheckCircle, TrendingDown, Info, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pagination } from '../../_components/ui';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -49,32 +50,13 @@ function AlertDetailModal({ title, data, darkMode, onClose, renderItem }) {
           {paginatedData.map((item, i) => renderItem(item, i))}
         </div>
         {totalPages > 1 && (
-          <div className={`flex items-center justify-between gap-2 px-5 py-3 border-t ${darkMode ? 'border-white/[0.04]' : 'border-gray-100'}`}>
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1
-                ${currentPage === 1
-                  ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
-                  : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-            >
-              <ChevronLeft size={14} /> Previous
-            </button>
-            <span className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {currentPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1
-                ${currentPage === totalPages
-                  ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
-                  : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
-                }`}
-            >
-              Next <ChevronRight size={14} />
-            </button>
+          <div className={`border-t ${darkMode ? 'border-white/[0.04]' : 'border-gray-100'}`}>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              darkMode={darkMode}
+            />
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '..
 import { useState, useMemo, useEffect } from 'react';
 import StudentProfileModal from '../../_components/StudentProfileModal';
 import { Search, Users, UserCheck, UserX, GraduationCap, Hash, X } from 'lucide-react';
+import { Pagination } from '../../_components/ui';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -202,47 +203,12 @@ export default function StudentsPage() {
                   Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} students
                 </div>
                 {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className={`px-5 py-3 flex items-center justify-between gap-2 ${darkMode ? 'border-t border-white/[0.04]' : 'border-t border-gray-100'}`}>
-                    <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                        ${currentPage === 1
-                          ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
-                          : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                      Previous
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors
-                            ${currentPage === page
-                              ? darkMode ? 'bg-sky-500 text-white' : 'bg-sky-500 text-white'
-                              : darkMode ? 'text-gray-400 hover:bg-white/[0.06]' : 'text-gray-600 hover:bg-gray-100'
-                            }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                        ${currentPage === totalPages
-                          ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
-                          : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  darkMode={darkMode}
+                />
               </>
             )}
           </div>
