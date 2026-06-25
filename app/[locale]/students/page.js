@@ -5,7 +5,7 @@ import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePage
 import PageShell from '../../_components/PageShell';
 import { Skeleton, EmptyState, StatusBadge } from '../../_components/ui';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../../_lib/data';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import StudentProfileModal from '../../_components/StudentProfileModal';
 import { Search, Users, UserCheck, UserX, GraduationCap, Hash, X } from 'lucide-react';
 
@@ -88,6 +88,8 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classFilter, setClassFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const classes = useMemo(() => ['all', ...new Set(students.map(s => s.class).filter(Boolean)).values()], [students]);
 
@@ -100,6 +102,18 @@ export default function StudentsPage() {
     }
     return list;
   }, [students, search, classFilter]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, classFilter]);
 
   const presentCount = useMemo(() => {
     const today = getPhTodayStr();
@@ -178,14 +192,58 @@ export default function StudentsPage() {
                 ))
               : filtered.length === 0
                 ? <div className="py-16"><EmptyState icon={Users} title="No students found" body="Try adjusting your search or filter." darkMode={darkMode} /></div>
-                : filtered.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} onClick={() => setSelectedStudent(s)} />)
+                : paginatedData.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} onClick={() => setSelectedStudent(s)} />)
             }
 
             {/* Footer count */}
             {!loading && filtered.length > 0 && (
-              <div className={`px-5 py-3 text-xs font-semibold ${darkMode ? 'text-gray-600 border-t border-white/[0.04]' : 'text-gray-400 border-t border-gray-100'}`}>
-                Showing {filtered.length} of {students.length} students
-              </div>
+              <>
+                <div className={`px-5 py-3 text-xs font-semibold ${darkMode ? 'text-gray-600 border-t border-white/[0.04]' : 'text-gray-400 border-t border-gray-100'}`}>
+                  Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} students
+                </div>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className={`px-5 py-3 flex items-center justify-between gap-2 ${darkMode ? 'border-t border-white/[0.04]' : 'border-t border-gray-100'}`}>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                        ${currentPage === 1
+                          ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
+                          : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-8 h-8 rounded-lg text-xs font-semibold transition-colors
+                            ${currentPage === page
+                              ? darkMode ? 'bg-sky-500 text-white' : 'bg-sky-500 text-white'
+                              : darkMode ? 'text-gray-400 hover:bg-white/[0.06]' : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                        ${currentPage === totalPages
+                          ? darkMode ? 'text-gray-700 cursor-not-allowed' : 'text-gray-300 cursor-not-allowed'
+                          : darkMode ? 'text-white hover:bg-white/[0.06]' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
