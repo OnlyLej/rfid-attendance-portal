@@ -216,7 +216,7 @@ export default function ClassroomMonitorTab({
           const sa = getStudentTodayStatus(a.studentId);
           const sb = getStudentTodayStatus(b.studentId);
           if (STATUS_ORDER[sa] !== STATUS_ORDER[sb]) return STATUS_ORDER[sa] - STATUS_ORDER[sb];
-          return a.name.localeCompare(b.name);
+          return (a.name ?? '').localeCompare(b.name ?? '');
         });
     });
     return map;

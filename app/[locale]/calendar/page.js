@@ -37,7 +37,7 @@ export default function CalendarPage() {
         return match ? { studentId: match.studentId, name: match.name, class: match.class } : null;
       })
       .filter(Boolean)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
   }, [userInfo, students]);
 
   const [selectedChildId, setSelectedChildId] = useState(null);
