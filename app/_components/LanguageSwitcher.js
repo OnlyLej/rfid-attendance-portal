@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
 import { Globe, Check } from 'lucide-react';
@@ -9,18 +10,30 @@ export default function LanguageSwitcher({ darkMode }) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
 
   const switchLocale = (newLocale) => {
     const segments = pathname.split('/');
     segments[1] = newLocale;
     router.push(segments.join('/'));
+    setOpen(false);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   const current = locales.find(l => l.code === locale) ?? locales[0];
 
   return (
-    <div className="relative group">
+    <div className="relative" ref={ref}>
       <button
+        onClick={() => setOpen(prev => !prev)}
         className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 hover:scale-105
           ${darkMode ? 'hover:bg-white/8 text-gray-400 hover:text-gray-200' : 'hover:bg-black/6 text-gray-500 hover:text-gray-700'}`}
         title="Switch Language"
@@ -30,7 +43,7 @@ export default function LanguageSwitcher({ darkMode }) {
       </button>
 
       <div className={`absolute right-0 top-full mt-1.5 w-44 rounded-xl border shadow-lg overflow-hidden
-        opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-[70]
+        transition-all duration-150 z-[70]
         ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
       >
         <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-b
