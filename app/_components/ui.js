@@ -306,7 +306,9 @@ export function Tooltip({ label, children, darkMode, side = 'bottom' }) {
 ═══════════════════════════════════════════════════════════ */
 
 export function Pagination({ currentPage, totalPages, onPageChange, darkMode }) {
+  const [input, setInput] = useState('');
   if (totalPages <= 1) return null;
+
   const pages = [];
   const delta = 1;
   for (let i = 1; i <= totalPages; i++) {
@@ -327,19 +329,45 @@ export function Pagination({ currentPage, totalPages, onPageChange, darkMode }) 
   const inact = darkMode ? 'text-gray-400 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100';
   const navB  = darkMode ? 'text-gray-500 hover:bg-white/8 disabled:opacity-25' : 'text-gray-400 hover:bg-gray-100 disabled:opacity-25';
 
+  const handleGo = () => {
+    const n = parseInt(input);
+    if (!isNaN(n) && n >= 1 && n <= totalPages) { onPageChange(n); setInput(''); }
+  };
+
   return (
-    <div className="flex items-center justify-center gap-1 py-4">
-      <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className={`${base} ${navB}`}>
-        <ChevronLeft size={15} />
-      </button>
-      {withEllipsis.map((p, i) =>
-        p === '...'
-          ? <span key={i} className={`${base} cursor-default ${inact}`}>…</span>
-          : <button key={i} onClick={() => onPageChange(p)} className={`${base} ${currentPage === p ? act : inact}`}>{p}</button>
+    <div className="flex flex-wrap items-center justify-center gap-2 py-4">
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} className={`${base} ${navB}`}>
+          <ChevronLeft size={15} />
+        </button>
+        {withEllipsis.map((p, i) =>
+          p === '...'
+            ? <span key={i} className={`${base} cursor-default ${inact}`}>…</span>
+            : <button key={i} onClick={() => onPageChange(p)} className={`${base} ${currentPage === p ? act : inact}`}>{p}</button>
+        )}
+        <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className={`${base} ${navB}`}>
+          <ChevronRight size={15} />
+        </button>
+      </div>
+      {totalPages > 5 && (
+        <div className="flex items-center gap-1.5">
+          <input
+            type="number"
+            min={1}
+            max={totalPages}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleGo()}
+            placeholder="Go to"
+            className={`w-16 h-9 px-2 rounded-xl text-sm font-bold text-center border outline-none
+              ${darkMode ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-sky-500/50' : 'bg-white border-gray-200 text-gray-700 placeholder-gray-400 focus:border-sky-400'}`}
+          />
+          <button onClick={handleGo} className={`h-9 px-3 rounded-xl text-sm font-bold transition-all hover:scale-105 active:scale-95
+            ${darkMode ? 'bg-white/8 text-gray-300 hover:bg-white/12' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+            Go
+          </button>
+        </div>
       )}
-      <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} className={`${base} ${navB}`}>
-        <ChevronRight size={15} />
-      </button>
     </div>
   );
 }
@@ -460,7 +488,7 @@ export function EmptyState({ icon: Icon, title, body, action, actionLabel, darkM
         <button
           onClick={action}
           className="mt-5 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-sky-500/25"
-          style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}
+          style={{ background: '#0ea5e9' }}
         >
           {actionLabel}
         </button>

@@ -1,13 +1,13 @@
 'use client';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
-import PageShell from '../_components/PageShell';
-import { Skeleton } from '../_components/ui';
-import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../_lib/data';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePageLayout';
+import PageShell from '../../_components/PageShell';
+import { Skeleton } from '../../_components/ui';
+import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp } from '../../_lib/data';
 import { useMemo, useState } from 'react';
-import ChildPicker from '../_components/ChildPicker';
-import { useChildSelection } from '../_lib/useChildSelection';
+import ChildPicker from '../../_components/ChildPicker';
+import { useChildSelection } from '../../_lib/useChildSelection';
 import { User, GraduationCap, Hash, Calendar, TrendingUp, Clock, CheckCircle, XCircle, Award } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 

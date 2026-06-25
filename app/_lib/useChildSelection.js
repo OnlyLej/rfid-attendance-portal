@@ -25,7 +25,7 @@ export function useChildSelection(userInfo, students) {
         const match = students.find(s => normalizeId(s.studentId) === nid);
         return match ? { studentId: match.studentId, name: match.name, class: match.class } : { studentId: id, name: `Child (${id})`, class: '' };
       })
-      .sort((a, b) => a.name.localeCompare(b.name)); // alphabetical
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
   }, [userInfo, students]);
 
   const [selectedChildId, setSelectedChildIdRaw] = useState(null);

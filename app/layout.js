@@ -1,11 +1,5 @@
-import { AppProvider } from './_lib/AppContext';
-import ClientProviders from './_components/ClientProviders';
-import './globals.css';
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-
 export const metadata = {
-  metadataBase: new URL('https://ridap.vercel.app'),
+  metadataBase: new URL('https://ridap.lej.qzz.io'),
   title: 'RFID Attendance Portal',
   description: "RFID Attendance Portal is a real-time attendance management system for Philippine schools. Teachers get live dashboards, classroom monitoring, and Excel export. Parents can track their child's daily attendance through a dedicated parent portal.",
   keywords: ['attendance', 'RFID', 'school', 'Philippines', 'dashboard', 'parent portal'],
@@ -16,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
-    url: 'https://ridap.vercel.app',
+    url: 'https://ridap.lej.qzz.io',
     siteName: 'RFID Attendance Portal',
     locale: 'en_PH',
     type: 'website',
@@ -56,46 +50,32 @@ export const metadata = {
 
   alternates: {
     canonical: '/',
+    languages: {
+      'en': 'https://ridap.lej.qzz.io/en',
+      'tl': 'https://ridap.lej.qzz.io/tl',
+      'ceb': 'https://ridap.lej.qzz.io/ceb',
+      'ilo': 'https://ridap.lej.qzz.io/ilo',
+      'hil': 'https://ridap.lej.qzz.io/hil',
+      'war': 'https://ridap.lej.qzz.io/war',
+      'pam': 'https://ridap.lej.qzz.io/pam',
+      'bik': 'https://ridap.lej.qzz.io/bik',
+      'x-default': 'https://ridap.lej.qzz.io',
+    },
   },
   
   links: [
     {
       rel: 'canonical',
-      url: 'https://ridap.vercel.app',
+      url: 'https://ridap.lej.qzz.io',
     },
   ],
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
-        <AppProvider>
-          <ClientProviders>{children}</ClientProviders>
-          <Analytics />
-          <SpeedInsights />
-        </AppProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'WebApplication',
-              name: 'RFID Attendance Portal',
-              url: 'https://ridap.vercel.app',
-              description: 'Real-time RFID-powered attendance management for Philippine schools.',
-              "applicationCategory": "EducationalApplication", 
-              publisher: {
-                '@type': 'Organization',
-                name: 'RFID Attendance Portal',
-                logo: {
-                  '@type': 'ImageObject',
-                  url: 'https://ridap.vercel.app/apple-touch-icon.png',
-                },
-              },
-            }),
-          }}
-        />
+    <html suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {children}
       </body>
     </html>
   );

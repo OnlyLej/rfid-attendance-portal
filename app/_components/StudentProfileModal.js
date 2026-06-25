@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { X, Hash, GraduationCap, Clock, TrendingUp, CheckCircle, XCircle, Award, Calendar, Flame } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
@@ -23,6 +24,7 @@ function calcStreak(logs) {
 }
 
 export default function StudentProfileModal({ student, logs: allLogs, darkMode, onClose }) {
+  const t = useTranslations();
   if (!student) return null;
 
   const logs = useMemo(() =>
@@ -85,7 +87,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
             </div>
             <span className={`px-2.5 py-1 rounded-full text-xs font-black border flex items-center gap-1.5 ${isPresent ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/15'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${isPresent?'bg-emerald-500':'bg-gray-400'}`} />
-              {isPresent ? 'Present Today' : 'Not Yet In'}
+              {isPresent ? t('students.presentToday') : t('students.notYetIn')}
             </span>
           </div>
           <h2 className={`text-lg font-black ${darkMode?'text-white':'text-gray-900'}`}>{student.name}</h2>
@@ -97,9 +99,9 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
           {/* Details */}
           <div className={`rounded-2xl p-4 border space-y-3 ${darkMode?'bg-white/[0.04] border-white/8':'bg-gray-50 border-gray-100'}`}>
             {[
-              { icon: Hash,          label: 'Student ID',   value: student.studentId },
-              { icon: GraduationCap, label: 'Class',        value: student.class || '—' },
-              { icon: Clock,         label: 'Last Seen',    value: lastSeen || 'No records' },
+              { icon: Hash,          label: t('students.studentId'),   value: student.studentId },
+              { icon: GraduationCap, label: t('students.classSection'),        value: student.class || '—' },
+              { icon: Clock,         label: t('students.lastSeen'),    value: lastSeen || t('students.noRecords') },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${darkMode?'bg-white/[0.06]':'bg-white shadow-sm'}`}>
@@ -116,10 +118,10 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label:'30-day Rate',   value:`${rate30}%`,  color:rateColor,  icon:TrendingUp  },
-              { label:'Days Present',  value:totalDays,     color:'#10b981',  icon:CheckCircle },
-              { label:'Current Streak',value:`${streak}d`,  color:'#f59e0b',  icon:Flame       },
-              { label:'Rating',        value:rate30>=95?'Excellent':rate30>=85?'Good':rate30>=70?'Fair':'Needs Work', color:rateColor, icon:Award },
+              { label: t('students.dayRate'),   value: `${rate30}%`,  color: rateColor,  icon: TrendingUp  },
+              { label: t('students.daysPresent'),  value: totalDays,     color: '#10b981',  icon: CheckCircle },
+              { label: t('students.currentStreak'), value: `${streak}d`,  color: '#f59e0b',  icon: Flame       },
+              { label: t('students.rating'),        value: rate30>=95 ? t('students.excellent') : rate30>=85 ? t('students.good') : rate30>=70 ? t('students.fair') : t('students.needsWork'), color: rateColor, icon: Award },
             ].map(({ label, value, color, icon: Icon }) => (
               <div key={label} className={`flex items-center gap-3 p-3.5 rounded-2xl border ${darkMode?'bg-white/[0.04] border-white/8':'bg-white border-gray-200/80 shadow-sm'}`}>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:`${color}18` }}>
@@ -136,7 +138,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
           {/* Attendance chart */}
           {sparkData.length > 0 && (
             <div className={`rounded-2xl p-4 border ${darkMode?'bg-white/[0.04] border-white/8':'bg-white border-gray-200/80 shadow-sm'}`}>
-              <p className={`text-xs font-black mb-3 ${darkMode?'text-white':'text-gray-900'}`}>Last 14 School Days</p>
+              <p className={`text-xs font-black mb-3 ${darkMode?'text-white':'text-gray-900'}`}>{t('students.last14SchoolDays')}</p>
               <ResponsiveContainer width="100%" height={80}>
                 <AreaChart data={sparkData} margin={{ top:2, right:0, left:-40, bottom:0 }}>
                   <defs>
@@ -147,7 +149,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
                   </defs>
                   <XAxis dataKey="label" tick={{ fill: darkMode?'#475569':'#94a3b8', fontSize:8 }} tickLine={false} axisLine={false} />
                   <YAxis domain={[0,1]} hide />
-                  <Tooltip formatter={v=>[v===1?'Present ✓':'Absent ✗','']} contentStyle={{ background:darkMode?'#0d1220':'#fff', border:`1px solid ${darkMode?'rgba(255,255,255,0.1)':'#e5e7eb'}`, borderRadius:8, fontSize:11 }} />
+                  <Tooltip formatter={v=>[v===1 ? `${t('classroom.presentLabel')} ✓` : `${t('classroom.absentLabel')} ✗`, '']} contentStyle={{ background:darkMode?'#0d1220':'#fff', border:`1px solid ${darkMode?'rgba(255,255,255,0.1)':'#e5e7eb'}`, borderRadius:8, fontSize:11 }} />
                   <Area type="monotone" dataKey="value" stroke="#0ea5e9" fill={`url(#sg-${student.studentId})`} strokeWidth={2} dot={{ r:3, fill:'#0ea5e9', strokeWidth:0 }} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -157,7 +159,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
           {/* Recent logs */}
           {logs.length > 0 && (
             <div className={`rounded-2xl border overflow-hidden ${darkMode?'bg-white/[0.04] border-white/8':'bg-white border-gray-200/80 shadow-sm'}`}>
-              <p className={`text-xs font-black px-4 py-3 border-b ${darkMode?'text-white border-white/[0.05]':'text-gray-900 border-gray-100'}`}>Recent Activity</p>
+              <p className={`text-xs font-black px-4 py-3 border-b ${darkMode?'text-white border-white/[0.05]':'text-gray-900 border-gray-100'}`}>{t('students.recentActivity')}</p>
               <div className="max-h-40 overflow-y-auto">
                 {logs.slice(0,15).map((l,i) => {
                   const d = parsePhTimestamp(l.timestamp);
@@ -165,7 +167,7 @@ export default function StudentProfileModal({ student, logs: allLogs, darkMode, 
                   const timeStr = d?.toLocaleTimeString('en-PH',{timeZone:PH_TZ,hour:'2-digit',minute:'2-digit'}) ?? '—';
                   return (
                     <div key={i} className={`flex items-center gap-3 px-4 py-2.5 border-b last:border-0 ${darkMode?'border-white/[0.04]':'border-gray-50'}`}>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${l.status==='IN'?'bg-emerald-500/10 text-emerald-500':'bg-rose-500/10 text-rose-500'}`}>{l.status}</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${l.status==='IN'?'bg-emerald-500/10 text-emerald-500':'bg-rose-500/10 text-rose-500'}`}>{l.status === 'IN' ? t('classroom.inLabel') : t('classroom.outLabel')}</span>
                       <span className={`text-xs flex-1 ${darkMode?'text-gray-400':'text-gray-600'}`}>{dateStr}</span>
                       <span className={`text-xs font-mono ${darkMode?'text-gray-500':'text-gray-400'}`}>{timeStr}</span>
                     </div>

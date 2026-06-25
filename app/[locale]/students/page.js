@@ -1,13 +1,14 @@
 'use client';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
-import PageShell from '../_components/PageShell';
-import { Skeleton, EmptyState, StatusBadge } from '../_components/ui';
-import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../_lib/data';
-import { useState, useMemo } from 'react';
-import StudentProfileModal from '../_components/StudentProfileModal';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePageLayout';
+import PageShell from '../../_components/PageShell';
+import { Skeleton, EmptyState, StatusBadge } from '../../_components/ui';
+import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate } from '../../_lib/data';
+import { useState, useMemo, useEffect } from 'react';
+import StudentProfileModal from '../../_components/StudentProfileModal';
 import { Search, Users, UserCheck, UserX, GraduationCap, Hash, X } from 'lucide-react';
+import { Pagination } from '../../_components/ui';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -88,6 +89,8 @@ export default function StudentsPage() {
   const [search, setSearch] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [classFilter, setClassFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const classes = useMemo(() => ['all', ...new Set(students.map(s => s.class).filter(Boolean)).values()], [students]);
 
@@ -100,6 +103,18 @@ export default function StudentsPage() {
     }
     return list;
   }, [students, search, classFilter]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(startIndex, startIndex + itemsPerPage);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, classFilter]);
 
   const presentCount = useMemo(() => {
     const today = getPhTodayStr();
@@ -178,14 +193,23 @@ export default function StudentsPage() {
                 ))
               : filtered.length === 0
                 ? <div className="py-16"><EmptyState icon={Users} title="No students found" body="Try adjusting your search or filter." darkMode={darkMode} /></div>
-                : filtered.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} onClick={() => setSelectedStudent(s)} />)
+                : paginatedData.map((s, i) => <StudentRow key={s.studentId} student={s} logs={logs} darkMode={darkMode} idx={i} onClick={() => setSelectedStudent(s)} />)
             }
 
             {/* Footer count */}
             {!loading && filtered.length > 0 && (
-              <div className={`px-5 py-3 text-xs font-semibold ${darkMode ? 'text-gray-600 border-t border-white/[0.04]' : 'text-gray-400 border-t border-gray-100'}`}>
-                Showing {filtered.length} of {students.length} students
-              </div>
+              <>
+                <div className={`px-5 py-3 text-xs font-semibold ${darkMode ? 'text-gray-600 border-t border-white/[0.04]' : 'text-gray-400 border-t border-gray-100'}`}>
+                  Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} students
+                </div>
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  darkMode={darkMode}
+                />
+              </>
             )}
           </div>
         </div>

@@ -1,31 +1,35 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   Sun, Moon, RefreshCw,
   Menu,
 } from 'lucide-react';
 import { useApp } from '../_lib/AppContext';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import LanguageSwitcher from './LanguageSwitcher';
 
 const PH_TZ = 'Asia/Manila';
 
 const PAGE_TITLES = {
-  '/dashboard':    'Dashboard',
-  '/classroom':    'Classroom',
-  '/logs':         'Logs & Reports',
-  '/parent':       'Parent Portal',
-  '/students':     'Students',
-  '/reports':      'Reports',
-  '/alerts':       'Alerts',
-  '/child-profile':'Child Profile',
-  '/calendar':     'Calendar',
-  '/progress':     'Progress',
+  '/dashboard':    'dashboard',
+  '/classroom':    'classroom',
+  '/logs':         'logs',
+  '/parent':       'parent',
+  '/students':     'students',
+  '/reports':      'reports',
+  '/alerts':       'alerts',
+  '/child-profile':'childProfile',
+  '/calendar':     'calendar',
+  '/progress':     'progress',
 };
 
-function getGreeting() {
+function getGreeting(t) {
   const h = parseInt(new Date().toLocaleString('en-US', { hour: 'numeric', hour12: false }));
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  if (h < 12) return t('greetings.morning');
+  if (h < 18) return t('greetings.afternoon');
+  return t('greetings.evening');
 }
 
 function Tooltip({ label, children, darkMode }) {
@@ -50,11 +54,13 @@ export default function AppHeader({
 }) {
   const { userInfo } = useApp();
   const pathname = usePathname();
+  const t = useTranslations();
   const [refreshSpin,   setRefreshSpin]   = useState(false);
   const [mounted,       setMounted]       = useState(false);
   const [scrollDir,     setScrollDir]     = useState('up');
   const lastScrollY = useRef(0);
-  const pageTitle = PAGE_TITLES[pathname] || 'RFID Portal';
+  const pageTitleKey = PAGE_TITLES[pathname] || 'common.appName';
+  const pageTitle = t(pageTitleKey);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -74,8 +80,8 @@ export default function AppHeader({
     setRefreshSpin(true);
     setTimeout(() => setRefreshSpin(false), 800);
     onRefresh?.();
-    onToast?.('info', 'Refreshing…', 'Fetching latest attendance data');
-  }, [loading, refreshSpin, onRefresh, onToast]);
+    onToast?.('info', t('common.refresh'), t('common.loading'));
+  }, [loading, refreshSpin, onRefresh, onToast, t]);
 
 
 
@@ -95,14 +101,15 @@ export default function AppHeader({
               </div>
               {!isMobile && mounted && (
                 <p className={`hidden sm:block text-xs truncate max-w-[200px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                  — {getGreeting()},{' '}
-                  <span className={`font-bold ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{userInfo?.fullName || 'User'}</span>
+                  — {getGreeting(t)},{' '}
+                  <span className={`font-bold ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{userInfo?.fullName || t('common.username')}</span>
                 </p>
               )}
             </div>
 
             <div className="flex items-center gap-1 flex-shrink-0">
-              <Tooltip label={darkMode ? 'Light mode' : 'Dark mode'} darkMode={darkMode}>
+              <LanguageSwitcher darkMode={darkMode} />
+              <Tooltip label={darkMode ? t('common.lightMode') : t('common.darkMode')} darkMode={darkMode}>
                 <button onClick={toggleTheme} className={`p-2 rounded-xl transition-all duration-300 hover:scale-110 active:scale-90 ${darkMode ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'}`}>
                   <div style={{ transition: 'transform .45s cubic-bezier(.34,1.5,.64,1)', transform: darkMode ? 'rotate(0)' : 'rotate(-30deg)' }}>
                     {darkMode ? <Sun size={17} /> : <Moon size={17} />}
@@ -110,7 +117,7 @@ export default function AppHeader({
                 </button>
               </Tooltip>
               {onRefresh && (
-                <Tooltip label="Refresh" darkMode={darkMode}>
+                <Tooltip label={t('common.refresh')} darkMode={darkMode}>
                   <button onClick={handleRefresh} disabled={loading} className={`p-2 rounded-xl transition-all duration-200 hover:scale-110 active:scale-90 disabled:opacity-40 ${darkMode ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'}`}>
                     <RefreshCw size={17} className={`transition-colors duration-300 ${loading || refreshSpin ? 'animate-spin text-sky-500' : ''}`} />
                   </button>

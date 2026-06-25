@@ -1,12 +1,13 @@
 'use client';
-import { RouteGuard } from '../_lib/RouteGuard';
-import { useApp } from '../_lib/AppContext';
-import { useIsMobile, useDarkMode, useSidebarCollapse } from '../_lib/usePageLayout';
-import PageShell from '../_components/PageShell';
-import { Skeleton, EmptyState } from '../_components/ui';
-import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp, LATE_HOUR } from '../_lib/data';
-import { useMemo } from 'react';
-import { AlertTriangle, UserX, Clock, Flame, CheckCircle, TrendingDown, Info } from 'lucide-react';
+import { RouteGuard } from '../../_lib/RouteGuard';
+import { useApp } from '../../_lib/AppContext';
+import { useIsMobile, useDarkMode, useSidebarCollapse } from '../../_lib/usePageLayout';
+import PageShell from '../../_components/PageShell';
+import { Skeleton, EmptyState } from '../../_components/ui';
+import { normalizeId, getPhTodayStr, getPhLocalDate, parsePhTimestamp, LATE_HOUR } from '../../_lib/data';
+import { useMemo, useState } from 'react';
+import { AlertTriangle, UserX, Clock, Flame, CheckCircle, TrendingDown, Info, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pagination } from '../../_components/ui';
 
 const PH_TZ = 'Asia/Manila';
 
@@ -16,9 +17,9 @@ function severity(streak) {
   return { label: 'Notice', color: '#0ea5e9', bg: 'bg-sky-500/10', border: 'border-sky-500/20' };
 }
 
-function AlertCard({ icon: Icon, title, count, color, bg, children, darkMode }) {
+function AlertCard({ icon: Icon, title, count, color, bg, children, darkMode, onClick }) {
   return (
-    <div className={`border rounded-2xl overflow-hidden ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`}>
+    <div className={`border rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:shadow-lg ${darkMode ? 'bg-white/[0.04] border-white/8' : 'bg-white border-gray-200/80 shadow-sm'}`} onClick={onClick}>
       <div className={`flex items-center gap-3 px-5 py-4 border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
         <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${bg}`}><Icon size={16} style={{ color }} /></div>
         <p className={`text-sm font-black flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</p>
@@ -29,11 +30,49 @@ function AlertCard({ icon: Icon, title, count, color, bg, children, darkMode }) 
   );
 }
 
+function AlertDetailModal({ title, data, darkMode, onClose, renderItem }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const paginatedData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onClose} />
+      <div className={`relative w-full max-w-2xl rounded-2xl border overflow-hidden flex flex-col max-h-[85vh] ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`} style={{ boxShadow:'0 32px 80px rgba(0,0,0,0.4)' }}>
+        <div className={`flex items-center justify-between px-5 py-4 border-b ${darkMode ? 'border-white/[0.05]' : 'border-gray-100'}`}>
+          <h3 className={`text-lg font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+          <button onClick={onClose} className={`p-1.5 rounded-xl transition-all hover:scale-110 active:scale-90 ${darkMode ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}>
+            <X size={15} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {paginatedData.map((item, i) => renderItem(item, i))}
+        </div>
+        {totalPages > 1 && (
+          <div className={`border-t ${darkMode ? 'border-white/[0.04]' : 'border-gray-100'}`}>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              darkMode={darkMode}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AlertsPage() {
   const [darkMode, toggleTheme] = useDarkMode();
   const isMobile = useIsMobile();
   const [sidebarCollapsed, toggleSidebar] = useSidebarCollapse();
   const { students, logs, loading, fetchData } = useApp();
+
+  const [expandedAlert, setExpandedAlert] = useState(null);
+  const [alertPage, setAlertPage] = useState(1);
+  const itemsPerPage = 15;
 
   const today = getPhTodayStr();
 
@@ -124,7 +163,7 @@ export default function AlertsPage() {
 
           <div className="grid md:grid-cols-2 gap-5">
             {/* Absence streaks */}
-            <AlertCard icon={Flame} title="Absence Streaks" count={streaks.length} color="#f59e0b" bg="bg-amber-500/10" darkMode={darkMode}>
+            <AlertCard icon={Flame} title="Absence Streaks" count={streaks.length} color="#f59e0b" bg="bg-amber-500/10" darkMode={darkMode} onClick={() => setExpandedAlert('streaks')}>
               {loading
                 ? Array.from({length:3}).map((_,i) => <div key={i} className={`${rowClass} ${rowBorder}`}><Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" /><div className="flex-1 space-y-1"><Skeleton darkMode={darkMode} className="h-3 w-32 rounded" /><Skeleton darkMode={darkMode} className="h-2.5 w-20 rounded" /></div></div>)
                 : streaks.length === 0
@@ -148,7 +187,7 @@ export default function AlertsPage() {
             </AlertCard>
 
             {/* Absent today */}
-            <AlertCard icon={UserX} title="Absent Today" count={absentToday.length} color="#f43f5e" bg="bg-rose-500/10" darkMode={darkMode}>
+            <AlertCard icon={UserX} title="Absent Today" count={absentToday.length} color="#f43f5e" bg="bg-rose-500/10" darkMode={darkMode} onClick={() => setExpandedAlert('absent')}>
               {loading
                 ? Array.from({length:3}).map((_,i) => <div key={i} className={`${rowClass} ${rowBorder}`}><Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" /><div className="flex-1 space-y-1"><Skeleton darkMode={darkMode} className="h-3 w-32 rounded" /><Skeleton darkMode={darkMode} className="h-2.5 w-20 rounded" /></div></div>)
                 : absentToday.length === 0
@@ -168,7 +207,7 @@ export default function AlertsPage() {
             </AlertCard>
 
             {/* Late arrivals */}
-            <AlertCard icon={Clock} title="Late Arrivals Today" count={lateArrivals.length} color="#0ea5e9" bg="bg-sky-500/10" darkMode={darkMode}>
+            <AlertCard icon={Clock} title="Late Arrivals Today" count={lateArrivals.length} color="#0ea5e9" bg="bg-sky-500/10" darkMode={darkMode} onClick={() => setExpandedAlert('late')}>
               {loading
                 ? Array.from({length:3}).map((_,i) => <div key={i} className={`${rowClass} ${rowBorder}`}><Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" /><div className="flex-1 space-y-1"><Skeleton darkMode={darkMode} className="h-3 w-32 rounded" /><Skeleton darkMode={darkMode} className="h-2.5 w-20 rounded" /></div></div>)
                 : lateArrivals.length === 0
@@ -193,7 +232,7 @@ export default function AlertsPage() {
             </AlertCard>
 
             {/* Perfect week */}
-            <AlertCard icon={CheckCircle} title="Perfect This Week" count={perfect.length} color="#10b981" bg="bg-emerald-500/10" darkMode={darkMode}>
+            <AlertCard icon={CheckCircle} title="Perfect This Week" count={perfect.length} color="#10b981" bg="bg-emerald-500/10" darkMode={darkMode} onClick={() => setExpandedAlert('perfect')}>
               {loading
                 ? Array.from({length:3}).map((_,i) => <div key={i} className={`${rowClass} ${rowBorder}`}><Skeleton darkMode={darkMode} className="w-8 h-8 rounded-xl" /><div className="flex-1 space-y-1"><Skeleton darkMode={darkMode} className="h-3 w-32 rounded" /><Skeleton darkMode={darkMode} className="h-2.5 w-20 rounded" /></div></div>)
                 : perfect.length === 0
@@ -215,6 +254,97 @@ export default function AlertsPage() {
           </div>
         </div>
       </PageShell>
+
+      {/* Alert detail modals */}
+      {expandedAlert === 'streaks' && (
+        <AlertDetailModal
+          title="Absence Streaks"
+          data={streaks}
+          darkMode={darkMode}
+          onClose={() => setExpandedAlert(null)}
+          renderItem={(s, i) => {
+            const sev = severity(s.streak);
+            return (
+              <div key={s.studentId} className={`flex items-center gap-3 px-5 py-3.5 border-b last:border-0 ${darkMode ? 'border-white/[0.04]' : 'border-gray-50'}`}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[12px] font-black flex-shrink-0" style={{ background: sev.color }}>
+                  {s.streak}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{s.name}</p>
+                  <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.class} · {s.streak} days absent</p>
+                </div>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${sev.bg} ${sev.border}`} style={{ color: sev.color }}>{sev.label}</span>
+              </div>
+            );
+          }}
+        />
+      )}
+
+      {expandedAlert === 'absent' && (
+        <AlertDetailModal
+          title="Absent Today"
+          data={absentToday}
+          darkMode={darkMode}
+          onClose={() => setExpandedAlert(null)}
+          renderItem={(s, i) => (
+            <div key={s.studentId} className={`flex items-center gap-3 px-5 py-3.5 border-b last:border-0 ${darkMode ? 'border-white/[0.04]' : 'border-gray-50'}`}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[12px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#f43f5e,#e11d48)' }}>
+                {(s.name || '?').charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{s.name}</p>
+                <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.class}</p>
+              </div>
+            </div>
+          )}
+        />
+      )}
+
+      {expandedAlert === 'late' && (
+        <AlertDetailModal
+          title="Late Arrivals Today"
+          data={lateArrivals}
+          darkMode={darkMode}
+          onClose={() => setExpandedAlert(null)}
+          renderItem={(l, i) => {
+            const d = parsePhTimestamp(l.timestamp);
+            const time = d?.toLocaleTimeString('en-PH', { timeZone: PH_TZ, hour: '2-digit', minute: '2-digit' }) ?? '';
+            return (
+              <div key={i} className={`flex items-center gap-3 px-5 py-3.5 border-b last:border-0 ${darkMode ? 'border-white/[0.04]' : 'border-gray-50'}`}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[12px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#0ea5e9,#0284c7)' }}>
+                  {(l.name || '?').charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{l.name}</p>
+                  <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{l.class}</p>
+                </div>
+                <span className={`text-xs font-bold flex-shrink-0 ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>{time}</span>
+              </div>
+            );
+          }}
+        />
+      )}
+
+      {expandedAlert === 'perfect' && (
+        <AlertDetailModal
+          title="Perfect This Week"
+          data={perfect}
+          darkMode={darkMode}
+          onClose={() => setExpandedAlert(null)}
+          renderItem={(s, i) => (
+            <div key={s.studentId} className={`flex items-center gap-3 px-5 py-3.5 border-b last:border-0 ${darkMode ? 'border-white/[0.04]' : 'border-gray-50'}`}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[12px] font-black flex-shrink-0" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
+                {(s.name || '?').charAt(0)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-bold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{s.name}</p>
+                <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{s.class}</p>
+              </div>
+              <span className="text-emerald-500 text-lg">★</span>
+            </div>
+          )}
+        />
+      )}
     </RouteGuard>
   );
 }

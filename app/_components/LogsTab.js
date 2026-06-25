@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   Search, Filter, X, Download, FileText,
   ChevronLeft, ChevronRight, Copy, Check,
@@ -84,6 +85,7 @@ function ColHeader({ label, sortKey, currentSort, onSort, darkMode }) {
    MAIN
 ══════════════════════════════════════════════════════════ */
 export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV, onToast }) {
+  const t = useTranslations();
   const isMobile = useIsMobile();
 
   const [rawSearch,    setRawSearch]    = useState('');
@@ -150,8 +152,8 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
     if (rawSearch)              list.push({ label: `"${rawSearch}"`,    clear: () => setRawSearch('') });
     if (statusFilter !== 'all') list.push({ label: statusFilter,        clear: () => setStatusFilter('all') });
     if (classFilter  !== 'all') list.push({ label: classFilter,         clear: () => setClassFilter('all') });
-    if (dateStart)              list.push({ label: `From ${dateStart}`, clear: () => setDateStart('') });
-    if (dateEnd)                list.push({ label: `To ${dateEnd}`,     clear: () => setDateEnd('') });
+    if (dateStart)              list.push({ label: `${t('logs.from')} ${dateStart}`, clear: () => setDateStart('') });
+    if (dateEnd)                list.push({ label: `${t('logs.to')} ${dateEnd}`,     clear: () => setDateEnd('') });
     return list;
   }, [rawSearch, statusFilter, classFilter, dateStart, dateEnd]);
 
@@ -160,7 +162,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
     setExporting(true);
     await new Promise(r => setTimeout(r, 200)); // let UI update
     exportToCSV(filteredLogs);
-    onToast?.('success', 'Export ready', `${filteredLogs.length} records downloaded`);
+    onToast?.('success', t('logs.exportReady'), `${filteredLogs.length} ${t('logs.records')} ${t('logs.downloaded')}`);
     setExporting(false);
   };
 
@@ -175,9 +177,9 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className={`text-lg font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Attendance Logs</h2>
+          <h2 className={`text-lg font-black tracking-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('logs.attendanceLogs')}</h2>
           <p className={`text-xs mt-0.5 font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-            {loading ? 'Loading…' : `${filteredLogs.length.toLocaleString()} of ${allLogs.length.toLocaleString()} records`}
+            {loading ? t('logs.loading') : `${filteredLogs.length.toLocaleString()} ${t('logs.recordsOf')} ${allLogs.length.toLocaleString()} ${t('logs.records')}`}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -190,10 +192,10 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
               }`}
           >
             <Filter size={15} className={`transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
-            {!isMobile && 'Filters'}
+            {!isMobile && t('logs.filters')}
             {chips.length > 0 && (
               <span className="w-5 h-5 rounded-full text-white text-[10px] font-black flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg,#0ea5e9,#7c3aed)' }}>
+                style={{ background: '#0ea5e9' }}>
                 {chips.length}
               </span>
             )}
@@ -203,7 +205,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
             <button onClick={reset}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all hover:scale-105 active:scale-95
                 ${darkMode ? 'bg-white/[0.04] border-white/8 text-gray-300 hover:bg-white/7' : 'bg-white border-gray-200 text-gray-600 shadow-sm hover:bg-gray-50'}`}>
-              <X size={15} />{!isMobile && 'Reset'}
+              <X size={15} />{!isMobile && t('logs.reset')}
             </button>
           )}
 
@@ -212,7 +214,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
               ${exporting ? 'opacity-60' : 'bg-emerald-500 hover:bg-emerald-600'}`}
             style={exporting ? { background: '#10b981' } : {}}
           >
-            {exporting ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />{!isMobile && 'Exporting…'}</> : <><Download size={15} />{!isMobile && 'Export'}</>}
+            {exporting ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />{!isMobile && t('logs.exporting')}</> : <><Download size={15} />{!isMobile && t('logs.export')}</>}
           </button>
         </div>
       </div>
@@ -230,10 +232,10 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
           <div className="p-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Search</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.search')}</label>
                 <div className="relative">
                   <Search size={13} className={`absolute left-3 top-1/2 -translate-y-1/2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-                  <input value={rawSearch} onChange={e => setRawSearch(e.target.value)} placeholder="Name, ID, class…" className={`${inputCls} pl-8`} />
+                  <input value={rawSearch} onChange={e => setRawSearch(e.target.value)} placeholder={t('logs.searchPlaceholder')} className={`${inputCls} pl-8`} />
                   {rawSearch && (
                     <button onClick={() => setRawSearch('')} className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg ${darkMode ? 'hover:bg-white/8 text-gray-500' : 'hover:bg-gray-100 text-gray-400'}`}>
                       <X size={12} />
@@ -242,51 +244,51 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
                 </div>
               </div>
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Status</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.status')}</label>
                 <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputCls}>
-                  <option value="all">All Status</option><option value="IN">IN Only</option><option value="OUT">OUT Only</option>
+                  <option value="all">{t('logs.allStatus')}</option><option value="IN">{t('logs.inOnly')}</option><option value="OUT">{t('logs.outOnly')}</option>
                 </select>
               </div>
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Class</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.class')}</label>
                 <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className={inputCls}>
-                  <option value="all">All Classes</option>
+                  <option value="all">{t('logs.allClassesLabel')}</option>
                   {uniqueClasses.map((c, i) => <option key={i} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sort column</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.sortColumn')}</label>
                 <select value={`${colSort.key}-${colSort.dir}`}
                   onChange={e => { const [k, d] = e.target.value.split('-'); setColSort({ key: k, dir: d }); }}
                   className={inputCls}
                 >
-                  <option value="timestamp-desc">Newest first</option>
-                  <option value="timestamp-asc">Oldest first</option>
-                  <option value="name-asc">Name A→Z</option>
-                  <option value="name-desc">Name Z→A</option>
-                  <option value="class-asc">Class A→Z</option>
+                  <option value="timestamp-desc">{t('logs.newestFirst')}</option>
+                  <option value="timestamp-asc">{t('logs.oldestFirst')}</option>
+                  <option value="name-asc">{t('logs.nameAZ')}</option>
+                  <option value="name-desc">{t('logs.nameZA')}</option>
+                  <option value="class-asc">{t('logs.classAZ')}</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>From</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.from')}</label>
                 <input type="date" value={dateStart} max={today} onChange={e => setDateStart(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>To</label>
+                <label className={`block text-xs font-black uppercase tracking-widest mb-1.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('logs.to')}</label>
                 <input type="date" value={dateEnd} min={dateStart} max={today} onChange={e => setDateEnd(e.target.value)} className={inputCls} />
               </div>
               <div className="flex items-end">
                 <button onClick={() => { setDateStart(today); setDateEnd(today); }}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/8 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                  Today
+                  {t('logs.today')}
                 </button>
               </div>
               <div className="flex items-end">
                 <button onClick={() => { const d = new Date(); d.setDate(d.getDate()-7); setDateStart(d.toLocaleDateString('en-CA')); setDateEnd(today); }}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold border transition-all hover:scale-105 active:scale-95 ${darkMode ? 'border-white/8 text-gray-300 hover:bg-white/6' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                  Last 7 days
+                  {t('logs.last7Days')}
                 </button>
               </div>
             </div>
@@ -299,9 +301,9 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
         <div className={`flex items-center gap-4 px-4 py-3 rounded-2xl border flex-wrap gap-y-2 ${darkMode ? 'bg-white/[0.03] border-white/6' : 'bg-slate-50 border-gray-200'}`}
           style={{ animation: 'logs-fade-in 0.25s ease-out both' }}>
           {[
-            { Icon: Clock,     label: 'Total',   value: filteredLogs.length, color: darkMode?'text-gray-300':'text-gray-700' },
-            { Icon: UserCheck, label: 'IN',       value: fStats.inCount,     color: 'text-emerald-500' },
-            { Icon: UserX,     label: 'OUT',      value: fStats.outCount,    color: 'text-rose-500'    },
+            { Icon: Clock,     label: t('logs.total'),   value: filteredLogs.length, color: darkMode?'text-gray-300':'text-gray-700' },
+            { Icon: UserCheck, label: t('logs.in'),       value: fStats.inCount,     color: 'text-emerald-500' },
+            { Icon: UserX,     label: t('logs.out'),      value: fStats.outCount,    color: 'text-rose-500'    },
           ].map((s, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <s.Icon size={13} className={s.color} />
@@ -311,7 +313,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
             </div>
           ))}
           <span className={`ml-auto text-xs font-semibold ${darkMode?'text-gray-600':'text-gray-400'}`}>
-            Page {currentPage}/{totalPages || 1}
+            {t('logs.page')} {currentPage}/{totalPages || 1}
           </span>
         </div>
       )}
@@ -329,10 +331,10 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
         ) : filteredLogs.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="No records match your filters"
-            body="Try adjusting or clearing the active filters above."
+            title={t('logs.noRecords')}
+            body={t('logs.tryAdjusting')}
             action={chips.length > 0 ? reset : undefined}
-            actionLabel="Clear all filters"
+            actionLabel={t('logs.clearAllFilters')}
             darkMode={darkMode}
           />
         ) : isMobile ? (
@@ -368,11 +370,11 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
               <thead className={`sticky top-0 z-10 ${darkMode?'bg-[#0a0f1e]':'bg-white'}`}>
                 <tr className={`border-b ${darkMode?'border-white/6':'border-gray-100'}`}>
                   {[
-                    { label: 'Timestamp',  key: 'timestamp' },
-                    { label: 'Student ID', key: null         },
-                    { label: 'Name',       key: 'name'      },
-                    { label: 'Class',      key: 'class'     },
-                    { label: 'Status',     key: 'status'    },
+                    { label: t('logs.timestamp'),  key: 'timestamp' },
+                    { label: t('logs.studentId'), key: null         },
+                    { label: t('logs.name'),       key: 'name'      },
+                    { label: t('logs.class'),      key: 'class'     },
+                    { label: t('logs.status'),     key: 'status'    },
                   ].map(({ label, key }, i) => (
                     <th key={i} className="px-5 py-3.5 text-left">
                       {key
@@ -395,7 +397,7 @@ export default function LogsTab({ darkMode, loading, logs: allLogs, exportToCSV,
                     <td className="px-5 py-3.5 text-sm overflow-hidden">
                       <button onClick={() => copy(log.studentId)}
                         className={`flex items-center gap-1.5 font-mono w-full transition-colors ${darkMode?'text-gray-500 hover:text-sky-400':'text-gray-400 hover:text-sky-600'}`}
-                        title="Click to copy ID">
+                        title={t('logs.clickToCopy')}>
                         <span className="truncate">{log.studentId}</span>
                         <span className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           {copied === log.studentId ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}

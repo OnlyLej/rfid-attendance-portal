@@ -1,10 +1,21 @@
+import { localeCodes } from './_lib/locales';
+
+const baseUrl = 'https://ridap.lej.qzz.io';
+
 export default function robots() {
+  const disallow = localeCodes.flatMap(code => [
+    `/${code}/dashboard`,
+    `/${code}/classroom`,
+    `/${code}/logs`,
+    `/${code}/parent`,
+  ]);
+
   return {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/classroom', '/logs', '/parent'],
+      disallow,
     },
-    sitemap: 'https://ridap.vercel.app/sitemap.xml',
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

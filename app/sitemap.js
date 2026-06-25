@@ -1,9 +1,45 @@
+import { locales } from './_lib/locales';
+
+const baseUrl = 'https://ridap.lej.qzz.io';
+
+const routes = [
+  '',
+  'alerts',
+  'calendar',
+  'child-profile',
+  'classroom',
+  'dashboard',
+  'logs',
+  'parent',
+  'progress',
+  'reports',
+  'students',
+];
+
 export default function sitemap() {
-  return [
+  const urls = [
     {
-      url: 'https://ridap.vercel.app',
-      changeFrequency: 'monthly',
+      url: baseUrl,
+      changeFrequency: 'daily',
       priority: 1,
+      lastModified: new Date(),
     },
   ];
+
+  for (const locale of locales) {
+    for (const route of routes) {
+      const url = route
+        ? `${baseUrl}/${locale.code}/${route}`
+        : `${baseUrl}/${locale.code}`;
+
+      urls.push({
+        url,
+        changeFrequency: 'daily',
+        priority: route === '' ? 1 : 0.8,
+        lastModified: new Date(),
+      });
+    }
+  }
+
+  return urls;
 }
