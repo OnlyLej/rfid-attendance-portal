@@ -41,9 +41,8 @@ export default function LanguageSwitcher({ darkMode }) {
         <Globe size={14} />
         <span className="uppercase tracking-wide">{current.code}</span>
       </button>
-
-      <div className={`absolute right-0 top-full mt-1.5 w-44 rounded-xl border shadow-lg overflow-hidden
-        transition-all duration-150 z-[70]
+      {open && (
+      <div className={`absolute right-0 top-full mt-1.5 w-44 rounded-xl border shadow-lg overflow-hidden z-[70]
         ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
       >
         <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest border-b
@@ -75,6 +74,7 @@ export default function LanguageSwitcher({ darkMode }) {
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
