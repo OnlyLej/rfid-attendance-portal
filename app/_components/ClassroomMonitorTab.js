@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List } from 'lucide-react';
+import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List, ArrowDown, ArrowUp } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
 import {
   RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton
@@ -75,6 +75,7 @@ export default function ClassroomMonitorTab({
 }) {
   const t = useTranslations();
   const [sortBy,         setSortBy]         = useState('name');
+  const [sortDesc,       setSortDesc]       = useState(true);
 
   const SORT_OPTIONS = [
     { value: 'name',  label: t('classroom.sortAZ')           },
@@ -234,12 +235,13 @@ export default function ClassroomMonitorTab({
       });
     }
     return list.sort((a, b) => {
-      if (sortBy === 'rate')  return (classStats[b]?.rate  ?? 0) - (classStats[a]?.rate  ?? 0);
-      if (sortBy === 'total') return (classStats[b]?.total ?? 0) - (classStats[a]?.total ?? 0);
-      if (sortBy === 'alpha') return b.localeCompare(a);
-      return a.localeCompare(b);
+      const mult = sortDesc ? -1 : 1;
+      if (sortBy === 'rate')  return mult * ((classStats[b]?.rate  ?? 0) - (classStats[a]?.rate  ?? 0));
+      if (sortBy === 'total') return mult * ((classStats[b]?.total ?? 0) - (classStats[a]?.total ?? 0));
+      if (sortBy === 'alpha') return mult * b.localeCompare(a);
+      return mult * a.localeCompare(b);
     });
-  }, [classes, students, searchQuery, sortBy, classStats]);
+  }, [classes, students, searchQuery, sortBy, classStats, sortDesc]);
 
   // ─────────────────────────────────────────────────────────
   // KEY OPTIMIZATION 5: Filter students using pre-sorted list
@@ -350,36 +352,45 @@ export default function ClassroomMonitorTab({
         </div>
 
         {/* Sort */}
-        <div className="relative" ref={sortRef}>
-          <button onClick={() => setShowSort(v => !v)}
-            className={`flex items-center gap-2 px-3.5 py-3 rounded-2xl border text-sm font-bold transition-all hover:scale-105 active:scale-95
-              ${showSort
-                ? darkMode ? 'bg-white/8 border-white/16 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'
-                : darkMode ? 'bg-white/[0.04] border-white/8 text-gray-400 hover:bg-white/7' : 'bg-white border-gray-200 text-gray-500 shadow-sm hover:border-gray-300'
-              }`}
-          >
-            <ArrowUpDown size={14} />
-            <span className="hidden sm:inline">{SORT_OPTIONS.find(s => s.value === sortBy)?.label}</span>
-          </button>
-          {showSort && (
-            <div className={`absolute right-0 top-full mt-2 w-48 rounded-2xl border overflow-hidden z-30
-              ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
-              style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.2)', animation: 'hdr-slide-down 0.18s ease-out both' }}
+        <div className="flex gap-2">
+          <div className="relative" ref={sortRef}>
+            <button onClick={() => setShowSort(v => !v)}
+              className={`flex items-center gap-2 px-3.5 py-3 rounded-2xl border text-sm font-bold transition-all hover:scale-105 active:scale-95
+                ${showSort
+                  ? darkMode ? 'bg-white/8 border-white/16 text-sky-400' : 'bg-sky-50 border-sky-200 text-sky-600'
+                  : darkMode ? 'bg-white/[0.04] border-white/8 text-gray-400 hover:bg-white/7' : 'bg-white border-gray-200 text-gray-500 shadow-sm hover:border-gray-300'
+                }`}
             >
-              {SORT_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => { setSortBy(opt.value); setShowSort(false); }}
-                  className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors flex items-center gap-2
-                    ${sortBy === opt.value
-                      ? darkMode ? 'text-sky-400 bg-sky-500/10' : 'text-sky-600 bg-sky-50'
-                      : darkMode ? 'text-gray-300 hover:bg-white/6' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                >
-                  {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 flex-shrink-0" />}
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
+              <ArrowUpDown size={14} />
+              <span className="hidden sm:inline">{SORT_OPTIONS.find(s => s.value === sortBy)?.label}</span>
+            </button>
+            {showSort && (
+              <div className={`absolute right-0 top-full mt-2 w-48 rounded-2xl border overflow-hidden z-30
+                ${darkMode ? 'bg-[#0d1220] border-white/10' : 'bg-white border-gray-200'}`}
+                style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.2)', animation: 'hdr-slide-down 0.18s ease-out both' }}
+              >
+                {SORT_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => { setSortBy(opt.value); setShowSort(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors flex items-center gap-2
+                      ${sortBy === opt.value
+                        ? darkMode ? 'text-sky-400 bg-sky-500/10' : 'text-sky-600 bg-sky-50'
+                        : darkMode ? 'text-gray-300 hover:bg-white/6' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                  >
+                    {sortBy === opt.value && <span className="w-1.5 h-1.5 rounded-full bg-sky-500 flex-shrink-0" />}
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button onClick={() => setSortDesc(v => !v)}
+            className={`flex items-center gap-2 px-3.5 py-3 rounded-2xl border text-sm font-bold transition-all hover:scale-105 active:scale-95
+              ${darkMode ? 'bg-white/[0.04] border-white/8 text-gray-400 hover:bg-white/7' : 'bg-white border-gray-200 text-gray-500 shadow-sm hover:border-gray-300'}`}
+            title={sortDesc ? 'Descending' : 'Ascending'}
+          >
+            {sortDesc ? <ArrowDown size={14} /> : <ArrowUp size={14} />}
+          </button>
         </div>
       </div>
 

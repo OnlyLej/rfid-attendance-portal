@@ -1,18 +1,24 @@
-import { notFound } from 'next/navigation';
 import { getRequestConfig } from 'next-intl/server';
-import { localeCodes, defaultLocale } from '../app/_lib/locales';
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  const locale = await requestLocale;
-  if (!localeCodes.includes(locale)) notFound();
+  let locale = await requestLocale;
+  if (!locale) locale = 'en';
 
-  const userMessages = (await import(`../messages/${locale}.json`)).default;
-  const fallback = locale !== defaultLocale
-    ? (await import(`../messages/${defaultLocale}.json`)).default
-    : {};
+  try {
+    const userMessages = (await import(`../messages/${locale}.json`)).default;
+    const fallback = locale !== 'en'
+      ? (await import(`../messages/en.json`)).default
+      : {};
 
-  return {
-    locale,
-    messages: { ...fallback, ...userMessages },
-  };
+    return {
+      locale,
+      messages: { ...fallback, ...userMessages },
+    };
+  } catch (e) {
+    const userMessages = (await import(`../messages/en.json`)).default;
+    return {
+      locale: 'en',
+      messages: userMessages,
+    };
+  }
 });
