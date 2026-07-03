@@ -180,7 +180,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'RIDAP Error Bot',
-        avatar_url: 'https://ridap.vercel.app/favicon.ico',
+        avatar_url: 'https://ridap.qzz.io/favicon.ico',
         embeds: [embed],
       }),
     });
