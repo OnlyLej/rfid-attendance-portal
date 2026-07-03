@@ -89,7 +89,7 @@
       "Instant kag accurate.",
       "Tan-awa ini sang mga ginikanan live.",
       "Real-time RFID scanning.",
-      "Kagahambal sa ESP8266 & ESP32.",
+      "Kagahambal sa ESP32.",
       "Auto-logs ang kada pag-abot.",
       "I-export sa Excel bisan kapano.",
       "Zero manual entry.",
@@ -97,7 +97,7 @@
     ],
     "faqItems": {
       "hardwareQ": "Ano ang RFID hardware nga kinahanglan?",
-      "hardwareA": "Bisan ano nga standard nga 125kHz o 13.56MHz RFID card/fob amo ang kagahambal. Ang mga reader unit nagadalag sa ESP8266/ESP32 microcontrollers nga nakonekta sa WiFi sang imo eskwelahan. Ang setup nagapas sa ubos sang 30 minuto kada unit.",
+      "hardwareA": "Bisan ano nga standard nga 13.56MHz RFID card/fob amo ang kagahambal. Ang mga reader unit nagadalag sa ESP32 microcontrollers nga nakonekta sa WiFi sang imo eskwelahan. Ang setup nagapas sa ubos sang 30 minuto kada unit.",
       "dataProtectionQ": "Paano protektado ang data sang mga estudyante?",
       "dataProtectionA": "Tanang data naka-encrypt sa transit (TLS 1.3) kag sa rest. Ang mga session token nag-e-expire kagkatapos sang 30 minuto sang inactivity. Wala personally identifiable data nga naka-store sa hardware mismo.",
       "parentAccessQ": "Puede ma-access sang mga ginikanan ang mga admin feature?",
@@ -105,7 +105,7 @@
       "multipleChildrenQ": "Puede i-track sang isa ka parent account ang madamo nga anak?",
       "multipleChildrenA": "Oo. Ang isa ka parent account puede i-link sa madamo nga estudyante. Ang portal nagapakita sang child-selector para mag-switch sa pagitan sang individual views o tan-awa ang tanan nga record nga pinagsama.",
       "wifiDownQ": "Ano ang mahitabo kung mubaba ang WiFi?",
-      "wifiDownA": "Ang ESP8266/ESP32 reader nag-queue sang mga scans locally kag nag-sync sa awtomatik kung restore na ang connectivity. Wala attendance data nga nawala sa panahon sang outages.",
+      "wifiDownA": "Ang ESP32 reader nag-queue sang mga scans locally kag nag-sync sa awtomatik kung restore na ang connectivity. Wala attendance data nga nawala sa panahon sang outages.",
       "exportQ": "Paano ko i-export ang mga attendance record?",
       "exportA": "I-click ang Export sa bisan ano nga filtered view sa Logs tab. Ang mga record nadownload bilang formatted Excel (.xlsx) file nga maya color-coded statuses kag auto-filters nga pre-applied."
     },
@@ -125,7 +125,7 @@
     },
     "steps": {
       "step1Title": "Student taps RFID card",
-      "step1Desc": "Ang ESP8266/ESP32 reader nakadetect sang card kag nagbasa sang unique UID sa ubos sang 50ms.",
+      "step1Desc": "Ang ESP32 reader nakadetect sang card kag nagbasa sang unique UID sa ubos sang 50ms.",
       "step2Title": "WiFi transmission to API",
       "step2Desc": "Ang reader nagapadala sang UID, timestamp, kag reader ID sa Google Apps Script endpoint pinaagi sang HTTPS.",
       "step3Title": "Data stored & classified",
