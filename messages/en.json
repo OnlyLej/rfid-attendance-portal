@@ -89,7 +89,7 @@
       "Instant & accurate.",
       "Parents see it live.",
       "Real-time RFID scanning.",
-      "Works on ESP8266 & ESP32.",
+      "Works on ESP32.",
       "Auto-logs every arrival.",
       "Export to Excel anytime.",
       "Zero manual entry.",
@@ -97,7 +97,7 @@
     ],
     "faqItems": {
       "hardwareQ": "What RFID hardware is required?",
-      "hardwareA": "Any standard 13.56MHz RFID card/fob works. Reader units run on ESP8266/ESP32 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.",
+      "hardwareA": "Any standard 13.56MHz RFID card/fob works. Reader units run on ESP32 microcontrollers connected to your school WiFi. Setup takes under 30 minutes per unit.",
       "dataProtectionQ": "How is student data protected?",
       "dataProtectionA": "All data is encrypted in transit (TLS 1.3) and at rest. Session tokens expire after 30 minutes of inactivity. No personally identifiable data is stored on the hardware itself.",
       "parentAccessQ": "Can parents access admin features?",
@@ -105,7 +105,7 @@
       "multipleChildrenQ": "Can one parent account track multiple children?",
       "multipleChildrenA": "Yes. A parent account can be linked to multiple students. The portal shows a child-selector to switch between individual views or see all records combined.",
       "wifiDownQ": "What happens if the WiFi goes down?",
-      "wifiDownA": "The ESP8266/ESP32 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.",
+      "wifiDownA": "The ESP32 reader queues scans locally and syncs automatically when connectivity is restored. No attendance data is lost during outages.",
       "exportQ": "How do I export attendance records?",
       "exportA": "Click Export on any filtered view in the Logs tab. Records download as a formatted Excel (.xlsx) file with color-coded statuses and auto-filters pre-applied."
     },
@@ -125,7 +125,7 @@
     },
     "steps": {
       "step1Title": "Student taps RFID card",
-      "step1Desc": "The ESP8266/ESP32 reader detects the card and reads the unique UID in under 50ms.",
+      "step1Desc": "The ESP32 reader detects the card and reads the unique UID in under 50ms.",
       "step2Title": "WiFi transmission to API",
       "step2Desc": "The reader sends the UID, timestamp, and reader ID to the Google Apps Script endpoint over HTTPS.",
       "step3Title": "Data stored & classified",

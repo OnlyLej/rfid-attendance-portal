@@ -89,7 +89,7 @@
       "Instant at accurate.",
       "Nakikita ito ng mga magulang live.",
       "Real-time RFID scanning.",
-      "Gumagana sa ESP8266 & ESP32.",
+      "Gumagana sa ESP32.",
       "Auto-logs ang bawat pagdating.",
       "I-export sa Excel kahit kailan.",
       "Zero manual entry.",
@@ -97,7 +97,7 @@
     ],
     "faqItems": {
       "hardwareQ": "Anong RFID hardware ang kailangan?",
-      "hardwareA": "Anumang standard na 13.56MHz RFID card/fob ay gumagana. Ang mga reader unit ay tumatakbo sa ESP8266/ESP32 microcontrollers na nakakonekta sa WiFi ng iyong paaralan. Ang setup ay tumatagal ng mas mababa sa 30 minuto bawat unit.",
+      "hardwareA": "Anumang standard na 13.56MHz RFID card/fob ay gumagana. Ang mga reader unit ay tumatakbo sa ESP32 microcontrollers na nakakonekta sa WiFi ng iyong paaralan. Ang setup ay tumatagal ng mas mababa sa 30 minuto bawat unit.",
       "dataProtectionQ": "Paano protektado ang data ng mga estudyante?",
       "dataProtectionA": "Lahat ng data ay naka-encrypt sa transit (TLS 1.3) at sa rest. Ang mga session token ay nag-e-expire pagkatapos ng 30 minuto ng inactivity. Walang personally identifiable data na naka-store sa hardware mismo.",
       "parentAccessQ": "Maaari bang ma-access ng mga magulang ang mga admin feature?",
@@ -105,7 +105,7 @@
       "multipleChildrenQ": "Maaari bang i-track ng isang parent account ang maraming anak?",
       "multipleChildrenA": "Oo. Ang isang parent account ay maaaring i-link sa maraming estudyante. Ang portal ay nagpapakita ng child-selector para mag-switch sa pagitan ng individual views o tingnan ang lahat ng records na pinagsama.",
       "wifiDownQ": "Anong mangyayari kung bumaba ang WiFi?",
-      "wifiDownA": "Ang ESP8266/ESP32 reader ay nag-queue ng scans locally at nag-sync nang awtomatik kapag restore na ang connectivity. Walang attendance data na nawala sa panahon ng outages.",
+      "wifiDownA": "Ang ESP32 reader ay nag-queue ng scans locally at nag-sync nang awtomatik kapag restore na ang connectivity. Walang attendance data na nawala sa panahon ng outages.",
       "exportQ": "Paano ko i-export ang mga attendance record?",
       "exportA": "I-click ang Export sa anumang filtered view sa Logs tab. Ang mga record ay nadownload bilang formatted Excel (.xlsx) file na may color-coded statuses at auto-filters na pre-applied."
     },
@@ -125,7 +125,7 @@
     },
     "steps": {
       "step1Title": "Student taps RFID card",
-      "step1Desc": "Ang ESP8266/ESP32 reader ay nakadetect ng card at nagbasa ng unique UID sa ilalim ng 50ms.",
+      "step1Desc": "Ang ESP32 reader ay nakadetect ng card at nagbasa ng unique UID sa ilalim ng 50ms.",
       "step2Title": "WiFi transmission to API",
       "step2Desc": "Ang reader ay nagpapadala ng UID, timestamp, at reader ID sa Google Apps Script endpoint sa pamamagitan ng HTTPS.",
       "step3Title": "Data stored & classified",
