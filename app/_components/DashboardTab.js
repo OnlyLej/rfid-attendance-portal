@@ -11,6 +11,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, toPhDateStr, getPhLocalDate, formatLocalDateTime, getDisplayTimezone } from '../_lib/data';
+import { useApp } from '../_lib/AppContext';
 import { Skeleton, ChartSkeleton, Card } from './ui';
 import AttendanceHeatmap from './AttendanceHeatmap';
 
@@ -162,6 +163,7 @@ const ChartHeader = ({ icon: Icon, title, badge, color = 'sky', darkMode }) => {
 /* ── Main ── */
 export default function DashboardTab({ darkMode, stats, weekData, students, logs, classes, loading }) {
   const t = useTranslations();
+  const { live } = useApp();
   const isMobile = useIsMobile();
 
   /* ── Data derivations (unchanged logic) ── */
@@ -303,6 +305,11 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
   const chartH     = isMobile ? 220 : 260;
   const weekAvg    = dailyData.length > 0 ? Math.round(dailyData.reduce((s, d) => s + d.attendanceRate, 0) / dailyData.length) : 0;
 
+  const liveTotal   = live?.total   ?? stats.totalStudents;
+  const livePresent = live?.present ?? stats.presentToday;
+  const liveAbsent  = Math.max(0, liveTotal - livePresent);
+  const liveRate    = liveTotal > 0 ? Math.round((livePresent / liveTotal) * 100) : stats.attendanceRate;
+
   if (!loading && (!students || students.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
@@ -353,10 +360,10 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
         {[
-          { label: t('dashboard.totalStudents'), value: `${stats.totalStudents}`, numericValue: stats.totalStudents, icon: Users,     color: 'blue',   delay: 0   },
-          { label: t('dashboard.presentToday'),  value: `${stats.presentToday}`,  numericValue: stats.presentToday,  icon: UserCheck, color: 'green',  delay: 60  },
-          { label: t('dashboard.absentToday'),   value: `${stats.absentToday}`,   numericValue: stats.absentToday,   icon: UserX,     color: 'red',    delay: 120 },
-          { label: t('dashboard.todaysRate'),   value: `${stats.attendanceRate}%`, numericValue: stats.attendanceRate, icon: TrendingUp, color: 'purple', delay: 180 },
+          { label: t('dashboard.totalStudents'), value: `${liveTotal}`, numericValue: liveTotal, icon: Users,     color: 'blue',   delay: 0   },
+          { label: t('dashboard.presentToday'),  value: `${livePresent}`,  numericValue: livePresent,  icon: UserCheck, color: 'green',  delay: 60  },
+          { label: t('dashboard.absentToday'),   value: `${liveAbsent}`,   numericValue: liveAbsent,   icon: UserX,     color: 'red',    delay: 120 },
+          { label: t('dashboard.todaysRate'),   value: `${liveRate}%`, numericValue: liveRate, icon: TrendingUp, color: 'purple', delay: 180 },
           { label: t('dashboard.weekAverage'),   value: `${weekAvg}%`,            numericValue: weekAvg,             icon: Calendar,  color: 'indigo', delay: 240 },
         ].map((s, i) => (
           <StatCard key={i} {...s} darkMode={darkMode} />

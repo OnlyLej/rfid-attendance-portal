@@ -43,12 +43,26 @@ export default async function handler(req, res) {
     }
 
     // GET requests
+    const { action, ...params } = req.query;
+    
+    // Public endpoints that don't require authentication
+    if (action === 'getPublicLiveStats') {
+      let url = `${GOOGLE_SCRIPT_URL}?action=${action}`;
+      Object.keys(params).forEach(key => {
+        if (params[key]) {
+          url += `&${key}=${encodeURIComponent(params[key])}`;
+        }
+      });
+      const response = await fetch(url);
+      const data = await response.json();
+      return res.status(200).json(data);
+    }
+    
     const sessionToken = req.headers['x-session-token'];
     if (!sessionToken) {
       return res.status(401).json({ success: false, message: 'No session token provided' });
     }
 
-    const { action, ...params } = req.query;
     let url = `${GOOGLE_SCRIPT_URL}?action=${action}&sessionToken=${sessionToken}`;
     Object.keys(params).forEach(key => {
       if (params[key] && key !== 'sessionToken') {

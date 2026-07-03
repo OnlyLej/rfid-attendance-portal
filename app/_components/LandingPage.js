@@ -216,8 +216,27 @@ export default function LandingPage() {
   const [faqRef, faqVis] = useReveal(0.08);
   const [ctaRef, ctaVis] = useReveal(0.08);
   const [metRef, metVis] = useReveal(0.08);
+  const [publicStats, setPublicStats] = useState(null);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    let busy = false;
+    const tick = async () => {
+      if (document.hidden || busy) return;
+      busy = true;
+      try {
+        const res  = await fetch('/api/proxy?action=getPublicLiveStats');
+        const data = await res.json();
+        if (data.success) setPublicStats(data);
+      } catch { /* silent */ }
+      finally { busy = false; }
+    };
+    tick();
+    const id = setInterval(tick, 30000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+  }, []);
 
   useEffect(() => {
     try { if (localStorage.getItem('theme') === 'dark') { setDark(true); document.documentElement.classList.add('dark'); } } catch { }
@@ -540,15 +559,30 @@ export default function LandingPage() {
       <section ref={metRef} className="relative py-14 sm:py-16" style={{ zIndex: 1 }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Live students tracked today card */}
+            <div className={`p-5 sm:p-6 rounded-2xl border text-center transition-all duration-500 hover:-translate-y-1 ${metVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${dark ? 'bg-white/[0.04] border-white/8 hover:border-white/16' : 'bg-white border-gray-100'}`}>
+              {publicStats ? (
+                <>
+                  <div className="text-3xl sm:text-4xl font-black tabular-nums mb-1" style={{ color: '#0ea5e9' }}>
+                    <Odometer value={publicStats.logsToday || 0} format="(,ddd)" />
+                  </div>
+                  <p className={`text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
+                </>
+              ) : (
+                <>
+                  <div className={`h-10 sm:h-12 w-24 mx-auto rounded-lg animate-pulse ${dark ? 'bg-white/10' : 'bg-gray-200'} mb-1`} />
+                  <p className={`text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
+                </>
+              )}
+            </div>
             {[
-              { to: 500, suffix: '+', label: 'Students tracked', accent: '#0ea5e9' },
               { to: 99, suffix: '.9%', label: 'Scan accuracy', accent: '#10b981' },
               { to: 200, prefix: '<', suffix: 'ms', label: 'Response time', accent: '#0284c7' },
               { to: 24, suffix: '/7', label: 'System availability', accent: '#3b82f6' },
             ].map((m, i) => (
               <div key={i}
                 className={`p-5 sm:p-6 rounded-2xl border text-center transition-all duration-500 hover:-translate-y-1 ${metVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${dark ? 'bg-white/[0.04] border-white/8 hover:border-white/16' : 'bg-white border-gray-100'}`}
-                style={{ transitionDelay: `${i * 80}ms` }}>
+                style={{ transitionDelay: `${(i + 1) * 80}ms` }}>
                 <p className="text-3xl sm:text-4xl font-black tabular-nums mb-1" style={{ color: m.accent }}>
                   <CountUp to={m.to} suffix={m.suffix} prefix={m.prefix} />
                 </p>

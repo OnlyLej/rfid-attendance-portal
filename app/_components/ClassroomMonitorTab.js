@@ -4,6 +4,7 @@ import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Search, X, ArrowUpDown, RefreshCw, Clock, LayoutGrid, List, ArrowDown, ArrowUp } from 'lucide-react';
 import { normalizeId, parsePhTimestamp, getPhTodayStr, getPhLocalDate, formatLocalDateTime } from '../_lib/data';
+import { useApp } from '../_lib/AppContext';
 import {
   RateRing, AnimatedNumber, FilterChip, EmptyState, Skeleton
 } from './ui';
@@ -74,6 +75,7 @@ export default function ClassroomMonitorTab({
   onToast,
 }) {
   const t = useTranslations();
+  const { live } = useApp();
   const [sortBy,         setSortBy]         = useState('name');
   const [sortDesc,       setSortDesc]       = useState(true);
 
@@ -89,8 +91,8 @@ export default function ClassroomMonitorTab({
   const sortRef = useRef(null);
 
   useEffect(() => {
-    if (!loading) setLastRefreshed(Date.now());
-  }, [loading]);
+    setLastRefreshed(Date.now());
+  }, [logs, students]);
 
   useEffect(() => {
     const h = (e) => { if (sortRef.current && !sortRef.current.contains(e.target)) setShowSort(false); };
@@ -259,6 +261,10 @@ export default function ClassroomMonitorTab({
     return { ...t, rate: t.total > 0 ? Math.round((t.in / t.total) * 100) : 0 };
   }, [classStats]);
 
+  const liveIn    = live?.present ?? overallStats.in;
+  const liveTotal = live?.total   ?? overallStats.total;
+  const liveRate  = liveTotal > 0 ? Math.round((liveIn / liveTotal) * 100) : overallStats.rate;
+
   const statusCfg = useMemo(() => ({
     'in':     { dot: 'bg-emerald-500', badge: darkMode ? 'bg-emerald-500/12 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-100', label: t('classroom.inLabel'),     pulse: true  },
     'out':    { dot: 'bg-rose-500',    badge: darkMode ? 'bg-rose-500/12 text-rose-400 border-rose-500/20'           : 'bg-rose-50 text-rose-700 border-rose-100',           label: t('classroom.outLabel'),    pulse: false },
@@ -296,13 +302,13 @@ export default function ClassroomMonitorTab({
               <Skeleton darkMode={darkMode} className="h-8 w-40 rounded-lg mt-1" />
             ) : (
               <p className={`text-2xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                <AnimatedNumber value={overallStats.in} /> <span className={`text-base font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>/ {overallStats.total} {t('classroom.enrolled')}</span>
+                <AnimatedNumber value={liveIn} /> <span className={`text-base font-semibold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>/ {liveTotal} {t('classroom.enrolled')}</span>
               </p>
             )}
           </div>
           <div className="flex items-center gap-5 flex-wrap">
             {[
-              { label: t('classroom.present'), value: overallStats.in,        color: 'text-emerald-500' },
+              { label: t('classroom.present'), value: liveIn,        color: 'text-emerald-500' },
               { label: t('classroom.outLabel'),     value: overallStats.out,       color: 'text-rose-500'    },
               { label: t('classroom.absentLabel'),  value: overallStats['no-log'], color: darkMode ? 'text-gray-400' : 'text-gray-500' },
             ].map((s, i) => (
@@ -314,17 +320,17 @@ export default function ClassroomMonitorTab({
               </div>
             ))}
             <div className="relative w-12 h-12 flex-shrink-0">
-              <RateRing rate={loading ? 0 : overallStats.rate} size={48} darkMode={darkMode} />
+              <RateRing rate={loading ? 0 : liveRate} size={48} darkMode={darkMode} />
               <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black"
-                style={{ color: overallStats.rate >= 80 ? '#10b981' : overallStats.rate >= 60 ? '#f59e0b' : '#f43f5e' }}>
-                {loading ? '…' : `${overallStats.rate}%`}
+                style={{ color: liveRate >= 80 ? '#10b981' : liveRate >= 60 ? '#f59e0b' : '#f43f5e' }}>
+                {loading ? '…' : `${liveRate}%`}
               </span>
             </div>
           </div>
         </div>
         <div className={`mt-3 h-1.5 rounded-full overflow-hidden ${darkMode ? 'bg-white/6' : 'bg-gray-100'}`}>
           <div className="h-full rounded-full transition-all duration-1000 ease-out"
-            style={{ width: loading ? '0%' : `${overallStats.rate}%`, background: '#10b981' }} />
+            style={{ width: loading ? '0%' : `${liveRate}%`, background: '#10b981' }} />
         </div>
       </div>
 

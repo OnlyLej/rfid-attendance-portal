@@ -181,6 +181,39 @@ export function AppProvider({ children }) {
     }
   }, [secureApiCall]);
 
+  //live refresh
+  const [live, setLive] = useState(null); // { present, total }
+
+  const pollLive = useCallback(async () => {
+    const token = sessionStorage.getItem('sessionToken');
+    if (!token) return;
+    try {
+      const r = await fetch(`/api/proxy?action=getLiveCounts`, {
+        headers: { 'X-Session-Token': token }
+      });
+      if (!r.ok) return;
+      const text = await r.text();
+      if (!text || !text.trim()) return;
+      const d = JSON.parse(text);
+      if (d.success) setLive(d);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!authenticated) { setLive(null); return; }
+    let busy = false;
+    const tick = async () => {
+      if (document.hidden || busy) return;
+      busy = true;
+      await pollLive();
+      busy = false;
+    };
+    tick();
+    const id = setInterval(tick, 10000);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+  }, [authenticated, pollLive]);
+
   // ── Clear all data (used on logout) ──────────────────────────────────────
   const clearData = useCallback(() => {
     setLogs([]);
