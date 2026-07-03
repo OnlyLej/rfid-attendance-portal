@@ -97,7 +97,7 @@
     ],
     "faqItems": {
       "hardwareQ": "Ania ti RFID hardware a kasapulan?",
-      "hardwareA": "Ania man a standard a 125kHz wenno 13.56MHz RFID card/fob ti agtrabaho. Dagiti reader unit ket agtaray iti ESP8266/ESP32 microcontrollers a nakonekta iti WiFi ti eskuela. Ti setup ket lab-labos iti baba ti 30 minuto tunggal unit.",
+      "hardwareA": "Ania man a standard a 13.56MHz RFID card/fob ti agtrabaho. Dagiti reader unit ket agtaray iti ESP8266/ESP32 microcontrollers a nakonekta iti WiFi ti eskuela. Ti setup ket lab-labos iti baba ti 30 minuto tunggal unit.",
       "dataProtectionQ": "Kasano a naserbi ti data dagiti estudyante?",
       "dataProtectionA": "Amin a data ket naka-encrypt iti transit (TLS 1.3) ken iti rest. Dagiti session token ket ag-expire kalpasan ti 30 minuto iti inactivity. Awan ti personally identifiable data a naka-store iti hardware mismo.",
       "parentAccessQ": "Mabalin a ma-access dagiti ginikanan dagiti admin feature?",
