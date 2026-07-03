@@ -209,7 +209,7 @@ export function AppProvider({ children }) {
       busy = false;
     };
     tick();
-    const id = setInterval(tick, 10000);
+    const id = setInterval(tick, 60000);
     document.addEventListener('visibilitychange', tick);
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
   }, [authenticated, pollLive]);
