@@ -1,6 +1,6 @@
 import { localeCodes } from './_lib/locales';
 
-const baseUrl = 'https://ridap.lej.qzz.io';
+const baseUrl = 'https://ridap.qzz.io';
 
 export default function robots() {
   const disallow = localeCodes.flatMap(code => [

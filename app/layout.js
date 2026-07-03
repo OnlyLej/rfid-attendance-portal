@@ -1,5 +1,5 @@
 export const metadata = {
-  metadataBase: new URL('https://ridap.lej.qzz.io'),
+  metadataBase: new URL('https://ridap.qzz.io'),
   title: 'RFID Attendance Portal',
   description: "RFID Attendance Portal is a real-time attendance management system for Philippine schools. Teachers get live dashboards, classroom monitoring, and Excel export. Parents can track their child's daily attendance through a dedicated parent portal.",
   keywords: ['attendance', 'RFID', 'school', 'Philippines', 'dashboard', 'parent portal'],
@@ -10,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: 'RFID Attendance Portal',
     description: 'Real-time RFID-powered attendance management for Philippine schools.',
-    url: 'https://ridap.lej.qzz.io',
+    url: 'https://ridap.qzz.io',
     siteName: 'RFID Attendance Portal',
     locale: 'en_PH',
     type: 'website',
@@ -51,22 +51,22 @@ export const metadata = {
   alternates: {
     canonical: '/',
     languages: {
-      'en': 'https://ridap.lej.qzz.io/en',
-      'tl': 'https://ridap.lej.qzz.io/tl',
-      'ceb': 'https://ridap.lej.qzz.io/ceb',
-      'ilo': 'https://ridap.lej.qzz.io/ilo',
-      'hil': 'https://ridap.lej.qzz.io/hil',
-      'war': 'https://ridap.lej.qzz.io/war',
-      'pam': 'https://ridap.lej.qzz.io/pam',
-      'bik': 'https://ridap.lej.qzz.io/bik',
-      'x-default': 'https://ridap.lej.qzz.io',
+      'en': 'https://ridap.qzz.io/en',
+      'tl': 'https://ridap.qzz.io/tl',
+      'ceb': 'https://ridap.qzz.io/ceb',
+      'ilo': 'https://ridap.qzz.io/ilo',
+      'hil': 'https://ridap.qzz.io/hil',
+      'war': 'https://ridap.qzz.io/war',
+      'pam': 'https://ridap.qzz.io/pam',
+      'bik': 'https://ridap.qzz.io/bik',
+      'x-default': 'https://ridap.qzz.io',
     },
   },
   
   links: [
     {
       rel: 'canonical',
-      url: 'https://ridap.lej.qzz.io',
+      url: 'https://ridap.qzz.io',
     },
   ],
 };
