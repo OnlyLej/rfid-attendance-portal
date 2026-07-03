@@ -182,6 +182,18 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
     return days;
   }, [logs, students]);
 
+  /* ── Today's unique check-in/out counts (per student, not per log) ── */
+  const todayStats = useMemo(() => {
+    const todayPhStr = getPhTodayStr();
+    const todayLogs = logs.filter(log => log.timestamp && getPhLocalDate(log.timestamp) === todayPhStr);
+    const checkedInStudents = new Set(todayLogs.filter(l => l.status === 'IN' && l.studentId).map(l => normalizeId(l.studentId)));
+    const checkedOutStudents = new Set(todayLogs.filter(l => l.status === 'OUT' && l.studentId).map(l => normalizeId(l.studentId)));
+    const presentToday = checkedInStudents.size;
+    const checkedOutToday = checkedOutStudents.size;
+    const attendanceRate = students.length > 0 ? Math.round((presentToday / students.length) * 100) : 0;
+    return { presentToday, checkedOutToday, attendanceRate };
+  }, [logs, students]);
+
   const weeklyData = useMemo(() => {
     if (!students?.length) return [];
     const totalStudents = students.length;
@@ -261,12 +273,14 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
       let presentCount = 0, absentCount = 0, noLogCount = 0;
       classStudents.forEach(student => {
         const nid = normalizeId(student.studentId);
-        const studentLogs = (todayLogsByStudent.get(nid) || []).slice().sort((a, b) => {
-          const da = parsePhTimestamp(a.timestamp); const db = parsePhTimestamp(b.timestamp);
-          return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
-        });
+        const studentLogs = (todayLogsByStudent.get(nid) || []);
         if (!studentLogs.length) { noLogCount++; }
-        else { studentLogs[studentLogs.length - 1].status === 'IN' ? presentCount++ : absentCount++; }
+        else {
+          // Student is present if they have any IN log today (regardless of OUT)
+          const hasIn = studentLogs.some(l => l.status === 'IN');
+          if (hasIn) presentCount++;
+          else absentCount++;
+        }
       });
       const rate = Math.round((presentCount / totalCount) * 100);
       const displayName = cls.length > 16 ? `${cls.substring(0, 14)}…` : cls;
@@ -511,9 +525,9 @@ export default function DashboardTab({ darkMode, stats, weekData, students, logs
             content: (
               <div className="space-y-3">
                 {[
-                  { label: t('dashboard.checkins'),     value: stats.presentToday },
-                  { label: t('dashboard.checkedOut'),  value: stats.absentToday,         red: true },
-                  { label: t('dashboard.attendanceRate'),    value: `${stats.attendanceRate}%`, green: true },
+                  { label: t('dashboard.checkins'),     value: todayStats.presentToday },
+                  { label: t('dashboard.checkedOut'),  value: todayStats.checkedOutToday,         red: true },
+                  { label: t('dashboard.attendanceRate'),    value: `${todayStats.attendanceRate}%`, green: true },
                 ].map((r, i) => (
                   <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${darkMode ? 'border-white/6' : 'border-gray-100'}`}>
                     <span className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{r.label}</span>
