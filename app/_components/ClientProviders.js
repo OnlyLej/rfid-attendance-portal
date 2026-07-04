@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { ToastProvider } from './ui';
 import { detectTimezone } from '../_lib/data';
 import TopLoader from './TopLoader';
+import { AppProvider } from '../_lib/AppContext';
 
 const RIDAP_ASCII = `
 %c██████╗ ██╗██████╗  █████╗ ██████╗ 
@@ -44,9 +45,11 @@ export default function ClientProviders({ children }) {
   }, []);
 
   return (
-    <ToastProvider darkMode={darkMode}>
-      <TopLoader />
-      {children}
-    </ToastProvider>
+    <AppProvider>
+      <ToastProvider darkMode={darkMode}>
+        <TopLoader />
+        {children}
+      </ToastProvider>
+    </AppProvider>
   );
 }
