@@ -1,3 +1,5 @@
+import './odometer-theme.css';
+
 export const metadata = {
   metadataBase: new URL('https://ridap.qzz.io'),
   title: 'RFID Attendance Portal',

@@ -25,8 +25,8 @@ export function useDarkMode() {
 }
 
 export function useSidebarCollapse() {
-  const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => { if (localStorage.getItem('sidebarCollapsed') === 'true') setCollapsed(true); }, []);
+  const [collapsed, setCollapsed] = useState(true);
+  useEffect(() => { if (localStorage.getItem('sidebarCollapsed') === 'false') setCollapsed(false); }, []);
   const toggle = useCallback(() => setCollapsed(p => {
     const n = !p;
     localStorage.setItem('sidebarCollapsed', n ? 'true' : 'false');
