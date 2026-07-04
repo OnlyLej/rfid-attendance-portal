@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { ToastProvider } from './ui';
 import { detectTimezone } from '../_lib/data';
-
+import TopLoader from './TopLoader';
 
 const RIDAP_ASCII = `
 %c██████╗ ██╗██████╗  █████╗ ██████╗ 
@@ -31,7 +31,7 @@ export default function ClientProviders({ children }) {
       ''
     );
     console.log(
-      '%cRFID Attendance Portal · built with ❤️ · https://ridap.lej.qzz.io',
+      '%cRFID Attendance Portal · built with ❤️ · https://ridap.qzz.io',
       'color:#10b981; font-family:monospace; font-size:11px;'
     );
 
@@ -43,5 +43,10 @@ export default function ClientProviders({ children }) {
     return () => obs.disconnect();
   }, []);
 
-  return <ToastProvider darkMode={darkMode}>{children}</ToastProvider>;
+  return (
+    <ToastProvider darkMode={darkMode}>
+      <TopLoader />
+      {children}
+    </ToastProvider>
+  );
 }
