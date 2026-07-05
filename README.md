@@ -33,12 +33,12 @@ GOOGLE_APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exe
 
 A mock API is available for testing.
 
-**Base URL:** `https://api.lej.qzz.io`
+**Base URL:** `https://rfid-mock-api.lejematienzo.workers.dev`
 
 To use it, set your `GOOGLE_APPS_SCRIPT_URL` in `.env.local` to the mock API URL:
 
 ```env
-GOOGLE_APPS_SCRIPT_URL=https://api.lej.qzz.io
+GOOGLE_APPS_SCRIPT_URL=https://rfid-mock-api.lejematienzo.workers.dev
 ```
 
 ### Test Credentials
