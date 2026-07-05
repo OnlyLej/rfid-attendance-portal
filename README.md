@@ -199,7 +199,7 @@ The session token is created and validated entirely by Google Apps Script. The N
 
 ---
 
-##mestamp Format
+## Timestamp Format
 
 All timestamps from the API are Philippine Standard Time (UTC+8), formatted as:
 
