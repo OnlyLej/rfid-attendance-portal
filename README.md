@@ -52,18 +52,18 @@ GOOGLE_APPS_SCRIPT_URL=https://rfid-mock-api.lejematienzo.workers.dev
 
 **Login:**
 ```
-POST https://api.lej.qzz.io
+POST /
 Body: { "username": "teacher1", "password": "test123" }
 ```
 
 **Dashboard Stats:**
 ```
-GET https://api.lej.qzz.io?action=getDashboardStats&sessionToken=mock-token
+GET /?action=getDashboardStats&sessionToken=mock-token
 ```
 
 **Classes:**
 ```
-GET https://api.lej.qzz.io?action=getClasses&sessionToken=mock-token
+GET /?action=getClasses&sessionToken=mock-token
 ```
 
 > ⚠️ The test API returns static mock data only. It does not persist any changes.
