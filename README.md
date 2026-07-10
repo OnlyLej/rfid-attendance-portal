@@ -247,15 +247,3 @@ The portal automatically detects your timezone from your IP address and displays
 2. The detected timezone is cached in localStorage for 24 hours to avoid repeated API calls
 3. If the API fails, it falls back to your browser's timezone setting
 4. All timestamps from the backend are Philippine Standard Time (UTC+8), formatted as `"2025-02-21 08:14:00"`
-
----
-
-## Key Dependencies
-
-| Package | Purpose |
-|---|---|
-| `next` | React framework and API routes |
-| `recharts` | Area, bar, and radial charts |
-| `exceljs` | Excel export |
-| `lucide-react` | Icons |
-| `tailwindcss` | Styling |
