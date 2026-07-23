@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useDarkMode } from '../../_lib/usePageLayout';
-import { Settings, Clock, AlertCircle } from 'lucide-react';
+import { Clock, AlertCircle, Sun, Moon } from 'lucide-react';
 
 export default function MaintenancePage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -29,7 +29,7 @@ export default function MaintenancePage() {
           darkMode ? 'hover:bg-white/6 text-gray-400' : 'hover:bg-black/6 text-gray-500'
         }`}
       >
-        {darkMode ? <Settings size={20} /> : <Settings size={20} />}
+        {darkMode ? <Sun size={20} /> : <Moon size={20} />}
       </button>
 
       <div className="max-w-2xl mx-auto px-6 text-center">
@@ -74,17 +74,6 @@ export default function MaintenancePage() {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Status */}
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${
-          darkMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-amber-50 text-amber-600 border border-amber-200'
-        }`}>
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400"></span>
-          </span>
-          System temporarily unavailable
         </div>
 
         {/* Footer */}

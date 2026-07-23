@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useDarkMode, useIsMobile } from '../../_lib/usePageLayout';
 import DashboardTab from '../../_components/DashboardTab';
 import PageShell from '../../_components/PageShell';
+import ClientProviders from '../../_components/ClientProviders';
 
 // Mock data for demo
 const mockStudents = [
@@ -50,7 +51,7 @@ const mockWeeklyData = [
   { day: 'Fri', present: 135, absent: 10 },
 ];
 
-export default function DemoPage() {
+function DemoContent() {
   const [darkMode, toggleTheme] = useDarkMode();
   const isMobile = useIsMobile();
   const [sidebarCollapsed, toggleSidebar] = useState(true);
@@ -82,5 +83,13 @@ export default function DemoPage() {
         />
       </div>
     </PageShell>
+  );
+}
+
+export default function DemoPage() {
+  return (
+    <ClientProviders>
+      <DemoContent />
+    </ClientProviders>
   );
 }
