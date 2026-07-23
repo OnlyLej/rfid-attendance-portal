@@ -12,7 +12,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "exceljs": "^4.4.0",
-    "lucide-react": "^1.23.0",
+    "lucide-react": "^1.26.0",
     "next": "^16.2.10",
     "next-intl": "^4.13.2",
     "odometer": "^0.4.8",
