@@ -56,19 +56,19 @@ const LiveStatsCard = React.memo(function LiveStatsCard({ metVis, dark }) {
 
   return (
 
-    <div className={`p-5 sm:p-6 rounded-2xl border text-center transition-all duration-500 hover:-translate-y-1 ${metVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${dark ? 'bg-white/[0.04] border-white/8 hover:border-white/16' : 'bg-white border-gray-100'}`}>
+    <div className={`p-4 sm:p-5 md:p-6 rounded-2xl border text-center transition-all duration-500 hover:-translate-y-1 ${metVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'} ${dark ? 'bg-white/[0.04] border-white/8 hover:border-white/16' : 'bg-white border-gray-100'}`}>
 
       {publicStats ? (
 
         <>
 
-          <div className="text-3xl sm:text-4xl font-black tabular-nums mb-1" style={{ color: '#0ea5e9' }}>
+          <div className="text-2xl sm:text-3xl md:text-4xl font-black tabular-nums mb-1" style={{ color: '#0ea5e9' }}>
 
             <Odometer value={publicStats.logsToday || 0} format="(,ddd)" theme="minimal" />
 
           </div>
 
-          <p className={`text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
+          <p className={`text-[10px] sm:text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
 
         </>
 
@@ -76,9 +76,9 @@ const LiveStatsCard = React.memo(function LiveStatsCard({ metVis, dark }) {
 
         <>
 
-          <div className={`h-10 sm:h-12 w-24 mx-auto rounded-lg animate-pulse ${dark ? 'bg-white/10' : 'bg-gray-200'} mb-1`} />
+          <div className={`h-8 sm:h-10 md:h-12 w-20 sm:w-24 mx-auto rounded-lg animate-pulse ${dark ? 'bg-white/10' : 'bg-gray-200'} mb-1`} />
 
-          <p className={`text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
+          <p className={`text-[10px] sm:text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>Scans logged today</p>
 
         </>
 
@@ -850,11 +850,11 @@ export default function LandingPage() {
 
 
       {/* ── METRICS ── */}
-      <section ref={metRef} className="relative py-14 sm:py-16" style={{ zIndex: 1 }}>
+      <section ref={metRef} className="relative py-12 sm:py-14 md:py-16" style={{ zIndex: 1 }}>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-5">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-5">
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
 
             {/* Live students tracked today card */}
 
@@ -874,13 +874,13 @@ export default function LandingPage() {
 
                 style={{ transitionDelay: `${(i + 1) * 80}ms` }}>
 
-                <p className="text-3xl sm:text-4xl font-black tabular-nums mb-1" style={{ color: m.accent }}>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-black tabular-nums mb-1" style={{ color: m.accent }}>
 
                   <CountUp to={m.to} suffix={m.suffix} prefix={m.prefix} />
 
                 </p>
 
-                <p className={`text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>{m.label}</p>
+                <p className={`text-[10px] sm:text-xs font-bold ${dark ? 'text-gray-500' : 'text-gray-400'}`}>{m.label}</p>
 
               </div>
 
@@ -896,7 +896,7 @@ export default function LandingPage() {
 
       {/* ── FEATURES ── */}
 
-      <section id="features" ref={featRef} className="relative max-w-6xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex: 1 }}>
+      <section id="features" ref={featRef} className="relative max-w-6xl mx-auto px-3 sm:px-4 md:px-5 py-16 sm:py-20 md:py-28" style={{ zIndex: 1 }}>
 
         <div className={`text-center mb-12 transition-all duration-700 ${featVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 
@@ -918,7 +918,7 @@ export default function LandingPage() {
 
         {/* Mobile accordion */}
 
-        <div className="md:hidden space-y-2.5">
+        <div className="md:hidden space-y-2 sm:space-y-2.5">
 
           {features.map((f, i) => (
 
@@ -928,7 +928,7 @@ export default function LandingPage() {
 
               style={{ transitionDelay: `${i * 60}ms` }}>
 
-              <button onClick={() => setFeatIdx(featIdx === i ? -1 : i)} className="w-full text-left p-4 flex items-center gap-3">
+              <button onClick={() => setFeatIdx(featIdx === i ? -1 : i)} className="w-full text-left p-3 sm:p-4 flex items-center gap-3">
 
                 <div className={`w-9 h-9 min-w-[36px] rounded-xl flex items-center justify-center transition-all ${featIdx === i ? `${f.bgClass}` : dark ? 'bg-white/6' : 'bg-gray-100'}`}>
 
@@ -950,11 +950,11 @@ export default function LandingPage() {
 
               <div className={`overflow-hidden transition-all duration-400 ${featIdx === i ? 'max-h-80' : 'max-h-0'}`}>
 
-                <div className="px-4 pb-5 pl-16">
+                <div className="px-3 sm:px-4 pb-4 sm:pb-5 pl-14 sm:pl-16">
 
-                  <p className={`text-sm leading-relaxed mb-3 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
+                  <p className={`text-xs sm:text-sm leading-relaxed mb-2 sm:mb-3 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
 
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
 
                     {f.bullets.map((b, bi) => (
 
@@ -982,15 +982,15 @@ export default function LandingPage() {
 
         {/* Desktop two-col */}
 
-        <div className="hidden md:grid md:grid-cols-2 gap-4 items-start">
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 items-start">
 
-          <div className="space-y-2">
+          <div className="space-y-2 lg:col-span-1">
 
             {features.map((f, i) => (
 
               <button key={i} onClick={() => setFeatIdx(i)}
 
-                className={`w-full text-left p-5 rounded-2xl border transition-all duration-300 ${featVis ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'} ${featIdx === i
+                className={`w-full text-left p-4 sm:p-5 rounded-2xl border transition-all duration-300 ${featVis ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8'} ${featIdx === i
 
                   ? dark ? 'bg-white/6 border-white/16' : 'bg-white border-gray-200'
 
@@ -1048,27 +1048,27 @@ export default function LandingPage() {
 
           </div>
 
-          <div className={`sticky top-24 rounded-3xl border overflow-hidden transition-all duration-700 ${featVis ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'} ${dark ? 'bg-gray-900/60 border-white/8' : 'bg-white border-gray-200'}`}
+          <div className={`sticky top-20 lg:top-24 rounded-3xl border overflow-hidden transition-all duration-700 ${featVis ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'} ${dark ? 'bg-gray-900/60 border-white/8' : 'bg-white border-gray-200'}`}
 
-            style={{ minHeight: 360, transitionDelay: '200ms' }}>
+            style={{ minHeight: 320, transitionDelay: '200ms' }}>
 
             {features.map((f, i) => (
 
               <div key={i} className={`transition-all duration-500 ${featIdx === i ? 'opacity-100 relative' : 'opacity-0 absolute inset-0 pointer-events-none'}`}>
 
-                <div className="p-7">
+                <div className="p-5 sm:p-6 md:p-7">
 
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${f.bgClass}`}>
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 sm:mb-5 ${f.bgClass}`}>
 
-                    <f.icon size={26} className="text-white" />
+                    <f.icon size={22} className="text-white" />
 
                   </div>
 
-                  <h3 className={`text-xl font-black mb-2 ${dark ? 'text-white' : 'text-gray-900'}`}>{f.title}</h3>
+                  <h3 className={`text-lg sm:text-xl font-black mb-2 ${dark ? 'text-white' : 'text-gray-900'}`}>{f.title}</h3>
 
-                  <p className={`text-sm leading-relaxed mb-5 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
+                  <p className={`text-xs sm:text-sm leading-relaxed mb-4 sm:mb-5 ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.desc}</p>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
 
                     {f.bullets.map((b, bi) => (
 
@@ -1100,11 +1100,11 @@ export default function LandingPage() {
 
       {/* ── HOW IT WORKS ── */}
 
-      <section id="how-it-works" ref={howRef} className={`relative py-20 sm:py-28 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`} style={{ zIndex: 1 }}>
+      <section id="how-it-works" ref={howRef} className={`relative py-16 sm:py-20 md:py-28 ${dark ? 'bg-white/[0.02]' : 'bg-white'}`} style={{ zIndex: 1 }}>
 
         <div className="absolute inset-x-0 top-0 h-px" style={{ background: dark ? 'linear-gradient(90deg,transparent,rgba(148,163,184,0.1),transparent)' : 'linear-gradient(90deg,transparent,rgba(100,116,139,0.13),transparent)' }} />
 
-        <div className="max-w-3xl mx-auto px-4 sm:px-5">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-5">
 
           <div className={`text-center mb-12 transition-all duration-700 ${howVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 
@@ -1126,7 +1126,7 @@ export default function LandingPage() {
 
             <div className={`absolute w-px transition-opacity duration-700 bg-sky-400 ${howVis ? 'opacity-100' : 'opacity-0'}`}
 
-              style={{ left: 31, top: 32, bottom: 32 }} />
+              style={{ left: 28, top: 28, bottom: 28 }} />
 
             <div className="space-y-5">
 
@@ -1138,7 +1138,7 @@ export default function LandingPage() {
 
                   style={{ transitionDelay: `${i * 110}ms` }}>
 
-                  <div className={`relative z-10 flex-shrink-0 w-[62px] h-[62px] rounded-2xl flex items-center justify-center ${s.bgClass} transition-all duration-300 group-hover:scale-105 group-hover:rotate-2`}>
+                  <div className={`relative z-10 flex-shrink-0 w-[52px] sm:w-[62px] h-[52px] sm:h-[62px] rounded-2xl flex items-center justify-center ${s.bgClass} transition-all duration-300 group-hover:scale-105 group-hover:rotate-2`}>
 
                     <s.icon size={22} className="text-white" />
 
@@ -1172,7 +1172,7 @@ export default function LandingPage() {
 
       {/* ── FAQ ──} */}
 
-      <section id="faq" ref={faqRef} className="relative max-w-3xl mx-auto px-4 sm:px-5 py-20 sm:py-28" style={{ zIndex: 1 }}>
+      <section id="faq" ref={faqRef} className="relative max-w-3xl mx-auto px-3 sm:px-4 md:px-5 py-16 sm:py-20 md:py-28" style={{ zIndex: 1 }}>
 
         <div className={`text-center mb-10 transition-all duration-700 ${faqVis ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
 
@@ -1196,7 +1196,7 @@ export default function LandingPage() {
 
               style={{ transitionDelay: `${i * 55}ms` }}>
 
-              <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3 group">
+              <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between p-3 sm:p-4 md:p-5 text-left gap-3 group">
 
                 <span className={`font-bold text-sm leading-snug flex-1 ${dark ? 'text-white' : 'text-gray-900'}`}>{f.q}</span>
 
@@ -1208,9 +1208,9 @@ export default function LandingPage() {
 
               </button>
 
-              <div className={`overflow-hidden transition-all duration-350 ${openFaq === i ? 'max-h-56 pb-5' : 'max-h-0'}`}>
+              <div className={`overflow-hidden transition-all duration-350 ${openFaq === i ? 'max-h-56 pb-4 sm:pb-5' : 'max-h-0'}`}>
 
-                <p className={`px-4 sm:px-5 text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.a}</p>
+                <p className={`px-3 sm:px-4 md:px-5 text-xs sm:text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-gray-500'}`}>{f.a}</p>
 
               </div>
 

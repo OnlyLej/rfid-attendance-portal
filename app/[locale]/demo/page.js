@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDarkMode, useIsMobile } from '../../_lib/usePageLayout';
 import DashboardTab from '../../_components/DashboardTab';
 import PageShell from '../../_components/PageShell';
 import ClientProviders from '../../_components/ClientProviders';
+import { AppProvider } from '../../_lib/AppContext';
 
 // Mock data for demo
 const mockStudents = [
@@ -56,6 +57,21 @@ function DemoContent() {
   const isMobile = useIsMobile();
   const [sidebarCollapsed, toggleSidebar] = useState(true);
 
+  // Set up demo user context on mount
+  useEffect(() => {
+    // Flag to prevent API calls in demo mode
+    sessionStorage.setItem('isDemoMode', 'true');
+    // Mock a teacher user for demo mode
+    sessionStorage.setItem('sessionToken', 'demo-token');
+    sessionStorage.setItem('userType', 'teacher');
+    sessionStorage.setItem('userInfo', JSON.stringify({
+      fullName: 'Demo Teacher',
+      username: 'demo',
+    }));
+    sessionStorage.setItem('loginTime', Date.now().toString());
+
+  }, []);
+
   const handleRefresh = () => {
     // Simulate refresh with loading
     console.log('Demo refresh');
@@ -88,8 +104,10 @@ function DemoContent() {
 
 export default function DemoPage() {
   return (
-    <ClientProviders>
-      <DemoContent />
-    </ClientProviders>
+    <AppProvider>
+      <ClientProviders>
+        <DemoContent />
+      </ClientProviders>
+    </AppProvider>
   );
 }
