@@ -1,15 +1,46 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDarkMode } from '../../_lib/usePageLayout';
 import { Clock, AlertCircle, Sun, Moon } from 'lucide-react';
 
 export default function MaintenancePage() {
   const [darkMode, setDarkMode] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') setDarkMode(true);
   }, []);
+
+  useEffect(() => {
+    const checkMaintenanceStatus = async () => {
+      try {
+        // Try to fetch a simple endpoint to check if maintenance is over
+        const response = await fetch('/api/proxy?action=getPublicLiveStats');
+        if (response.ok) {
+          // Maintenance is over, redirect to previous page
+          const preMaintenanceUrl = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('preMaintenanceUrl='))
+            ?.split('=')[1];
+          
+          if (preMaintenanceUrl) {
+            // Clear the cookie and redirect
+            document.cookie = 'preMaintenanceUrl=; path=/; max-age=0';
+            router.push(decodeURIComponent(preMaintenanceUrl));
+          } else {
+            // No stored URL, go to home
+            router.push('/');
+          }
+        }
+      } catch (error) {
+        console.log('Still in maintenance mode');
+      }
+    };
+
+    checkMaintenanceStatus();
+  }, [router]);
 
   const toggleDark = () => {
     const n = !darkMode;

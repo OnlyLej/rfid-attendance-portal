@@ -30,6 +30,15 @@ const TEACHER_SECTIONS = {
   ],
 };
 
+const DEMO_SECTIONS = {
+  main: [
+    { id: 'demo',  labelKey: 'dashboard',   icon: LayoutDashboard, color: '#0ea5e9', href: '/demo',  matchExact: true  },
+  ],
+  system: [
+    { id: 'signout', labelKey: 'signOut', icon: LogOut, color: '#f43f5e', href: '#signout', isSignOut: true },
+  ],
+};
+
 const PARENT_SECTIONS = {
   main: [
     { id: 'home',          labelKey: 'home',          icon: Home,         color: '#0ea5e9', href: '/parent',        matchExact: true  },
@@ -185,10 +194,24 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
   const t = useTranslations();
   const [showLogout, setShowLogout] = useState(false);
 
-  const tree        = userType === 'teacher' ? TEACHER_SECTIONS : PARENT_SECTIONS;
+  // Check if we're in demo mode
+  const isDemoMode = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('isDemoMode') === 'true';
+
+  const tree        = isDemoMode ? DEMO_SECTIONS : (userType === 'teacher' ? TEACHER_SECTIONS : PARENT_SECTIONS);
   const mainItems   = tree.main;
   const systemItems = tree.system;
   const isCollapsed = isMobile ? false : collapsed;
+
+  // Demo mode logout handler
+  const handleDemoLogout = () => {
+    sessionStorage.removeItem('isDemoMode');
+    sessionStorage.removeItem('demoData');
+    sessionStorage.removeItem('sessionToken');
+    sessionStorage.removeItem('userType');
+    sessionStorage.removeItem('userInfo');
+    sessionStorage.removeItem('loginTime');
+    window.location.href = '/';
+  };
 
   return (
     <>
@@ -232,14 +255,14 @@ function SidebarInner({ darkMode, collapsed, onToggleCollapse, isMobile, mobileO
           <SectionLabel labelKey="menu" darkMode={darkMode} collapsed={isCollapsed} t={t} />
           <div className="space-y-0.5">
             {mainItems.map(item => (
-              <NavItem key={item.id} item={item} active={checkActive(item, pathname, search)} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} t={t} />
+              <NavItem key={item.id} item={item} active={checkActive(item, pathname, search)} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => isDemoMode ? handleDemoLogout() : setShowLogout(true)} t={t} />
             ))}
           </div>
 
           <SectionLabel labelKey="account" darkMode={darkMode} collapsed={isCollapsed} t={t} />
           <div className="space-y-0.5">
             {systemItems.map(item => (
-              <NavItem key={item.id} item={item} active={false} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => setShowLogout(true)} t={t} />
+              <NavItem key={item.id} item={item} active={false} darkMode={darkMode} collapsed={isCollapsed} onSignOut={() => isDemoMode ? handleDemoLogout() : setShowLogout(true)} t={t} />
             ))}
           </div>
         </nav>

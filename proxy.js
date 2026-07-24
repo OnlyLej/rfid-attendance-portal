@@ -18,10 +18,15 @@ export default async function middleware(request) {
       if (request.nextUrl.pathname.includes('/maintenance')) {
         return intlMiddleware(request);
       }
-      // Redirect all other requests to maintenance page
-      const url = request.nextUrl.clone();
-      url.pathname = `/${defaultLocale}/maintenance`;
-      return NextResponse.redirect(url);
+      // Store original URL before redirecting to maintenance
+      const response = NextResponse.redirect(new URL(`/${defaultLocale}/maintenance`, request.url));
+      response.cookies.set('preMaintenanceUrl', request.nextUrl.pathname, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 // 24 hours
+      });
+      return response;
     }
   } catch (error) {
     // Edge Config might not be available in development, continue normally
