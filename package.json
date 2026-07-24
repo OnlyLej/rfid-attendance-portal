@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
+    "@vercel/edge-config": "^1.4.3",
     "@vercel/speed-insights": "^2.0.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.26.0",
@@ -30,5 +31,9 @@
   "overrides": {
     "minimatch": "^3.1.4",
     "brace-expansion": "^2.0.1"
+  },
+  "optionalDependencies": {
+    "@next/swc-win32-x64-msvc": "^16.2.11",
+    "lightningcss-win32-x64-msvc": "^1.23.0"
   }
 }

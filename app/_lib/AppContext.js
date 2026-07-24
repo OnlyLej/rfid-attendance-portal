@@ -88,10 +88,18 @@ export function AppProvider({ children }) {
     const token       = sessionStorage.getItem('sessionToken');
     const savedType   = sessionStorage.getItem('userType');
     const savedInfo   = sessionStorage.getItem('userInfo');
+    const savedLoginTime = sessionStorage.getItem('loginTime');
+    const isDemoMode  = sessionStorage.getItem('isDemoMode') === 'true';
     if (token && savedType) {
       setAuthenticated(true);
       setUserType(savedType);
       setUserInfo(savedInfo ? JSON.parse(savedInfo) : null);
+      // Initialize lastActivity from login time or current time
+      setLastActivity(savedLoginTime ? parseInt(savedLoginTime) : Date.now());
+      // In demo mode, mark data as loaded to prevent API calls
+      if (isDemoMode) {
+        setDataLoaded(true);
+      }
     }
   }, []);
 
@@ -201,6 +209,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (!authenticated) { setLive(null); return; }
+    const isDemoMode = sessionStorage.getItem('isDemoMode') === 'true';
+    if (isDemoMode) return; // Skip live polling in demo mode
     let busy = false;
     const tick = async () => {
       if (document.hidden || busy) return;
