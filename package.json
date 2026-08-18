@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
-    "@vercel/edge-config": "^1.4.3",
+    "@vercel/edge-config": "^1.5.1",
     "@vercel/speed-insights": "^2.0.0",
     "exceljs": "^4.4.0",
     "lucide-react": "^1.27.0",
