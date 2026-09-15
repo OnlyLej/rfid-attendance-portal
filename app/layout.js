@@ -76,6 +76,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html suppressHydrationWarning>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1108552040171612"
+     crossorigin="anonymous"></script>
       <body suppressHydrationWarning>
         {children}
       </body>
